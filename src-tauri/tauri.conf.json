@@ -1,24 +1,15 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "irs-tools",
+  "version": "0.1.0",
+  "identifier": "com.example.irs-tools",
   "build": {
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
     "devPath": "http://localhost:5173",
     "distDir": "../dist"
   },
-  "package": {
-    "productName": "irs-tools",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": true
-    },
-    "bundle": {
-      "active": true,
-      "identifier": "com.example.irs-tools",
-      "resources": ["config/thresholds.json"],
-      "targets": "all"
-    },
+  "app": {
     "security": {
       "csp": null
     },
@@ -29,5 +20,10 @@
         "height": 720
       }
     ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": ["config/thresholds.json"]
   }
 }
