@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
-use std::io::{Read, Write};
+use std::io::Write;
+use tauri::Manager;
+
 use std::time::Duration;
 
 type CommandResult<T> = Result<T, String>;
@@ -40,11 +42,14 @@ struct TestSummary {
 
 fn read_config(app: &tauri::AppHandle) -> CommandResult<TestConfig> {
     let path = app
-        .path_resolver()
-        .resolve_resource("config/thresholds.json")
-        .ok_or_else(|| "无法找到配置文件路径".to_string())?;
-    let data = std::fs::read_to_string(&path)
-        .map_err(|err| format!("无法读取配置文件: {err}"))?;
+        .path()
+        .resolve(
+            "config/thresholds.json",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|_| "无法找到配置文件路径".to_string())?;
+
+    let data = std::fs::read_to_string(&path).map_err(|err| format!("无法读取配置文件: {err}"))?;
     serde_json::from_str(&data).map_err(|err| format!("配置文件解析失败: {err}"))
 }
 

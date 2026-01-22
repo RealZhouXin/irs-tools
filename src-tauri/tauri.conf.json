@@ -6,8 +6,8 @@
   "build": {
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
-    "devPath": "http://localhost:5173",
-    "distDir": "../dist"
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
   },
   "app": {
     "security": {
@@ -24,6 +24,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": ["config/thresholds.json"]
+    "resources": [
+      "config/thresholds.json"
+    ]
   }
 }
