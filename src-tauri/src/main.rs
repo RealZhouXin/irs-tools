@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use tauri::Manager;
 
 use libloading::Library;
+use tracing::{error, info, warn};
 
 use std::fmt;
 
@@ -139,6 +140,7 @@ struct CommSession {
 
 impl CommSession {
     fn connect(dll: CommDll, config: &ConnectionConfig, read_timeout_ms: u32) -> CommandResult<Self> {
+        info!("Connecting to device");
         unsafe {
             if let Some(set_read_timeout) = dll.set_read_timeout {
                 (set_read_timeout)(read_timeout_ms);
@@ -146,6 +148,7 @@ impl CommSession {
             let code = match config {
                 ConnectionConfig::Serial { port_number } => (dll.connect_mower)(*port_number),
                 ConnectionConfig::Network { ip_address, port } => {
+                    info!("Using network connection {}:{}", ip_address, port);
                     let connect_fn = dll
                         .connect_mower_via_network
                         .ok_or_else(|| "DLL 未提供 ConnectMowerViaNetwork 接口".to_string())?;
@@ -157,6 +160,7 @@ impl CommSession {
                 }
             };
             if code != 0 {
+                error!("Connect failed with code {}", code);
                 return Err(format!(
                     "连接串口失败: {} (ReturnCode={})",
                     connect_return_code_message(code),
@@ -165,10 +169,12 @@ impl CommSession {
             }
         }
 
+        info!("Connection established");
         Ok(Self { dll })
     }
 
     fn param_id588(&self) -> CommandResult<ParamId588Result> {
+        info!("Running ParamId588");
         let mut return_code: u8 = 9;
         let mut dev_gr_no: u16 = 0;
         let mut sub_dev_gr_no: u8 = 0;
@@ -190,6 +196,7 @@ impl CommSession {
         }
 
         if return_code != 0 {
+            error!("ParamId588 failed with code {}", return_code);
             return Err(format!(
                 "ParamId588 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
@@ -208,6 +215,7 @@ impl CommSession {
     }
 
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()> {
+        info!("Running ParamId606 FrontLightMode={} Power={}", front_light_mode, power);
         let mut return_code: u8 = 9;
 
         unsafe {
@@ -215,6 +223,7 @@ impl CommSession {
         }
 
         if return_code != 0 {
+            error!("ParamId606 failed with code {}", return_code);
             return Err(format!(
                 "ParamId606 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
@@ -366,6 +375,7 @@ fn locate_dll(app: &tauri::AppHandle) -> CommandResult<PathBuf> {
 
     for candidate in candidates {
         if candidate.exists() {
+            info!("Using CommDllv2.dll at {}", candidate.display());
             return Ok(candidate);
         }
     }
@@ -450,6 +460,7 @@ fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResul
 
 #[tauri::command]
 fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
+    info!("Starting full test run");
     let config = read_config(&app)?;
     let dll_path = locate_dll(&app)?;
     let dll = unsafe { CommDll::load(&dll_path)? };
@@ -458,7 +469,17 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     let mut results = Vec::with_capacity(config.tests.len());
 
     for group in config.tests {
-        results.push(run_group(&session, group)?);
+        let name = group.name.clone();
+        match run_group(&session, group) {
+            Ok(result) => {
+                info!("Completed group {}", name);
+                results.push(result);
+            }
+            Err(err) => {
+                error!("Group {} failed: {}", name, err);
+                return Err(err);
+            }
+        }
     }
 
     let overall_passed = results.iter().all(|item| item.passed);
@@ -471,6 +492,7 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
 
 #[tauri::command]
 fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
+    info!("Retest group {}", group_name);
     let config = read_config(&app)?;
     let TestConfig {
         connection,
@@ -490,8 +512,15 @@ fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<Test
 }
 
 fn main() {
+    init_logging();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![start_test, retest_group])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn init_logging() {
+    if let Err(err) = tracing_subscriber::fmt().with_target(false).try_init() {
+        warn!("Tracing already initialized: {}", err);
+    }
 }

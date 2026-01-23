@@ -19,7 +19,7 @@
         {
           "name": "min_par_sw_ver",
           "output": "min_par_sw_ver",
-          "min": 0,
+          "min": 5,
           "max": 255
         },
         {
