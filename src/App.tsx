@@ -122,7 +122,7 @@ const App = () => {
       <section className="note">
         <h3>配置说明</h3>
         <p>
-          检测阈值与串口参数可在 <code>src-tauri/config/thresholds.json</code> 中配置。
+          检测阈值与连接方式可在 <code>src-tauri/config/thresholds.json</code> 中配置。
         </p>
       </section>
     </main>

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::ffi::CString;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 
@@ -10,9 +11,16 @@ type CommandResult<T> = Result<T, String>;
 
 #[derive(Debug, Deserialize)]
 struct TestConfig {
-    port_number: u16,
+    connection: ConnectionConfig,
     read_timeout_ms: u32,
     tests: Vec<TestItem>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case")]
+enum ConnectionConfig {
+    Serial { port_number: u16 },
+    Network { ip_address: String, port: String },
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -90,6 +98,7 @@ impl fmt::Display for ParamId588Result {
 }
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
+type ConnectMowerViaNetworkFn = unsafe extern "system" fn(*mut i8, *mut i8) -> u8;
 type CloseComPortFn = unsafe extern "system" fn() -> u8;
 type SetReadTimeoutFn = unsafe extern "system" fn(u32);
 type ParamId588Fn = unsafe extern "system" fn(
@@ -106,6 +115,7 @@ type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 struct CommDll {
     _lib: Library,
     connect_mower: ConnectMowerFn,
+    connect_mower_via_network: Option<ConnectMowerViaNetworkFn>,
     close_com_port: CloseComPortFn,
     set_read_timeout: Option<SetReadTimeoutFn>,
     param_id588: ParamId588Fn,
@@ -117,12 +127,24 @@ struct CommSession {
 }
 
 impl CommSession {
-    fn connect(dll: CommDll, port_number: u16, read_timeout_ms: u32) -> CommandResult<Self> {
+    fn connect(dll: CommDll, config: &ConnectionConfig, read_timeout_ms: u32) -> CommandResult<Self> {
         unsafe {
             if let Some(set_read_timeout) = dll.set_read_timeout {
                 (set_read_timeout)(read_timeout_ms);
             }
-            let code = (dll.connect_mower)(port_number);
+            let code = match config {
+                ConnectionConfig::Serial { port_number } => (dll.connect_mower)(*port_number),
+                ConnectionConfig::Network { ip_address, port } => {
+                    let connect_fn = dll
+                        .connect_mower_via_network
+                        .ok_or_else(|| "DLL 未提供 ConnectMowerViaNetwork 接口".to_string())?;
+                    let ip_c = CString::new(ip_address.as_str())
+                        .map_err(|_| "IP 地址包含非法字符".to_string())?;
+                    let port_c =
+                        CString::new(port.as_str()).map_err(|_| "端口号包含非法字符".to_string())?;
+                    (connect_fn)(ip_c.as_ptr() as *mut i8, port_c.as_ptr() as *mut i8)
+                }
+            };
             if code != 0 {
                 return Err(format!(
                     "连接串口失败: {} (ReturnCode={})",
@@ -261,6 +283,14 @@ impl CommDll {
             &lib,
             &[b"ConnectMower\0", b"ConnectMower@2\0", b"_ConnectMower@2\0"],
         )?;
+        let connect_mower_via_network = load_symbol_optional::<ConnectMowerViaNetworkFn>(
+            &lib,
+            &[
+                b"ConnectMowerViaNetwork\0",
+                b"ConnectMowerViaNetwork@8\0",
+                b"_ConnectMowerViaNetwork@8\0",
+            ],
+        );
         let close_com_port = load_symbol::<CloseComPortFn>(
             &lib,
             &[b"CloseCOMPort\0", b"CloseCOMPort@0\0", b"_CloseCOMPort@0\0"],
@@ -281,6 +311,7 @@ impl CommDll {
         Ok(Self {
             _lib: lib,
             connect_mower,
+            connect_mower_via_network,
             close_com_port,
             set_read_timeout,
             param_id588,
@@ -354,7 +385,7 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     let config = read_config(&app)?;
     let dll_path = locate_dll(&app)?;
     let dll = unsafe { CommDll::load(&dll_path)? };
-    let session = CommSession::connect(dll, config.port_number, config.read_timeout_ms)?;
+    let session = CommSession::connect(dll, &config.connection, config.read_timeout_ms)?;
 
     let mut results = Vec::with_capacity(config.tests.len());
 
