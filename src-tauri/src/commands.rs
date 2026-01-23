@@ -179,3 +179,13 @@ pub fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<
 
     run_group(&session, group)
 }
+
+#[tauri::command]
+pub fn show_main_window(app: tauri::AppHandle) -> CommandResult<()> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "未找到主窗口".to_string())?;
+    window.show().map_err(|err| err.to_string())?;
+    window.set_focus().map_err(|err| err.to_string())?;
+    Ok(())
+}

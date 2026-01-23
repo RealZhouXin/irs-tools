@@ -23,16 +23,96 @@ type TestSummary = {
   overall_passed: boolean;
 };
 
+type Language = "zh" | "en";
+type StatusKey = "idle" | "running" | "done" | "failed";
+
+const textMap = {
+  zh: {
+    title: "检测软件",
+    subtitle: "点击开始检测后，将通过 DLL 调用测试指令并返回检测结果。",
+    start: "开始检测",
+    statusTitle: "检测状态",
+    status: {
+      idle: "等待开始",
+      running: "检测中，请稍候...",
+      done: "检测完成",
+      failed: "检测失败",
+    },
+    summary: {
+      pass: "全部通过",
+      fail: "未通过",
+      pending: "进行中",
+      idle: "未开始",
+    },
+    table: {
+      group: "检测项",
+      command: "命令",
+      range: "阈值范围",
+      value: "检测值",
+      result: "结果",
+      empty: "尚未开始检测",
+    },
+    pass: "通过",
+    fail: "未通过",
+    retest: "重测",
+    retesting: "重测中...",
+    configTitle: "配置说明",
+    configPrefix: "检测阈值与连接方式可在",
+    configSuffix: "中配置。",
+    langLabel: "EN",
+  },
+  en: {
+    title: "Test Console",
+    subtitle: "Click Start to run DLL test commands and show the results.",
+    start: "Start Test",
+    statusTitle: "Status",
+    status: {
+      idle: "Ready",
+      running: "Running...",
+      done: "Completed",
+      failed: "Failed",
+    },
+    summary: {
+      pass: "All Pass",
+      fail: "Failed",
+      pending: "In Progress",
+      idle: "Not Started",
+    },
+    table: {
+      group: "Test Item",
+      command: "Command",
+      range: "Range",
+      value: "Value",
+      result: "Result",
+      empty: "No tests started.",
+    },
+    pass: "Pass",
+    fail: "Fail",
+    retest: "Retest",
+    retesting: "Retesting...",
+    configTitle: "Configuration",
+    configPrefix: "Thresholds and connection settings are in",
+    configSuffix: ".",
+    langLabel: "中文",
+  },
+} as const;
+
 const App = () => {
   const [results, setResults] = useState<TestResult[]>([]);
-  const [statusText, setStatusText] = useState("等待开始");
+  const [language, setLanguage] = useState<Language>("zh");
+  const [statusKey, setStatusKey] = useState<StatusKey>("idle");
   const [summaryState, setSummaryState] = useState<"pass" | "fail" | "pending" | "idle">("idle");
   const [running, setRunning] = useState(false);
   const [retesting, setRetesting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const text = textMap[language];
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+
+    invoke("show_main_window").catch((err) => {
+      console.error("Failed to show main window", err);
+    });
 
     listen<TestResult>("test-group-complete", (event) => {
       const incoming = event.payload;
@@ -65,18 +145,18 @@ const App = () => {
     setRetesting(null);
     setError(null);
     setResults([]);
-    setStatusText("检测中，请稍候...");
+    setStatusKey("running");
     setSummaryState("pending");
 
     try {
       const summary = await invoke<TestSummary>("start_test");
       setResults(summary.results);
-      setStatusText("检测完成");
+      setStatusKey("done");
       setSummaryState(summary.overall_passed ? "pass" : "fail");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      setStatusText("检测失败");
+      setStatusKey("failed");
       setSummaryState("fail");
     } finally {
       setRunning(false);
@@ -106,31 +186,29 @@ const App = () => {
     }
   };
 
-  const summaryLabel =
-    summaryState === "pass"
-      ? "全部通过"
-      : summaryState === "fail"
-        ? "未通过"
-        : summaryState === "pending"
-          ? "进行中"
-          : "未开始";
+  const summaryLabel = text.summary[summaryState];
 
   return (
     <main className="container">
       <header>
         <div>
-          <h1>检测软件</h1>
-          <p className="subtitle">点击开始检测后，将通过 DLL 调用测试指令并返回检测结果。</p>
+          <h1>{text.title}</h1>
+          <p className="subtitle">{text.subtitle}</p>
         </div>
-        <button className="primary" onClick={handleStart} disabled={running}>
-          开始检测
-        </button>
+        <div className="header-actions">
+          <button className="primary" onClick={handleStart} disabled={running}>
+            {text.start}
+          </button>
+          <button className="lang-toggle" onClick={() => setLanguage((prev) => (prev === "zh" ? "en" : "zh"))}>
+            {text.langLabel}
+          </button>
+        </div>
       </header>
 
       <section className="status">
         <div>
-          <h2>检测状态</h2>
-          <p>{statusText}</p>
+          <h2>{text.statusTitle}</h2>
+          <p>{text.status[statusKey]}</p>
         </div>
         <div className="summary" data-state={summaryState === "idle" ? undefined : summaryState}>
           {summaryLabel}
@@ -141,11 +219,11 @@ const App = () => {
         <table>
           <thead>
             <tr>
-              <th>检测项</th>
-              <th>命令</th>
-              <th>阈值范围</th>
-              <th>检测值</th>
-              <th>结果</th>
+              <th>{text.table.group}</th>
+              <th>{text.table.command}</th>
+              <th>{text.table.range}</th>
+              <th>{text.table.value}</th>
+              <th>{text.table.result}</th>
             </tr>
           </thead>
           <tbody>
@@ -158,7 +236,7 @@ const App = () => {
             ) : results.length === 0 ? (
               <tr>
                 <td colSpan={5} className="empty">
-                  尚未开始检测
+                  {text.table.empty}
                 </td>
               </tr>
             ) : (
@@ -173,7 +251,7 @@ const App = () => {
                     <td>-</td>
                     <td className={group.passed ? "pass" : "fail"}>
                       <div className="group-actions">
-                        <span>{group.passed ? "通过" : "未通过"}</span>
+                        <span>{group.passed ? text.pass : text.fail}</span>
                         <button
                           className="retest"
                           onClick={() => handleRetest(group.name)}
@@ -181,7 +259,7 @@ const App = () => {
                             running || retesting !== null || summaryState === "pending" || summaryState === "idle"
                           }
                         >
-                          {retesting === group.name ? "重测中..." : "重测"}
+                          {retesting === group.name ? text.retesting : text.retest}
                         </button>
                       </div>
                     </td>
@@ -196,7 +274,7 @@ const App = () => {
                       {check.min === null || check.max === null ? "-" : `${check.min} ~ ${check.max}`}
                     </td>
                     <td>{check.value === null ? "-" : check.value}</td>
-                    <td className={check.passed ? "pass" : "fail"}>{check.passed ? "通过" : "未通过"}</td>
+                    <td className={check.passed ? "pass" : "fail"}>{check.passed ? text.pass : text.fail}</td>
                   </tr>
                 ));
 
@@ -208,9 +286,9 @@ const App = () => {
       </section>
 
       <section className="note">
-        <h3>配置说明</h3>
+        <h3>{text.configTitle}</h3>
         <p>
-          检测阈值与连接方式可在 <code>src-tauri/config/thresholds.json</code> 中配置。
+          {text.configPrefix} <code>src-tauri/config/thresholds.json</code> {text.configSuffix}
         </p>
       </section>
     </main>
