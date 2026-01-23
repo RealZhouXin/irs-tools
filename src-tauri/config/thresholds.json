@@ -1,25 +1,40 @@
 {
-  "serial_port": "/dev/ttyUSB0",
-  "baud_rate": 9600,
+  "connection": {
+    "mode": "network",
+    "ip_address": "10.101.1.100",
+    "port": "12345"
+  },
   "read_timeout_ms": 1000,
   "tests": [
     {
-      "name": "电压检测",
-      "command": "MEAS:VOLT?\n",
-      "min": 4.8,
-      "max": 5.2
+      "name": "588 应用软件",
+      "command": "param_id588",
+      "checks": [
+        {
+          "name": "maj_par_sw_ver",
+          "output": "maj_par_sw_ver",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "min_par_sw_ver",
+          "output": "min_par_sw_ver",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "build_no",
+          "output": "build_no",
+          "min": 0,
+          "max": 999999
+        }
+      ]
     },
     {
-      "name": "电流检测",
-      "command": "MEAS:CURR?\n",
-      "min": 0.9,
-      "max": 1.1
-    },
-    {
-      "name": "温度检测",
-      "command": "MEAS:TEMP?\n",
-      "min": 20.0,
-      "max": 45.0
+      "name": "606 前灯设置",
+      "command": "param_id606",
+      "front_light_mode": 1,
+      "power": 100
     }
   ]
 }
