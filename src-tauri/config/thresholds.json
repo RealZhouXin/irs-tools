@@ -1,25 +1,19 @@
 {
-  "serial_port": "/dev/ttyUSB0",
-  "baud_rate": 9600,
+  "port_number": 1,
   "read_timeout_ms": 1000,
   "tests": [
     {
-      "name": "电压检测",
-      "command": "MEAS:VOLT?\n",
-      "min": 4.8,
-      "max": 5.2
+      "name": "应用软件Build号",
+      "command": "param_id588",
+      "output": "build_no",
+      "min": 0,
+      "max": 999999
     },
     {
-      "name": "电流检测",
-      "command": "MEAS:CURR?\n",
-      "min": 0.9,
-      "max": 1.1
-    },
-    {
-      "name": "温度检测",
-      "command": "MEAS:TEMP?\n",
-      "min": 20.0,
-      "max": 45.0
+      "name": "前灯设置",
+      "command": "param_id606",
+      "front_light_mode": 1,
+      "power": 100
     }
   ]
 }

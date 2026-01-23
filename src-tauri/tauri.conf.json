@@ -28,7 +28,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "config/thresholds.json"
+      "config/thresholds.json",
+      "../CommDllv2.dll"
     ]
   }
 }

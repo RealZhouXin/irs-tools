@@ -4,9 +4,9 @@ import { useState } from "react";
 type TestResult = {
   name: string;
   command: string;
-  min: number;
-  max: number;
-  value: number;
+  min: number | null;
+  max: number | null;
+  value: number | null;
   passed: boolean;
   raw_response: string;
 };
@@ -59,7 +59,7 @@ const App = () => {
       <header>
         <div>
           <h1>检测软件</h1>
-          <p className="subtitle">点击开始检测后，将通过串口发送检测命令并返回检测数值。</p>
+          <p className="subtitle">点击开始检测后，将通过 DLL 调用测试指令并返回检测结果。</p>
         </div>
         <button className="primary" onClick={handleStart} disabled={running}>
           开始检测
@@ -107,10 +107,8 @@ const App = () => {
                   <td>
                     <code>{item.command}</code>
                   </td>
-                  <td>
-                    {item.min} ~ {item.max}
-                  </td>
-                  <td>{item.value}</td>
+                  <td>{item.min === null || item.max === null ? "-" : `${item.min} ~ ${item.max}`}</td>
+                  <td>{item.value === null ? "-" : item.value}</td>
                   <td className={item.passed ? "pass" : "fail"}>
                     {item.passed ? "通过" : "未通过"}
                   </td>
