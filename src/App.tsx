@@ -27,10 +27,12 @@ const App = () => {
   const [statusText, setStatusText] = useState("等待开始");
   const [summaryState, setSummaryState] = useState<"pass" | "fail" | "pending" | "idle">("idle");
   const [running, setRunning] = useState(false);
+  const [retesting, setRetesting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleStart = async () => {
     setRunning(true);
+    setRetesting(null);
     setError(null);
     setStatusText("检测中，请稍候...");
     setSummaryState("pending");
@@ -48,6 +50,29 @@ const App = () => {
       setSummaryState("fail");
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleRetest = async (groupName: string) => {
+    if (running || summaryState === "pending" || summaryState === "idle") {
+      return;
+    }
+    setRetesting(groupName);
+    setError(null);
+
+    try {
+      const updated = await invoke<TestResult>("retest_group", { groupName });
+      setResults((prev) => {
+        const next = prev.map((item) => (item.name === updated.name ? updated : item));
+        const allPassed = next.every((item) => item.passed);
+        setSummaryState((prevState) => (prevState === "idle" ? prevState : allPassed ? "pass" : "fail"));
+        return next;
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+    } finally {
+      setRetesting(null);
     }
   };
 
@@ -117,7 +142,18 @@ const App = () => {
                     <td>-</td>
                     <td>-</td>
                     <td className={group.passed ? "pass" : "fail"}>
-                      {group.passed ? "通过" : "未通过"}
+                      <div className="group-actions">
+                        <span>{group.passed ? "通过" : "未通过"}</span>
+                        <button
+                          className="retest"
+                          onClick={() => handleRetest(group.name)}
+                          disabled={
+                            running || retesting !== null || summaryState === "pending" || summaryState === "idle"
+                          }
+                        >
+                          {retesting === group.name ? "重测中..." : "重测"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

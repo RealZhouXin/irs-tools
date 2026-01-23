@@ -391,6 +391,63 @@ fn command_name(command: &CommandGroupSpec) -> &'static str {
     }
 }
 
+fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResult> {
+    let command_label = command_name(&group.command).to_string();
+    match group.command {
+        CommandGroupSpec::ParamId588 { checks } => {
+            let response = session.param_id588()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id588_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId606 {
+            front_light_mode,
+            power,
+        } => {
+            session.param_id606(front_light_mode, power)?;
+
+            let check_results = vec![CheckResult {
+                name: "执行结果".to_string(),
+                min: None,
+                max: None,
+                value: None,
+                passed: true,
+            }];
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed: true,
+                raw_response: format!(
+                    "FrontLightMode={}, Power={}, ReturnCode=0",
+                    front_light_mode, power
+                ),
+                checks: check_results,
+            })
+        }
+    }
+}
+
 #[tauri::command]
 fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     let config = read_config(&app)?;
@@ -401,60 +458,7 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     let mut results = Vec::with_capacity(config.tests.len());
 
     for group in config.tests {
-        let command_label = command_name(&group.command).to_string();
-        match group.command {
-            CommandGroupSpec::ParamId588 { checks } => {
-                let response = session.param_id588()?;
-                let mut check_results = Vec::with_capacity(checks.len());
-
-                for check in checks {
-                    let value = pick_param_id588_value(check.output, response);
-                    let passed = value >= check.min && value <= check.max;
-                    check_results.push(CheckResult {
-                        name: check.name,
-                        min: Some(check.min),
-                        max: Some(check.max),
-                        value: Some(value),
-                        passed,
-                    });
-                }
-
-                let passed = check_results.iter().all(|item| item.passed);
-
-                results.push(TestResult {
-                    name: group.name,
-                    command: command_label,
-                    passed,
-                    raw_response: response.to_string(),
-                    checks: check_results,
-                });
-            }
-            CommandGroupSpec::ParamId606 {
-                front_light_mode,
-                power,
-            } => {
-                session.param_id606(front_light_mode, power)?;
-
-                let check_results = vec![CheckResult {
-                    name: "执行结果".to_string(),
-                    min: None,
-                    max: None,
-                    value: None,
-                    passed: true,
-                }];
-
-                results.push(TestResult {
-                    name: group.name,
-                    command: command_label,
-                    passed: true,
-                    raw_response: format!(
-                        "FrontLightMode={}, Power={}, ReturnCode=0",
-                        front_light_mode, power
-                    ),
-                    checks: check_results,
-                });
-            }
-        }
+        results.push(run_group(&session, group)?);
     }
 
     let overall_passed = results.iter().all(|item| item.passed);
@@ -465,9 +469,29 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     })
 }
 
+#[tauri::command]
+fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
+    let config = read_config(&app)?;
+    let TestConfig {
+        connection,
+        read_timeout_ms,
+        tests,
+    } = config;
+    let group = tests
+        .into_iter()
+        .find(|item| item.name == group_name)
+        .ok_or_else(|| format!("未找到测试项: {group_name}"))?;
+
+    let dll_path = locate_dll(&app)?;
+    let dll = unsafe { CommDll::load(&dll_path)? };
+    let session = CommSession::connect(dll, &connection, read_timeout_ms)?;
+
+    run_group(&session, group)
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![start_test])
+        .invoke_handler(tauri::generate_handler![start_test, retest_group])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

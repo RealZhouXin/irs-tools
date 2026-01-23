@@ -114,6 +114,28 @@ tbody tr:last-child td {
   font-weight: 600;
 }
 
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.retest {
+  border: 1px solid #cbd5f5;
+  background: #fff;
+  color: #1d4ed8;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.retest:disabled {
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
 .child-row td {
   background: #fff;
 }
