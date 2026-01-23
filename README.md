@@ -1,6 +1,26 @@
 # irs-tools
 
-## 配置文件说明
+## 安装与运行
+
+1. 安装依赖（前端使用 bun）。
+
+```bash
+bun install
+```
+
+2. 运行开发环境（会启动前端 + Tauri 后端）。
+
+```bash
+bun run tauri dev
+```
+
+3. 构建发布包（可选）。
+
+```bash
+bun run tauri build
+```
+
+## 配置说明
 
 配置文件位于 `src-tauri/config/thresholds.json`，用于设置连接方式与测试项。
 
@@ -49,3 +69,51 @@
   ]
 }
 ```
+
+## 开发结构
+
+- 前端：`src/`，负责 UI 展示与调用 Tauri 命令。
+- 后端：`src-tauri/`，负责加载 DLL、连接设备、执行测试与返回结果。
+- 配置：`src-tauri/config/thresholds.json`，定义连接方式与测试项。
+
+## 模块图
+
+```text
+src-tauri/src/
+  main.rs
+    -> commands.rs
+    -> config.rs
+    -> models.rs
+    -> comm_dll.rs
+    -> types.rs
+
+commands.rs
+  -> config.rs (读取配置)
+  -> comm_dll.rs (加载 DLL + 连接设备)
+  -> models.rs (配置/结果数据结构)
+  -> types.rs (CommandResult)
+
+comm_dll.rs
+  -> models.rs (ParamId588Result, ConnectionConfig)
+  -> types.rs (CommandResult)
+
+config.rs
+  -> models.rs (TestConfig)
+  -> types.rs (CommandResult)
+```
+
+## 功能概述
+
+- 支持串口或网络连接设备。
+- 通过 CommDllv2.dll 调用测试指令（如 `ParamId588`、`ParamId606`）。
+- 一条命令可包含多个子项阈值对比，减少重复指令发送。
+- 支持按大项重测并更新结果。
+
+## 常见问题
+
+1. 提示无法加载 DLL？
+   - 确保 `CommDllv2.dll` 位于资源目录或程序当前目录。
+2. `ConnectMowerViaNetwork` 连接失败？
+   - 检查 `ip_address` 与 `port` 配置是否正确。
+3. 读取超时或无返回？
+   - 调整 `read_timeout_ms`，并确认设备处于可响应状态。
