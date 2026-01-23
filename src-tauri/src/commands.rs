@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tracing::{error, info};
 
 use crate::comm_dll::{CommDll, CommSession};
@@ -139,6 +139,9 @@ pub fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
         match run_group(&session, group) {
             Ok(result) => {
                 info!("Completed group {}", name);
+                if let Err(err) = app.emit("test-group-complete", &result) {
+                    error!("Failed to emit result for {}: {}", name, err);
+                }
                 results.push(result);
             }
             Err(err) => {

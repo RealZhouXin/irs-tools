@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useState } from "react";
 
 type CheckResult = {
   name: string;
@@ -30,10 +31,40 @@ const App = () => {
   const [retesting, setRetesting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+
+    listen<TestResult>("test-group-complete", (event) => {
+      const incoming = event.payload;
+      setResults((prev) => {
+        const existingIndex = prev.findIndex((item) => item.name === incoming.name);
+        if (existingIndex === -1) {
+          return [...prev, incoming];
+        }
+        const next = [...prev];
+        next[existingIndex] = incoming;
+        return next;
+      });
+    })
+      .then((stop) => {
+        unlisten = stop;
+      })
+      .catch((err) => {
+        console.error("Failed to listen test-group-complete", err);
+      });
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []);
+
   const handleStart = async () => {
     setRunning(true);
     setRetesting(null);
     setError(null);
+    setResults([]);
     setStatusText("检测中，请稍候...");
     setSummaryState("pending");
 
@@ -45,7 +76,6 @@ const App = () => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      setResults([]);
       setStatusText("检测失败");
       setSummaryState("fail");
     } finally {
