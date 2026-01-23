@@ -1,14 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
-type TestResult = {
+type CheckResult = {
   name: string;
-  command: string;
   min: number | null;
   max: number | null;
   value: number | null;
   passed: boolean;
+};
+
+type TestResult = {
+  name: string;
+  command: string;
   raw_response: string;
+  passed: boolean;
+  checks: CheckResult[];
 };
 
 type TestSummary = {
@@ -101,19 +107,35 @@ const App = () => {
                 </td>
               </tr>
             ) : (
-              results.map((item) => (
-                <tr key={item.name}>
-                  <td>{item.name}</td>
-                  <td>
-                    <code>{item.command}</code>
-                  </td>
-                  <td>{item.min === null || item.max === null ? "-" : `${item.min} ~ ${item.max}`}</td>
-                  <td>{item.value === null ? "-" : item.value}</td>
-                  <td className={item.passed ? "pass" : "fail"}>
-                    {item.passed ? "通过" : "未通过"}
-                  </td>
-                </tr>
-              ))
+              results.flatMap((group) => {
+                const groupRow = (
+                  <tr key={group.name} className="group-row">
+                    <td>{group.name}</td>
+                    <td>
+                      <code>{group.command}</code>
+                    </td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td className={group.passed ? "pass" : "fail"}>
+                      {group.passed ? "通过" : "未通过"}
+                    </td>
+                  </tr>
+                );
+
+                const childRows = group.checks.map((check) => (
+                  <tr key={`${group.name}-${check.name}`} className="child-row">
+                    <td className="indent">{check.name}</td>
+                    <td>-</td>
+                    <td>
+                      {check.min === null || check.max === null ? "-" : `${check.min} ~ ${check.max}`}
+                    </td>
+                    <td>{check.value === null ? "-" : check.value}</td>
+                    <td className={check.passed ? "pass" : "fail"}>{check.passed ? "通过" : "未通过"}</td>
+                  </tr>
+                ));
+
+                return [groupRow, ...childRows];
+              })
             )}
           </tbody>
         </table>

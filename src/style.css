@@ -109,6 +109,19 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+.group-row td {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.child-row td {
+  background: #fff;
+}
+
+.indent {
+  padding-left: 32px;
+}
+
 .pass {
   color: #15803d;
   font-weight: 600;

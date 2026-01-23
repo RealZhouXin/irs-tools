@@ -13,7 +13,7 @@ type CommandResult<T> = Result<T, String>;
 struct TestConfig {
     connection: ConnectionConfig,
     read_timeout_ms: u32,
-    tests: Vec<TestItem>,
+    tests: Vec<TestGroup>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,24 +24,28 @@ enum ConnectionConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-struct TestItem {
+struct TestGroup {
     name: String,
     #[serde(flatten)]
-    command: CommandSpec,
+    command: CommandGroupSpec,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "command", rename_all = "snake_case")]
-enum CommandSpec {
-    ParamId588 {
-        output: ParamId588Output,
-        min: f64,
-        max: f64,
-    },
+enum CommandGroupSpec {
+    ParamId588 { checks: Vec<ParamId588Check> },
     ParamId606 {
         front_light_mode: u8,
         power: u8,
     },
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct ParamId588Check {
+    name: String,
+    output: ParamId588Output,
+    min: f64,
+    max: f64,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -56,14 +60,21 @@ enum ParamId588Output {
 }
 
 #[derive(Debug, Serialize)]
-struct TestResult {
+struct CheckResult {
     name: String,
-    command: String,
     min: Option<f64>,
     max: Option<f64>,
     value: Option<f64>,
     passed: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct TestResult {
+    name: String,
+    command: String,
+    passed: bool,
     raw_response: String,
+    checks: Vec<CheckResult>,
 }
 
 #[derive(Debug, Serialize)]
@@ -373,10 +384,10 @@ fn pick_param_id588_value(output: ParamId588Output, result: ParamId588Result) ->
     }
 }
 
-fn command_name(command: &CommandSpec) -> &'static str {
+fn command_name(command: &CommandGroupSpec) -> &'static str {
     match command {
-        CommandSpec::ParamId588 { .. } => "ParamId588",
-        CommandSpec::ParamId606 { .. } => "ParamId606",
+        CommandGroupSpec::ParamId588 { .. } => "ParamId588",
+        CommandGroupSpec::ParamId606 { .. } => "ParamId606",
     }
 }
 
@@ -389,41 +400,58 @@ fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
 
     let mut results = Vec::with_capacity(config.tests.len());
 
-    for item in config.tests {
-        let command_label = command_name(&item.command).to_string();
-        match item.command {
-            CommandSpec::ParamId588 { output, min, max } => {
+    for group in config.tests {
+        let command_label = command_name(&group.command).to_string();
+        match group.command {
+            CommandGroupSpec::ParamId588 { checks } => {
                 let response = session.param_id588()?;
-                let value = pick_param_id588_value(output, response);
-                let passed = value >= min && value <= max;
+                let mut check_results = Vec::with_capacity(checks.len());
+
+                for check in checks {
+                    let value = pick_param_id588_value(check.output, response);
+                    let passed = value >= check.min && value <= check.max;
+                    check_results.push(CheckResult {
+                        name: check.name,
+                        min: Some(check.min),
+                        max: Some(check.max),
+                        value: Some(value),
+                        passed,
+                    });
+                }
+
+                let passed = check_results.iter().all(|item| item.passed);
 
                 results.push(TestResult {
-                    name: item.name,
+                    name: group.name,
                     command: command_label,
-                    min: Some(min),
-                    max: Some(max),
-                    value: Some(value),
                     passed,
                     raw_response: response.to_string(),
+                    checks: check_results,
                 });
             }
-            CommandSpec::ParamId606 {
+            CommandGroupSpec::ParamId606 {
                 front_light_mode,
                 power,
             } => {
                 session.param_id606(front_light_mode, power)?;
 
-                results.push(TestResult {
-                    name: item.name,
-                    command: command_label,
+                let check_results = vec![CheckResult {
+                    name: "执行结果".to_string(),
                     min: None,
                     max: None,
                     value: None,
+                    passed: true,
+                }];
+
+                results.push(TestResult {
+                    name: group.name,
+                    command: command_label,
                     passed: true,
                     raw_response: format!(
                         "FrontLightMode={}, Power={}, ReturnCode=0",
                         front_light_mode, power
                     ),
+                    checks: check_results,
                 });
             }
         }

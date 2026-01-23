@@ -7,14 +7,31 @@
   "read_timeout_ms": 1000,
   "tests": [
     {
-      "name": "应用软件Build号",
+      "name": "588 应用软件",
       "command": "param_id588",
-      "output": "build_no",
-      "min": 0,
-      "max": 999999
+      "checks": [
+        {
+          "name": "maj_par_sw_ver",
+          "output": "maj_par_sw_ver",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "min_par_sw_ver",
+          "output": "min_par_sw_ver",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "build_no",
+          "output": "build_no",
+          "min": 0,
+          "max": 999999
+        }
+      ]
     },
     {
-      "name": "前灯设置",
+      "name": "606 前灯设置",
       "command": "param_id606",
       "front_light_mode": 1,
       "power": 100
