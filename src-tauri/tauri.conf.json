@@ -17,7 +17,8 @@
       {
         "title": "检测软件",
         "width": 960,
-        "height": 720
+        "height": 720,
+        "visible": false
       }
     ]
   },
@@ -29,7 +30,7 @@
     ],
     "resources": [
       "config/thresholds.json",
-      "../CommDllv2.dll"
+      "CommDllv2.dll"
     ]
   }
 }
