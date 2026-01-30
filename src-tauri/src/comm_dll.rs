@@ -4,7 +4,7 @@ use std::path::Path;
 use libloading::Library;
 use tracing::{error, info};
 
-use crate::models::{ConnectionConfig, ParamId588Result};
+use crate::models::{ConnectionConfig, ParamId068Result, ParamId588Result};
 use crate::types::CommandResult;
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
@@ -12,6 +12,15 @@ type ConnectMowerViaNetworkFn = unsafe extern "system" fn(*mut i8, *mut i8) -> u
 type CloseComPortFn = unsafe extern "system" fn() -> u8;
 type SetReadTimeoutFn = unsafe extern "system" fn(u32);
 type ParamId588Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+);
+type ParamId068Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u16,
     *mut u8,
@@ -28,6 +37,7 @@ pub struct CommDll {
     connect_mower_via_network: Option<ConnectMowerViaNetworkFn>,
     close_com_port: CloseComPortFn,
     set_read_timeout: Option<SetReadTimeoutFn>,
+    param_id068: ParamId068Fn,
     param_id588: ParamId588Fn,
     param_id606: ParamId606Fn,
 }
@@ -107,6 +117,47 @@ impl CommSession {
         }
 
         Ok(ParamId588Result {
+            dev_gr_no,
+            sub_dev_gr_no,
+            var_no,
+            maj_par_sw_ver,
+            min_par_sw_ver,
+            build_no,
+        })
+    }
+
+    pub fn param_id068(&self) -> CommandResult<ParamId068Result> {
+        info!("Running ParamId068");
+        let mut return_code: u8 = 9;
+        let mut dev_gr_no: u16 = 0;
+        let mut sub_dev_gr_no: u8 = 0;
+        let mut var_no: u8 = 0;
+        let mut maj_par_sw_ver: u8 = 0;
+        let mut min_par_sw_ver: u8 = 0;
+        let mut build_no: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id068)(
+                &mut return_code,
+                &mut dev_gr_no,
+                &mut sub_dev_gr_no,
+                &mut var_no,
+                &mut maj_par_sw_ver,
+                &mut min_par_sw_ver,
+                &mut build_no,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId068 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId068 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId068Result {
             dev_gr_no,
             sub_dev_gr_no,
             var_no,
@@ -228,6 +279,10 @@ impl CommDll {
             &lib,
             &[b"ParamId588\0", b"ParamId588@28\0", b"_ParamId588@28\0"],
         )?;
+        let param_id068 = load_symbol::<ParamId068Fn>(
+            &lib,
+            &[b"ParamId068\0", b"ParamId068@28\0", b"_ParamId068@28\0"],
+        )?;
         let param_id606 = load_symbol::<ParamId606Fn>(
             &lib,
             &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
@@ -239,6 +294,7 @@ impl CommDll {
             connect_mower_via_network,
             close_com_port,
             set_read_timeout,
+            param_id068,
             param_id588,
             param_id606,
         })
