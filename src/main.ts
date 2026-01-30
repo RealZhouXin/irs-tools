@@ -1,3 +1,4 @@
+import { mount } from "svelte";
 import App from "./App.svelte";
 import "./style.css";
 
@@ -6,7 +7,7 @@ if (!container) {
   throw new Error("App container not found");
 }
 
-const app = new App({
+const app = mount(App, {
   target: container,
 });
 

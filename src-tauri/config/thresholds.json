@@ -58,7 +58,7 @@
       "name": "606 前灯设置",
       "command": "param_id606",
       "front_light_mode": 1,
-      "power": 100
+      "power": 80
     }
   ]
 }
