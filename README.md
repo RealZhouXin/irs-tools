@@ -47,7 +47,7 @@ bun run tauri build
 - `read_timeout_ms`: 读取超时时间（毫秒）。
 - `tests`: 测试大项列表，每个大项对应一条命令。
   - `name`: 大项名称（用于 UI 展示）。
-  - `command`: 命令类型，例如 `"param_id588"`。
+  - `command`: 命令类型，例如 `"param_id588"`、`"param_id654"`。
   - `checks`: 子项列表（仅对读取类命令如 `param_id588` 使用）。
     - `name`: 子项名称。
     - `output`: 返回字段标识，例如 `"maj_par_sw_ver"`。
@@ -68,6 +68,15 @@ bun run tauri build
     {
       "name": "588 应用软件",
       "command": "param_id588",
+      "checks": [
+        { "name": "maj_par_sw_ver", "output": "maj_par_sw_ver", "min": 0, "max": 255 },
+        { "name": "min_par_sw_ver", "output": "min_par_sw_ver", "min": 0, "max": 255 },
+        { "name": "build_no", "output": "build_no", "min": 0, "max": 999999 }
+      ]
+    },
+    {
+      "name": "654 系统软件版本",
+      "command": "param_id654",
       "checks": [
         { "name": "maj_par_sw_ver", "output": "maj_par_sw_ver", "min": 0, "max": 255 },
         { "name": "min_par_sw_ver", "output": "min_par_sw_ver", "min": 0, "max": 255 },
@@ -119,7 +128,7 @@ config.rs
 ## 功能概述
 
 - 支持串口或网络连接设备。
-- 通过 CommDllv2.dll 调用测试指令（如 `ParamId588`、`ParamId606`）。
+- 通过 CommDllv2.dll 调用测试指令（如 `ParamId588`、`ParamId654`、`ParamId606`）。
 - 一条命令可包含多个子项阈值对比，减少重复指令发送。
 - 支持按大项重测并更新结果。
 

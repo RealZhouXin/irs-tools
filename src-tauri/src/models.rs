@@ -27,6 +27,7 @@ pub struct TestGroup {
 pub enum CommandGroupSpec {
     ParamId068 { checks: Vec<ParamId068Check> },
     ParamId588 { checks: Vec<ParamId588Check> },
+    ParamId654 { checks: Vec<ParamId654Check> },
     ParamId606 {
         front_light_mode: u8,
         power: u8,
@@ -63,6 +64,25 @@ pub struct ParamId588Check {
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId588Output {
+    DevGrNo,
+    SubDevGrNo,
+    VarNo,
+    MajParSwVer,
+    MinParSwVer,
+    BuildNo,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ParamId654Check {
+    pub name: String,
+    pub output: ParamId654Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId654Output {
     DevGrNo,
     SubDevGrNo,
     VarNo,
@@ -115,6 +135,16 @@ pub struct ParamId068Result {
     pub build_no: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId654Result {
+    pub dev_gr_no: u16,
+    pub sub_dev_gr_no: u8,
+    pub var_no: u8,
+    pub maj_par_sw_ver: u8,
+    pub min_par_sw_ver: u8,
+    pub build_no: u32,
+}
+
 impl fmt::Display for ParamId588Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -131,6 +161,21 @@ impl fmt::Display for ParamId588Result {
 }
 
 impl fmt::Display for ParamId068Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "DevGrNo={}, SubDevGrNo={}, VarNo={}, MajParSwVer={}, MinParSwVer={}, BuildNo={}",
+            self.dev_gr_no,
+            self.sub_dev_gr_no,
+            self.var_no,
+            self.maj_par_sw_ver,
+            self.min_par_sw_ver,
+            self.build_no
+        )
+    }
+}
+
+impl fmt::Display for ParamId654Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

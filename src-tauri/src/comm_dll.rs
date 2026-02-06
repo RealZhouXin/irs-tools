@@ -4,7 +4,7 @@ use std::path::Path;
 use libloading::Library;
 use tracing::{error, info};
 
-use crate::models::{ConnectionConfig, ParamId068Result, ParamId588Result};
+use crate::models::{ConnectionConfig, ParamId068Result, ParamId588Result, ParamId654Result};
 use crate::types::CommandResult;
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
@@ -29,6 +29,15 @@ type ParamId068Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u32,
 );
+type ParamId654Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 
 pub struct CommDll {
@@ -39,6 +48,7 @@ pub struct CommDll {
     set_read_timeout: Option<SetReadTimeoutFn>,
     param_id068: ParamId068Fn,
     param_id588: ParamId588Fn,
+    param_id654: ParamId654Fn,
     param_id606: ParamId606Fn,
 }
 
@@ -189,6 +199,47 @@ impl CommSession {
 
         Ok(())
     }
+
+    pub fn param_id654(&self) -> CommandResult<ParamId654Result> {
+        info!("Running ParamId654");
+        let mut return_code: u8 = 9;
+        let mut dev_gr_no: u16 = 0;
+        let mut sub_dev_gr_no: u8 = 0;
+        let mut var_no: u8 = 0;
+        let mut maj_par_sw_ver: u8 = 0;
+        let mut min_par_sw_ver: u8 = 0;
+        let mut build_no: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id654)(
+                &mut return_code,
+                &mut dev_gr_no,
+                &mut sub_dev_gr_no,
+                &mut var_no,
+                &mut maj_par_sw_ver,
+                &mut min_par_sw_ver,
+                &mut build_no,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId654 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId654 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId654Result {
+            dev_gr_no,
+            sub_dev_gr_no,
+            var_no,
+            maj_par_sw_ver,
+            min_par_sw_ver,
+            build_no,
+        })
+    }
 }
 
 impl Drop for CommSession {
@@ -287,6 +338,10 @@ impl CommDll {
             &lib,
             &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
         )?;
+        let param_id654 = load_symbol::<ParamId654Fn>(
+            &lib,
+            &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
+        )?;
 
         Ok(Self {
             _lib: lib,
@@ -296,6 +351,7 @@ impl CommDll {
             set_read_timeout,
             param_id068,
             param_id588,
+            param_id654,
             param_id606,
         })
     }

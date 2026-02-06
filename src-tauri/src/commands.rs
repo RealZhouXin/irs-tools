@@ -7,7 +7,8 @@ use crate::comm_dll::{CommDll, CommSession};
 use crate::config::read_config;
 use crate::models::{
     CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
-    ParamId588Result, TestConfig, TestGroup, TestResult, TestSummary,
+    ParamId588Result, ParamId654Output, ParamId654Result, TestConfig, TestGroup, TestResult,
+    TestSummary,
 };
 use crate::types::CommandResult;
 
@@ -66,10 +67,22 @@ fn pick_param_id068_value(output: ParamId068Output, result: ParamId068Result) ->
     }
 }
 
+fn pick_param_id654_value(output: ParamId654Output, result: ParamId654Result) -> f64 {
+    match output {
+        ParamId654Output::DevGrNo => result.dev_gr_no as f64,
+        ParamId654Output::SubDevGrNo => result.sub_dev_gr_no as f64,
+        ParamId654Output::VarNo => result.var_no as f64,
+        ParamId654Output::MajParSwVer => result.maj_par_sw_ver as f64,
+        ParamId654Output::MinParSwVer => result.min_par_sw_ver as f64,
+        ParamId654Output::BuildNo => result.build_no as f64,
+    }
+}
+
 fn command_name(command: &CommandGroupSpec) -> &'static str {
     match command {
         CommandGroupSpec::ParamId068 { .. } => "ParamId068",
         CommandGroupSpec::ParamId588 { .. } => "ParamId588",
+        CommandGroupSpec::ParamId654 { .. } => "ParamId654",
         CommandGroupSpec::ParamId606 { .. } => "ParamId606",
     }
 }
@@ -109,6 +122,32 @@ fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResul
 
             for check in checks {
                 let value = pick_param_id588_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId654 { checks } => {
+            let response = session.param_id654()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id654_value(check.output, response);
                 let passed = value >= check.min && value <= check.max;
                 check_results.push(CheckResult {
                     name: check.name,
