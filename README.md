@@ -2,6 +2,20 @@
 
 ## 安装与运行
 
+### 前置环境 (Windows)
+
+1. **安装 Rust**
+   - 访问 [Rust 官网](https://www.rust-lang.org/zh-CN/tools/install) 下载 `rustup-init.exe` 并安装。
+   - 确保安装过程中包含了 Visual Studio C++ 生成工具。
+
+2. **安装 Bun**
+   - 在 PowerShell 中执行：
+     ```powershell
+     winget install oven-sh.bun
+     ```
+
+### 开发流程
+
 1. 安装依赖（前端使用 bun）。
 
 ```bash
