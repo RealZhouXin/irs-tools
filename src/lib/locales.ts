@@ -51,6 +51,13 @@ export const textMap: Record<Language, Translation> = {
         fieldSerialPort: "串口号",
         fieldTimeout: "读取超时 (ms)",
         langLabel: "EN",
+        aboutTitle: "关于",
+        aboutSubtitle: "查看软件版本与运行环境信息。",
+        aboutName: "软件名称",
+        aboutVersion: "软件版本",
+        aboutTauriVersion: "Tauri 版本",
+        aboutLoading: "正在读取版本信息...",
+        aboutError: "读取失败",
     },
     en: {
         title: "Test Console",
@@ -102,6 +109,13 @@ export const textMap: Record<Language, Translation> = {
         fieldSerialPort: "Serial Port",
         fieldTimeout: "Read Timeout (ms)",
         langLabel: "中文",
+        aboutTitle: "About",
+        aboutSubtitle: "App version and runtime details.",
+        aboutName: "App Name",
+        aboutVersion: "App Version",
+        aboutTauriVersion: "Tauri Version",
+        aboutLoading: "Loading version info...",
+        aboutError: "Failed to load",
     },
 };
 

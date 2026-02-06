@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
   import type {
     BaseConfig,
     TestResult,
@@ -35,6 +36,10 @@
   let settingsSaving = $state(false);
   let settingsSaved = $state(false);
   let settingsError = $state<string | null>(null);
+  let appName = $state<string | null>(null);
+  let appVersion = $state<string | null>(null);
+  let tauriVersion = $state<string | null>(null);
+  let aboutError = $state<string | null>(null);
 
   // Derived state
   const text = $derived(getTranslation(language));
@@ -91,6 +96,17 @@
       })
       .catch((err) => {
         console.error("Failed to listen test-group-complete", err);
+      });
+
+    Promise.all([getName(), getVersion(), getTauriVersion()])
+      .then(([name, version, tauri]) => {
+        appName = name;
+        appVersion = version;
+        tauriVersion = tauri;
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        aboutError = message;
       });
 
     return () => {
@@ -421,6 +437,35 @@
                   {text.settingsError}: {settingsError}
                 </span>
               {/if}
+            </div>
+          {/if}
+        </div>
+
+        <div class="about-card">
+          <div>
+            <h2>{text.aboutTitle}</h2>
+            <p class="subtitle">{text.aboutSubtitle}</p>
+          </div>
+          {#if aboutError}
+            <p class="settings-error">
+              {text.aboutError}: {aboutError}
+            </p>
+          {:else if !appVersion}
+            <p class="settings-message">{text.aboutLoading}</p>
+          {:else}
+            <div class="about-grid">
+              <div class="about-item">
+                <span class="about-label">{text.aboutName}</span>
+                <span class="about-value">{appName ?? "-"}</span>
+              </div>
+              <div class="about-item">
+                <span class="about-label">{text.aboutVersion}</span>
+                <span class="about-value">{appVersion}</span>
+              </div>
+              <div class="about-item">
+                <span class="about-label">{text.aboutTauriVersion}</span>
+                <span class="about-value">{tauriVersion ?? "-"}</span>
+              </div>
             </div>
           {/if}
         </div>

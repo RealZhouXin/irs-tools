@@ -91,4 +91,11 @@ export type Translation = {
     fieldSerialPort: string;
     fieldTimeout: string;
     langLabel: string;
+    aboutTitle: string;
+    aboutSubtitle: string;
+    aboutName: string;
+    aboutVersion: string;
+    aboutTauriVersion: string;
+    aboutLoading: string;
+    aboutError: string;
 };
