@@ -36,7 +36,7 @@ bun run tauri build
 
 ## 配置说明
 
-配置文件位于 `src-tauri/config/thresholds.json`，用于设置连接方式与测试项。
+配置文件位于 `src-tauri/config/threshold.json` 与 `src-tauri/config/tests.json`，分别用于设置连接方式/超时与测试项。
 
 字段说明：
 - `connection`: 连接方式配置。
@@ -45,9 +45,9 @@ bun run tauri build
   - `ip_address`: 设备 IP（仅在 `mode` 为 `"network"` 时使用）。
   - `port`: 设备端口（仅在 `mode` 为 `"network"` 时使用）。
 - `read_timeout_ms`: 读取超时时间（毫秒）。
-- `tests`: 测试大项列表，每个大项对应一条命令。
+- `tests`: 测试大项列表，每个大项对应一条命令（在 `tests.json` 中）。
   - `name`: 大项名称（用于 UI 展示）。
-  - `command`: 命令类型，例如 `"param_id588"`。
+  - `command`: 命令类型，例如 `"param_id588"`、`"param_id654"`、`"param_id272"`、`"param_id080"`。
   - `checks`: 子项列表（仅对读取类命令如 `param_id588` 使用）。
     - `name`: 子项名称。
     - `output`: 返回字段标识，例如 `"maj_par_sw_ver"`。
@@ -57,17 +57,67 @@ bun run tauri build
 ## 配置示例
 
 ```json
+// src-tauri/config/threshold.json
 {
   "connection": {
     "mode": "network",
     "ip_address": "10.101.1.100",
     "port": "12345"
   },
-  "read_timeout_ms": 1000,
+  "read_timeout_ms": 1000
+}
+
+// src-tauri/config/tests.json
+{
   "tests": [
+    {
+      "name": "080 割草机状态",
+      "command": "param_id080",
+      "checks": [
+        { "name": "mower_main_p", "output": "mower_main_p", "min": 0, "max": 255 },
+        { "name": "mower_sub_state", "output": "mower_sub_state", "min": 0, "max": 255 },
+        { "name": "time_stp_nxt_start", "output": "time_stp_nxt_start", "min": 0, "max": 4294967295 },
+        { "name": "batt_stat", "output": "batt_stat", "min": 0, "max": 255 },
+        { "name": "stat_flags", "output": "stat_flags", "min": 0, "max": 65535 },
+        { "name": "wrless_con_stat", "output": "wrless_con_stat", "min": 0, "max": 255 },
+        { "name": "sign_quality", "output": "sign_quality", "min": 0, "max": 255 },
+        { "name": "source_for_next_start_stop", "output": "source_for_next_start_stop", "min": 0, "max": 255 },
+        { "name": "notify", "output": "notify", "min": 0, "max": 65535 },
+        { "name": "configuration_hash", "output": "configuration_hash", "min": 0, "max": 255 }
+      ]
+    },
+    {
+      "name": "272 电池信息",
+      "command": "param_id272",
+      "checks": [
+        { "name": "batt_pack_pn", "output": "batt_pack_pn", "min": 0, "max": 999999999 },
+        { "name": "batt_pack_rev", "output": "batt_pack_rev", "min": 0, "max": 65535 },
+        { "name": "batt_pack_prod_date", "output": "batt_pack_prod_date", "min": 0, "max": 999999999 },
+        { "name": "batt_sw_ver", "output": "batt_sw_ver", "min": 0, "max": 999999999 },
+        { "name": "batt_ser_no", "output": "batt_ser_no", "min": 0, "max": 999999999 },
+        { "name": "batt_dev_gr_no", "output": "batt_dev_gr_no", "min": 0, "max": 999999999 },
+        { "name": "batt_sub_dev_no", "output": "batt_sub_dev_no", "min": 0, "max": 999999999 },
+        { "name": "batt_var_no", "output": "batt_var_no", "min": 0, "max": 65535 },
+        { "name": "bms_dev_gr_no", "output": "bms_dev_gr_no", "min": 0, "max": 65535 },
+        { "name": "bms_sub_dev_no", "output": "bms_sub_dev_no", "min": 0, "max": 65535 },
+        { "name": "bms_var_no", "output": "bms_var_no", "min": 0, "max": 65535 },
+        { "name": "bms_pcba_pn", "output": "bms_pcba_pn", "min": 0, "max": 999999999 },
+        { "name": "bms_pcba_rev", "output": "bms_pcba_rev", "min": 0, "max": 65535 },
+        { "name": "bms_temp_sensor_type", "output": "bms_temp_sensor_type", "min": 0, "max": 999999999 }
+      ]
+    },
     {
       "name": "588 应用软件",
       "command": "param_id588",
+      "checks": [
+        { "name": "maj_par_sw_ver", "output": "maj_par_sw_ver", "min": 0, "max": 255 },
+        { "name": "min_par_sw_ver", "output": "min_par_sw_ver", "min": 0, "max": 255 },
+        { "name": "build_no", "output": "build_no", "min": 0, "max": 999999 }
+      ]
+    },
+    {
+      "name": "654 系统软件版本",
+      "command": "param_id654",
       "checks": [
         { "name": "maj_par_sw_ver", "output": "maj_par_sw_ver", "min": 0, "max": 255 },
         { "name": "min_par_sw_ver", "output": "min_par_sw_ver", "min": 0, "max": 255 },
@@ -88,7 +138,7 @@ bun run tauri build
 
 - 前端：`src/`，负责 UI 展示与调用 Tauri 命令。
 - 后端：`src-tauri/`，负责加载 DLL、连接设备、执行测试与返回结果。
-- 配置：`src-tauri/config/thresholds.json`，定义连接方式与测试项。
+- 配置：`src-tauri/config/threshold.json`（连接/超时）与 `src-tauri/config/tests.json`（测试项）。
 
 ## 模块图
 
@@ -119,7 +169,7 @@ config.rs
 ## 功能概述
 
 - 支持串口或网络连接设备。
-- 通过 CommDllv2.dll 调用测试指令（如 `ParamId588`、`ParamId606`）。
+- 通过 CommDllv2.dll 调用测试指令（如 `ParamId080`、`ParamId272`、`ParamId588`、`ParamId654`、`ParamId606`）。
 - 一条命令可包含多个子项阈值对比，减少重复指令发送。
 - 支持按大项重测并更新结果。
 

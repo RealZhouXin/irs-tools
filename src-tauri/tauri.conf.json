@@ -29,8 +29,10 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "config/thresholds.json",
-      "CommDllv2.dll"
+      "config/threshold.json",
+      "config/tests.json",
+      "CommDllv2.dll",
+      "libcrypto-3-x64.dll"
     ]
   }
 }

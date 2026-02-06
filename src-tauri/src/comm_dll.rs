@@ -4,7 +4,10 @@ use std::path::Path;
 use libloading::Library;
 use tracing::{error, info};
 
-use crate::models::{ConnectionConfig, ParamId068Result, ParamId588Result};
+use crate::models::{
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId272Result, ParamId588Result,
+    ParamId654Result,
+};
 use crate::types::CommandResult;
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
@@ -29,6 +32,45 @@ type ParamId068Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u32,
 );
+type ParamId654Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+);
+type ParamId272Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+);
+type ParamId080Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u16,
+    *mut u8,
+);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 
 pub struct CommDll {
@@ -39,6 +81,9 @@ pub struct CommDll {
     set_read_timeout: Option<SetReadTimeoutFn>,
     param_id068: ParamId068Fn,
     param_id588: ParamId588Fn,
+    param_id654: ParamId654Fn,
+    param_id272: ParamId272Fn,
+    param_id080: ParamId080Fn,
     param_id606: ParamId606Fn,
 }
 
@@ -189,6 +234,165 @@ impl CommSession {
 
         Ok(())
     }
+
+    pub fn param_id654(&self) -> CommandResult<ParamId654Result> {
+        info!("Running ParamId654");
+        let mut return_code: u8 = 9;
+        let mut dev_gr_no: u16 = 0;
+        let mut sub_dev_gr_no: u8 = 0;
+        let mut var_no: u8 = 0;
+        let mut maj_par_sw_ver: u8 = 0;
+        let mut min_par_sw_ver: u8 = 0;
+        let mut build_no: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id654)(
+                &mut return_code,
+                &mut dev_gr_no,
+                &mut sub_dev_gr_no,
+                &mut var_no,
+                &mut maj_par_sw_ver,
+                &mut min_par_sw_ver,
+                &mut build_no,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId654 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId654 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId654Result {
+            dev_gr_no,
+            sub_dev_gr_no,
+            var_no,
+            maj_par_sw_ver,
+            min_par_sw_ver,
+            build_no,
+        })
+    }
+
+    pub fn param_id272(&self) -> CommandResult<ParamId272Result> {
+        info!("Running ParamId272");
+        let mut return_code: u8 = 9;
+        let mut batt_pack_pn: u32 = 0;
+        let mut batt_pack_rev: u16 = 0;
+        let mut batt_pack_prod_date: u32 = 0;
+        let mut batt_sw_ver: u32 = 0;
+        let mut batt_ser_no: u32 = 0;
+        let mut batt_dev_gr_no: u32 = 0;
+        let mut batt_sub_dev_no: u32 = 0;
+        let mut batt_var_no: u16 = 0;
+        let mut bms_dev_gr_no: u16 = 0;
+        let mut bms_sub_dev_no: u16 = 0;
+        let mut bms_var_no: u16 = 0;
+        let mut bms_pcba_pn: u32 = 0;
+        let mut bms_pcba_rev: u16 = 0;
+        let mut bms_temp_sensor_type: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id272)(
+                &mut return_code,
+                &mut batt_pack_pn,
+                &mut batt_pack_rev,
+                &mut batt_pack_prod_date,
+                &mut batt_sw_ver,
+                &mut batt_ser_no,
+                &mut batt_dev_gr_no,
+                &mut batt_sub_dev_no,
+                &mut batt_var_no,
+                &mut bms_dev_gr_no,
+                &mut bms_sub_dev_no,
+                &mut bms_var_no,
+                &mut bms_pcba_pn,
+                &mut bms_pcba_rev,
+                &mut bms_temp_sensor_type,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId272 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId272 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId272Result {
+            batt_pack_pn,
+            batt_pack_rev,
+            batt_pack_prod_date,
+            batt_sw_ver,
+            batt_ser_no,
+            batt_dev_gr_no,
+            batt_sub_dev_no,
+            batt_var_no,
+            bms_dev_gr_no,
+            bms_sub_dev_no,
+            bms_var_no,
+            bms_pcba_pn,
+            bms_pcba_rev,
+            bms_temp_sensor_type,
+        })
+    }
+
+    pub fn param_id080(&self) -> CommandResult<ParamId080Result> {
+        info!("Running ParamId080");
+        let mut return_code: u8 = 9;
+        let mut mower_main_p: u8 = 0;
+        let mut mower_sub_state: u8 = 0;
+        let mut time_stp_nxt_start: u32 = 0;
+        let mut batt_stat: u8 = 0;
+        let mut stat_flags: u16 = 0;
+        let mut wrless_con_stat: u8 = 0;
+        let mut sign_quality: u8 = 0;
+        let mut source_for_next_start_stop: u8 = 0;
+        let mut notify: u16 = 0;
+        let mut configuration_hash: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id080)(
+                &mut return_code,
+                &mut mower_main_p,
+                &mut mower_sub_state,
+                &mut time_stp_nxt_start,
+                &mut batt_stat,
+                &mut stat_flags,
+                &mut wrless_con_stat,
+                &mut sign_quality,
+                &mut source_for_next_start_stop,
+                &mut notify,
+                &mut configuration_hash,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId080 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId080 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId080Result {
+            mower_main_p,
+            mower_sub_state,
+            time_stp_nxt_start,
+            batt_stat,
+            stat_flags,
+            wrless_con_stat,
+            sign_quality,
+            source_for_next_start_stop,
+            notify,
+            configuration_hash,
+        })
+    }
 }
 
 impl Drop for CommSession {
@@ -287,6 +491,18 @@ impl CommDll {
             &lib,
             &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
         )?;
+        let param_id654 = load_symbol::<ParamId654Fn>(
+            &lib,
+            &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
+        )?;
+        let param_id272 = load_symbol::<ParamId272Fn>(
+            &lib,
+            &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
+        )?;
+        let param_id080 = load_symbol::<ParamId080Fn>(
+            &lib,
+            &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
+        )?;
 
         Ok(Self {
             _lib: lib,
@@ -296,6 +512,9 @@ impl CommDll {
             set_read_timeout,
             param_id068,
             param_id588,
+            param_id654,
+            param_id272,
+            param_id080,
             param_id606,
         })
     }

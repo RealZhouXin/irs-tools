@@ -25,6 +25,22 @@ export type StatusKey = "idle" | "running" | "done" | "failed";
 
 export type SummaryState = "pass" | "fail" | "pending" | "idle";
 
+export type ConnectionConfig =
+    | {
+          mode: "serial";
+          port_number: number;
+      }
+    | {
+          mode: "network";
+          ip_address: string;
+          port: string;
+      };
+
+export type BaseConfig = {
+    connection: ConnectionConfig;
+    read_timeout_ms: number;
+};
+
 export type Translation = {
     title: string;
     subtitle: string;
@@ -56,6 +72,30 @@ export type Translation = {
     retesting: string;
     configTitle: string;
     configPrefix: string;
+    configMiddle: string;
     configSuffix: string;
+    navTests: string;
+    navSettings: string;
+    settingsTitle: string;
+    settingsSubtitle: string;
+    settingsSave: string;
+    settingsSaving: string;
+    settingsSaved: string;
+    settingsError: string;
+    settingsLoading: string;
+    fieldMode: string;
+    fieldNetwork: string;
+    fieldSerial: string;
+    fieldIp: string;
+    fieldPort: string;
+    fieldSerialPort: string;
+    fieldTimeout: string;
     langLabel: string;
+    aboutTitle: string;
+    aboutSubtitle: string;
+    aboutName: string;
+    aboutVersion: string;
+    aboutTauriVersion: string;
+    aboutLoading: string;
+    aboutError: string;
 };

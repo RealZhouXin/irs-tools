@@ -4,10 +4,11 @@ use tauri::{Emitter, Manager};
 use tracing::{error, info};
 
 use crate::comm_dll::{CommDll, CommSession};
-use crate::config::read_config;
+use crate::config::{read_base_config, read_config, write_base_config};
 use crate::models::{
-    CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
-    ParamId588Result, TestConfig, TestGroup, TestResult, TestSummary,
+    BaseConfig, CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
+    ParamId588Result, ParamId654Output, ParamId654Result, ParamId272Output, ParamId272Result,
+    ParamId080Output, ParamId080Result, TestConfig, TestGroup, TestResult, TestSummary,
 };
 use crate::types::CommandResult;
 
@@ -66,10 +67,58 @@ fn pick_param_id068_value(output: ParamId068Output, result: ParamId068Result) ->
     }
 }
 
+fn pick_param_id654_value(output: ParamId654Output, result: ParamId654Result) -> f64 {
+    match output {
+        ParamId654Output::DevGrNo => result.dev_gr_no as f64,
+        ParamId654Output::SubDevGrNo => result.sub_dev_gr_no as f64,
+        ParamId654Output::VarNo => result.var_no as f64,
+        ParamId654Output::MajParSwVer => result.maj_par_sw_ver as f64,
+        ParamId654Output::MinParSwVer => result.min_par_sw_ver as f64,
+        ParamId654Output::BuildNo => result.build_no as f64,
+    }
+}
+
+fn pick_param_id272_value(output: ParamId272Output, result: ParamId272Result) -> f64 {
+    match output {
+        ParamId272Output::BattPackPn => result.batt_pack_pn as f64,
+        ParamId272Output::BattPackRev => result.batt_pack_rev as f64,
+        ParamId272Output::BattPackProdDate => result.batt_pack_prod_date as f64,
+        ParamId272Output::BattSwVer => result.batt_sw_ver as f64,
+        ParamId272Output::BattSerNo => result.batt_ser_no as f64,
+        ParamId272Output::BattDevGrNo => result.batt_dev_gr_no as f64,
+        ParamId272Output::BattSubDevNo => result.batt_sub_dev_no as f64,
+        ParamId272Output::BattVarNo => result.batt_var_no as f64,
+        ParamId272Output::BmsDevGrNo => result.bms_dev_gr_no as f64,
+        ParamId272Output::BmsSubDevNo => result.bms_sub_dev_no as f64,
+        ParamId272Output::BmsVarNo => result.bms_var_no as f64,
+        ParamId272Output::BmsPcbaPn => result.bms_pcba_pn as f64,
+        ParamId272Output::BmsPcbaRev => result.bms_pcba_rev as f64,
+        ParamId272Output::BmsTempSensorType => result.bms_temp_sensor_type as f64,
+    }
+}
+
+fn pick_param_id080_value(output: ParamId080Output, result: ParamId080Result) -> f64 {
+    match output {
+        ParamId080Output::MowerMainP => result.mower_main_p as f64,
+        ParamId080Output::MowerSubState => result.mower_sub_state as f64,
+        ParamId080Output::TimeStpNxtStart => result.time_stp_nxt_start as f64,
+        ParamId080Output::BattStat => result.batt_stat as f64,
+        ParamId080Output::StatFlags => result.stat_flags as f64,
+        ParamId080Output::WrlessConStat => result.wrless_con_stat as f64,
+        ParamId080Output::SignQuality => result.sign_quality as f64,
+        ParamId080Output::SourceForNextStartStop => result.source_for_next_start_stop as f64,
+        ParamId080Output::Notify => result.notify as f64,
+        ParamId080Output::ConfigurationHash => result.configuration_hash as f64,
+    }
+}
+
 fn command_name(command: &CommandGroupSpec) -> &'static str {
     match command {
         CommandGroupSpec::ParamId068 { .. } => "ParamId068",
         CommandGroupSpec::ParamId588 { .. } => "ParamId588",
+        CommandGroupSpec::ParamId654 { .. } => "ParamId654",
+        CommandGroupSpec::ParamId272 { .. } => "ParamId272",
+        CommandGroupSpec::ParamId080 { .. } => "ParamId080",
         CommandGroupSpec::ParamId606 { .. } => "ParamId606",
     }
 }
@@ -109,6 +158,84 @@ fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResul
 
             for check in checks {
                 let value = pick_param_id588_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId654 { checks } => {
+            let response = session.param_id654()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id654_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId272 { checks } => {
+            let response = session.param_id272()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id272_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId080 { checks } => {
+            let response = session.param_id080()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id080_value(check.output, response);
                 let passed = value >= check.min && value <= check.max;
                 check_results.push(CheckResult {
                     name: check.name,
@@ -226,4 +353,15 @@ pub fn show_main_window(app: tauri::AppHandle) -> CommandResult<()> {
     window.show().map_err(|err| err.to_string())?;
     window.set_focus().map_err(|err| err.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_base_config(app: tauri::AppHandle) -> CommandResult<BaseConfig> {
+    read_base_config(&app)
+}
+
+#[tauri::command]
+pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandResult<BaseConfig> {
+    write_base_config(&app, &config)?;
+    read_base_config(&app)
 }
