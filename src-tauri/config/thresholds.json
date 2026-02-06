@@ -31,6 +31,72 @@
       ]
     },
     {
+      "name": "080 割草机状态",
+      "command": "param_id080",
+      "checks": [
+        {
+          "name": "mower_main_p",
+          "output": "mower_main_p",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "mower_sub_state",
+          "output": "mower_sub_state",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "time_stp_nxt_start",
+          "output": "time_stp_nxt_start",
+          "min": 0,
+          "max": 4294967295
+        },
+        {
+          "name": "batt_stat",
+          "output": "batt_stat",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "stat_flags",
+          "output": "stat_flags",
+          "min": 0,
+          "max": 65535
+        },
+        {
+          "name": "wrless_con_stat",
+          "output": "wrless_con_stat",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "sign_quality",
+          "output": "sign_quality",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "source_for_next_start_stop",
+          "output": "source_for_next_start_stop",
+          "min": 0,
+          "max": 255
+        },
+        {
+          "name": "notify",
+          "output": "notify",
+          "min": 0,
+          "max": 65535
+        },
+        {
+          "name": "configuration_hash",
+          "output": "configuration_hash",
+          "min": 0,
+          "max": 255
+        }
+      ]
+    },
+    {
       "name": "272 电池信息",
       "command": "param_id272",
       "checks": [

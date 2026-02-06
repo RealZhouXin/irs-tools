@@ -8,7 +8,7 @@ use crate::config::read_config;
 use crate::models::{
     CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
     ParamId588Result, ParamId654Output, ParamId654Result, ParamId272Output, ParamId272Result,
-    TestConfig, TestGroup, TestResult, TestSummary,
+    ParamId080Output, ParamId080Result, TestConfig, TestGroup, TestResult, TestSummary,
 };
 use crate::types::CommandResult;
 
@@ -97,12 +97,28 @@ fn pick_param_id272_value(output: ParamId272Output, result: ParamId272Result) ->
     }
 }
 
+fn pick_param_id080_value(output: ParamId080Output, result: ParamId080Result) -> f64 {
+    match output {
+        ParamId080Output::MowerMainP => result.mower_main_p as f64,
+        ParamId080Output::MowerSubState => result.mower_sub_state as f64,
+        ParamId080Output::TimeStpNxtStart => result.time_stp_nxt_start as f64,
+        ParamId080Output::BattStat => result.batt_stat as f64,
+        ParamId080Output::StatFlags => result.stat_flags as f64,
+        ParamId080Output::WrlessConStat => result.wrless_con_stat as f64,
+        ParamId080Output::SignQuality => result.sign_quality as f64,
+        ParamId080Output::SourceForNextStartStop => result.source_for_next_start_stop as f64,
+        ParamId080Output::Notify => result.notify as f64,
+        ParamId080Output::ConfigurationHash => result.configuration_hash as f64,
+    }
+}
+
 fn command_name(command: &CommandGroupSpec) -> &'static str {
     match command {
         CommandGroupSpec::ParamId068 { .. } => "ParamId068",
         CommandGroupSpec::ParamId588 { .. } => "ParamId588",
         CommandGroupSpec::ParamId654 { .. } => "ParamId654",
         CommandGroupSpec::ParamId272 { .. } => "ParamId272",
+        CommandGroupSpec::ParamId080 { .. } => "ParamId080",
         CommandGroupSpec::ParamId606 { .. } => "ParamId606",
     }
 }
@@ -194,6 +210,32 @@ fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResul
 
             for check in checks {
                 let value = pick_param_id272_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId080 { checks } => {
+            let response = session.param_id080()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id080_value(check.output, response);
                 let passed = value >= check.min && value <= check.max;
                 check_results.push(CheckResult {
                     name: check.name,

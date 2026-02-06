@@ -5,7 +5,8 @@ use libloading::Library;
 use tracing::{error, info};
 
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId272Result, ParamId588Result, ParamId654Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId272Result, ParamId588Result,
+    ParamId654Result,
 };
 use crate::types::CommandResult;
 
@@ -57,6 +58,19 @@ type ParamId272Fn = unsafe extern "system" fn(
     *mut u16,
     *mut u32,
 );
+type ParamId080Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u16,
+    *mut u8,
+);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 
 pub struct CommDll {
@@ -69,6 +83,7 @@ pub struct CommDll {
     param_id588: ParamId588Fn,
     param_id654: ParamId654Fn,
     param_id272: ParamId272Fn,
+    param_id080: ParamId080Fn,
     param_id606: ParamId606Fn,
 }
 
@@ -325,6 +340,59 @@ impl CommSession {
             bms_temp_sensor_type,
         })
     }
+
+    pub fn param_id080(&self) -> CommandResult<ParamId080Result> {
+        info!("Running ParamId080");
+        let mut return_code: u8 = 9;
+        let mut mower_main_p: u8 = 0;
+        let mut mower_sub_state: u8 = 0;
+        let mut time_stp_nxt_start: u32 = 0;
+        let mut batt_stat: u8 = 0;
+        let mut stat_flags: u16 = 0;
+        let mut wrless_con_stat: u8 = 0;
+        let mut sign_quality: u8 = 0;
+        let mut source_for_next_start_stop: u8 = 0;
+        let mut notify: u16 = 0;
+        let mut configuration_hash: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id080)(
+                &mut return_code,
+                &mut mower_main_p,
+                &mut mower_sub_state,
+                &mut time_stp_nxt_start,
+                &mut batt_stat,
+                &mut stat_flags,
+                &mut wrless_con_stat,
+                &mut sign_quality,
+                &mut source_for_next_start_stop,
+                &mut notify,
+                &mut configuration_hash,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId080 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId080 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId080Result {
+            mower_main_p,
+            mower_sub_state,
+            time_stp_nxt_start,
+            batt_stat,
+            stat_flags,
+            wrless_con_stat,
+            sign_quality,
+            source_for_next_start_stop,
+            notify,
+            configuration_hash,
+        })
+    }
 }
 
 impl Drop for CommSession {
@@ -431,6 +499,10 @@ impl CommDll {
             &lib,
             &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
         )?;
+        let param_id080 = load_symbol::<ParamId080Fn>(
+            &lib,
+            &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
+        )?;
 
         Ok(Self {
             _lib: lib,
@@ -442,6 +514,7 @@ impl CommDll {
             param_id588,
             param_id654,
             param_id272,
+            param_id080,
             param_id606,
         })
     }

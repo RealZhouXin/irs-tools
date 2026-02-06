@@ -47,7 +47,7 @@ bun run tauri build
 - `read_timeout_ms`: 读取超时时间（毫秒）。
 - `tests`: 测试大项列表，每个大项对应一条命令。
   - `name`: 大项名称（用于 UI 展示）。
-  - `command`: 命令类型，例如 `"param_id588"`、`"param_id654"`、`"param_id272"`。
+  - `command`: 命令类型，例如 `"param_id588"`、`"param_id654"`、`"param_id272"`、`"param_id080"`。
   - `checks`: 子项列表（仅对读取类命令如 `param_id588` 使用）。
     - `name`: 子项名称。
     - `output`: 返回字段标识，例如 `"maj_par_sw_ver"`。
@@ -65,6 +65,22 @@ bun run tauri build
   },
   "read_timeout_ms": 1000,
   "tests": [
+    {
+      "name": "080 割草机状态",
+      "command": "param_id080",
+      "checks": [
+        { "name": "mower_main_p", "output": "mower_main_p", "min": 0, "max": 255 },
+        { "name": "mower_sub_state", "output": "mower_sub_state", "min": 0, "max": 255 },
+        { "name": "time_stp_nxt_start", "output": "time_stp_nxt_start", "min": 0, "max": 4294967295 },
+        { "name": "batt_stat", "output": "batt_stat", "min": 0, "max": 255 },
+        { "name": "stat_flags", "output": "stat_flags", "min": 0, "max": 65535 },
+        { "name": "wrless_con_stat", "output": "wrless_con_stat", "min": 0, "max": 255 },
+        { "name": "sign_quality", "output": "sign_quality", "min": 0, "max": 255 },
+        { "name": "source_for_next_start_stop", "output": "source_for_next_start_stop", "min": 0, "max": 255 },
+        { "name": "notify", "output": "notify", "min": 0, "max": 65535 },
+        { "name": "configuration_hash", "output": "configuration_hash", "min": 0, "max": 255 }
+      ]
+    },
     {
       "name": "272 电池信息",
       "command": "param_id272",
@@ -148,7 +164,7 @@ config.rs
 ## 功能概述
 
 - 支持串口或网络连接设备。
-- 通过 CommDllv2.dll 调用测试指令（如 `ParamId272`、`ParamId588`、`ParamId654`、`ParamId606`）。
+- 通过 CommDllv2.dll 调用测试指令（如 `ParamId080`、`ParamId272`、`ParamId588`、`ParamId654`、`ParamId606`）。
 - 一条命令可包含多个子项阈值对比，减少重复指令发送。
 - 支持按大项重测并更新结果。
 
