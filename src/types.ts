@@ -56,6 +56,7 @@ export type Translation = {
     retesting: string;
     configTitle: string;
     configPrefix: string;
+    configMiddle: string;
     configSuffix: string;
     langLabel: string;
 };

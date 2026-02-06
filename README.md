@@ -36,7 +36,7 @@ bun run tauri build
 
 ## 配置说明
 
-配置文件位于 `src-tauri/config/thresholds.json`，用于设置连接方式与测试项。
+配置文件位于 `src-tauri/config/threshold.json` 与 `src-tauri/config/tests.json`，分别用于设置连接方式/超时与测试项。
 
 字段说明：
 - `connection`: 连接方式配置。
@@ -45,7 +45,7 @@ bun run tauri build
   - `ip_address`: 设备 IP（仅在 `mode` 为 `"network"` 时使用）。
   - `port`: 设备端口（仅在 `mode` 为 `"network"` 时使用）。
 - `read_timeout_ms`: 读取超时时间（毫秒）。
-- `tests`: 测试大项列表，每个大项对应一条命令。
+- `tests`: 测试大项列表，每个大项对应一条命令（在 `tests.json` 中）。
   - `name`: 大项名称（用于 UI 展示）。
   - `command`: 命令类型，例如 `"param_id588"`、`"param_id654"`、`"param_id272"`、`"param_id080"`。
   - `checks`: 子项列表（仅对读取类命令如 `param_id588` 使用）。
@@ -57,13 +57,18 @@ bun run tauri build
 ## 配置示例
 
 ```json
+// src-tauri/config/threshold.json
 {
   "connection": {
     "mode": "network",
     "ip_address": "10.101.1.100",
     "port": "12345"
   },
-  "read_timeout_ms": 1000,
+  "read_timeout_ms": 1000
+}
+
+// src-tauri/config/tests.json
+{
   "tests": [
     {
       "name": "080 割草机状态",
@@ -133,7 +138,7 @@ bun run tauri build
 
 - 前端：`src/`，负责 UI 展示与调用 Tauri 命令。
 - 后端：`src-tauri/`，负责加载 DLL、连接设备、执行测试与返回结果。
-- 配置：`src-tauri/config/thresholds.json`，定义连接方式与测试项。
+- 配置：`src-tauri/config/threshold.json`（连接/超时）与 `src-tauri/config/tests.json`（测试项）。
 
 ## 模块图
 

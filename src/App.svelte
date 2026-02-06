@@ -152,7 +152,10 @@
   <section class="note">
     <h3>{text.configTitle}</h3>
     <p>
-      {text.configPrefix} <code>src-tauri/config/thresholds.json</code>
+      {text.configPrefix}
+      <code>src-tauri/config/threshold.json</code>
+      {text.configMiddle}
+      <code>src-tauri/config/tests.json</code>
       {text.configSuffix}
     </p>
   </section>
