@@ -1,28 +1,34 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TestConfig {
     pub connection: ConnectionConfig,
     pub read_timeout_ms: u32,
     pub tests: Vec<TestGroup>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "mode", rename_all = "snake_case")]
 pub enum ConnectionConfig {
     Serial { port_number: u16 },
     Network { ip_address: String, port: String },
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct BaseConfig {
+    pub connection: ConnectionConfig,
+    pub read_timeout_ms: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TestGroup {
     pub name: String,
     #[serde(flatten)]
     pub command: CommandGroupSpec,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum CommandGroupSpec {
     ParamId068 { checks: Vec<ParamId068Check> },
@@ -30,13 +36,10 @@ pub enum CommandGroupSpec {
     ParamId654 { checks: Vec<ParamId654Check> },
     ParamId272 { checks: Vec<ParamId272Check> },
     ParamId080 { checks: Vec<ParamId080Check> },
-    ParamId606 {
-        front_light_mode: u8,
-        power: u8,
-    },
+    ParamId606 { front_light_mode: u8, power: u8 },
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId068Check {
     pub name: String,
     pub output: ParamId068Output,
@@ -44,7 +47,7 @@ pub struct ParamId068Check {
     pub max: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId068Output {
     DevGrNo,
@@ -55,7 +58,7 @@ pub enum ParamId068Output {
     BuildNo,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId588Check {
     pub name: String,
     pub output: ParamId588Output,
@@ -63,7 +66,7 @@ pub struct ParamId588Check {
     pub max: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId588Output {
     DevGrNo,
@@ -74,7 +77,7 @@ pub enum ParamId588Output {
     BuildNo,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId654Check {
     pub name: String,
     pub output: ParamId654Output,
@@ -82,7 +85,7 @@ pub struct ParamId654Check {
     pub max: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId654Output {
     DevGrNo,
@@ -93,7 +96,7 @@ pub enum ParamId654Output {
     BuildNo,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId272Check {
     pub name: String,
     pub output: ParamId272Output,
@@ -101,7 +104,7 @@ pub struct ParamId272Check {
     pub max: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId272Output {
     BattPackPn,
@@ -120,7 +123,7 @@ pub enum ParamId272Output {
     BmsTempSensorType,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId080Check {
     pub name: String,
     pub output: ParamId080Output,
@@ -128,7 +131,7 @@ pub struct ParamId080Check {
     pub max: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ParamId080Output {
     MowerMainP,

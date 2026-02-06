@@ -4,9 +4,9 @@ use tauri::{Emitter, Manager};
 use tracing::{error, info};
 
 use crate::comm_dll::{CommDll, CommSession};
-use crate::config::read_config;
+use crate::config::{read_base_config, read_config, write_base_config};
 use crate::models::{
-    CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
+    BaseConfig, CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
     ParamId588Result, ParamId654Output, ParamId654Result, ParamId272Output, ParamId272Result,
     ParamId080Output, ParamId080Result, TestConfig, TestGroup, TestResult, TestSummary,
 };
@@ -353,4 +353,15 @@ pub fn show_main_window(app: tauri::AppHandle) -> CommandResult<()> {
     window.show().map_err(|err| err.to_string())?;
     window.set_focus().map_err(|err| err.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_base_config(app: tauri::AppHandle) -> CommandResult<BaseConfig> {
+    read_base_config(&app)
+}
+
+#[tauri::command]
+pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandResult<BaseConfig> {
+    write_base_config(&app, &config)?;
+    read_base_config(&app)
 }
