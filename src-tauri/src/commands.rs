@@ -7,8 +7,8 @@ use crate::comm_dll::{CommDll, CommSession};
 use crate::config::read_config;
 use crate::models::{
     CheckResult, CommandGroupSpec, ParamId068Output, ParamId068Result, ParamId588Output,
-    ParamId588Result, ParamId654Output, ParamId654Result, TestConfig, TestGroup, TestResult,
-    TestSummary,
+    ParamId588Result, ParamId654Output, ParamId654Result, ParamId272Output, ParamId272Result,
+    TestConfig, TestGroup, TestResult, TestSummary,
 };
 use crate::types::CommandResult;
 
@@ -78,11 +78,31 @@ fn pick_param_id654_value(output: ParamId654Output, result: ParamId654Result) ->
     }
 }
 
+fn pick_param_id272_value(output: ParamId272Output, result: ParamId272Result) -> f64 {
+    match output {
+        ParamId272Output::BattPackPn => result.batt_pack_pn as f64,
+        ParamId272Output::BattPackRev => result.batt_pack_rev as f64,
+        ParamId272Output::BattPackProdDate => result.batt_pack_prod_date as f64,
+        ParamId272Output::BattSwVer => result.batt_sw_ver as f64,
+        ParamId272Output::BattSerNo => result.batt_ser_no as f64,
+        ParamId272Output::BattDevGrNo => result.batt_dev_gr_no as f64,
+        ParamId272Output::BattSubDevNo => result.batt_sub_dev_no as f64,
+        ParamId272Output::BattVarNo => result.batt_var_no as f64,
+        ParamId272Output::BmsDevGrNo => result.bms_dev_gr_no as f64,
+        ParamId272Output::BmsSubDevNo => result.bms_sub_dev_no as f64,
+        ParamId272Output::BmsVarNo => result.bms_var_no as f64,
+        ParamId272Output::BmsPcbaPn => result.bms_pcba_pn as f64,
+        ParamId272Output::BmsPcbaRev => result.bms_pcba_rev as f64,
+        ParamId272Output::BmsTempSensorType => result.bms_temp_sensor_type as f64,
+    }
+}
+
 fn command_name(command: &CommandGroupSpec) -> &'static str {
     match command {
         CommandGroupSpec::ParamId068 { .. } => "ParamId068",
         CommandGroupSpec::ParamId588 { .. } => "ParamId588",
         CommandGroupSpec::ParamId654 { .. } => "ParamId654",
+        CommandGroupSpec::ParamId272 { .. } => "ParamId272",
         CommandGroupSpec::ParamId606 { .. } => "ParamId606",
     }
 }
@@ -148,6 +168,32 @@ fn run_group(session: &CommSession, group: TestGroup) -> CommandResult<TestResul
 
             for check in checks {
                 let value = pick_param_id654_value(check.output, response);
+                let passed = value >= check.min && value <= check.max;
+                check_results.push(CheckResult {
+                    name: check.name,
+                    min: Some(check.min),
+                    max: Some(check.max),
+                    value: Some(value),
+                    passed,
+                });
+            }
+
+            let passed = check_results.iter().all(|item| item.passed);
+
+            Ok(TestResult {
+                name: group.name,
+                command: command_label,
+                passed,
+                raw_response: response.to_string(),
+                checks: check_results,
+            })
+        }
+        CommandGroupSpec::ParamId272 { checks } => {
+            let response = session.param_id272()?;
+            let mut check_results = Vec::with_capacity(checks.len());
+
+            for check in checks {
+                let value = pick_param_id272_value(check.output, response);
                 let passed = value >= check.min && value <= check.max;
                 check_results.push(CheckResult {
                     name: check.name,

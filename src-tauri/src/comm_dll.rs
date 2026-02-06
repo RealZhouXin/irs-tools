@@ -4,7 +4,9 @@ use std::path::Path;
 use libloading::Library;
 use tracing::{error, info};
 
-use crate::models::{ConnectionConfig, ParamId068Result, ParamId588Result, ParamId654Result};
+use crate::models::{
+    ConnectionConfig, ParamId068Result, ParamId272Result, ParamId588Result, ParamId654Result,
+};
 use crate::types::CommandResult;
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
@@ -38,6 +40,23 @@ type ParamId654Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u32,
 );
+type ParamId272Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u32,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 
 pub struct CommDll {
@@ -49,6 +68,7 @@ pub struct CommDll {
     param_id068: ParamId068Fn,
     param_id588: ParamId588Fn,
     param_id654: ParamId654Fn,
+    param_id272: ParamId272Fn,
     param_id606: ParamId606Fn,
 }
 
@@ -240,6 +260,71 @@ impl CommSession {
             build_no,
         })
     }
+
+    pub fn param_id272(&self) -> CommandResult<ParamId272Result> {
+        info!("Running ParamId272");
+        let mut return_code: u8 = 9;
+        let mut batt_pack_pn: u32 = 0;
+        let mut batt_pack_rev: u16 = 0;
+        let mut batt_pack_prod_date: u32 = 0;
+        let mut batt_sw_ver: u32 = 0;
+        let mut batt_ser_no: u32 = 0;
+        let mut batt_dev_gr_no: u32 = 0;
+        let mut batt_sub_dev_no: u32 = 0;
+        let mut batt_var_no: u16 = 0;
+        let mut bms_dev_gr_no: u16 = 0;
+        let mut bms_sub_dev_no: u16 = 0;
+        let mut bms_var_no: u16 = 0;
+        let mut bms_pcba_pn: u32 = 0;
+        let mut bms_pcba_rev: u16 = 0;
+        let mut bms_temp_sensor_type: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id272)(
+                &mut return_code,
+                &mut batt_pack_pn,
+                &mut batt_pack_rev,
+                &mut batt_pack_prod_date,
+                &mut batt_sw_ver,
+                &mut batt_ser_no,
+                &mut batt_dev_gr_no,
+                &mut batt_sub_dev_no,
+                &mut batt_var_no,
+                &mut bms_dev_gr_no,
+                &mut bms_sub_dev_no,
+                &mut bms_var_no,
+                &mut bms_pcba_pn,
+                &mut bms_pcba_rev,
+                &mut bms_temp_sensor_type,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId272 failed with code {}", return_code);
+            return Err(format!(
+                "ParamId272 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            ));
+        }
+
+        Ok(ParamId272Result {
+            batt_pack_pn,
+            batt_pack_rev,
+            batt_pack_prod_date,
+            batt_sw_ver,
+            batt_ser_no,
+            batt_dev_gr_no,
+            batt_sub_dev_no,
+            batt_var_no,
+            bms_dev_gr_no,
+            bms_sub_dev_no,
+            bms_var_no,
+            bms_pcba_pn,
+            bms_pcba_rev,
+            bms_temp_sensor_type,
+        })
+    }
 }
 
 impl Drop for CommSession {
@@ -342,6 +427,10 @@ impl CommDll {
             &lib,
             &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
         )?;
+        let param_id272 = load_symbol::<ParamId272Fn>(
+            &lib,
+            &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
+        )?;
 
         Ok(Self {
             _lib: lib,
@@ -352,6 +441,7 @@ impl CommDll {
             param_id068,
             param_id588,
             param_id654,
+            param_id272,
             param_id606,
         })
     }
