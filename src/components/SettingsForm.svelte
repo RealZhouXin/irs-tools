@@ -7,6 +7,7 @@
     port: string;
     port_number: number;
     read_timeout_ms: number;
+    log_level: "error" | "warn" | "info" | "debug" | "trace";
   };
 
   let {
@@ -110,6 +111,25 @@
           settingsDraft.read_timeout_ms = Number.isNaN(value) ? 0 : value;
         }}
       />
+    </div>
+
+    <div class="field">
+      <label for="field-log-level">{text.fieldLogLevel}</label>
+      <select
+        id="field-log-level"
+        value={settingsDraft.log_level}
+        onchange={(event) => {
+          if (!settingsDraft) return;
+          settingsDraft.log_level = event.currentTarget
+            .value as SettingsDraft["log_level"];
+        }}
+      >
+        <option value="error">{text.logLevelError}</option>
+        <option value="warn">{text.logLevelWarn}</option>
+        <option value="info">{text.logLevelInfo}</option>
+        <option value="debug">{text.logLevelDebug}</option>
+        <option value="trace">{text.logLevelTrace}</option>
+      </select>
     </div>
 
     <div class="settings-actions">

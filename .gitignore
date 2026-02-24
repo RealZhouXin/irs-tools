@@ -30,3 +30,4 @@ target/
 *.njsproj
 *.sln
 *.swp
+*.log

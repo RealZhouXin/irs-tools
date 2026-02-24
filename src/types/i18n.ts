@@ -49,6 +49,12 @@ export type Translation = {
   fieldPort: string;
   fieldSerialPort: string;
   fieldTimeout: string;
+  fieldLogLevel: string;
+  logLevelError: string;
+  logLevelWarn: string;
+  logLevelInfo: string;
+  logLevelDebug: string;
+  logLevelTrace: string;
   langLabel: string;
   aboutTitle: string;
   aboutSubtitle: string;

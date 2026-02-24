@@ -1,0 +1,315 @@
+2026-02-24T05:49:13.571604Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T05:49:18.430133Z  INFO Starting full test run
+2026-02-24T05:49:18.430697Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T05:49:18.431520Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T05:49:18.432681Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T05:49:18.436410Z  INFO Connecting to device
+2026-02-24T05:49:18.436545Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T05:49:18.468369Z  INFO Connection established
+2026-02-24T05:49:18.468506Z  INFO Running ParamId068
+2026-02-24T05:49:18.510364Z  INFO Completed group 068 主板应用软件
+2026-02-24T05:49:18.510844Z  INFO Running ParamId080
+2026-02-24T05:49:18.539681Z  INFO Completed group 080 割草机状态
+2026-02-24T05:49:18.540250Z  INFO Running ParamId272
+2026-02-24T05:49:18.574235Z  INFO Completed group 272 电池信息
+2026-02-24T05:49:18.574650Z  INFO Running ParamId588
+2026-02-24T05:49:18.612489Z  INFO Completed group 588 应用软件
+2026-02-24T05:49:18.612858Z  INFO Running ParamId654
+2026-02-24T05:49:18.641361Z  INFO Completed group 654 系统软件版本
+2026-02-24T05:49:18.641705Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T05:49:18.687300Z  INFO Completed group 606 前灯设置
+2026-02-24T06:05:21.063619Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:05:22.485683Z  INFO Starting full test run
+2026-02-24T06:05:22.486192Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:05:22.487199Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T06:05:22.488575Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T06:05:22.500224Z  INFO Connecting to device
+2026-02-24T06:05:22.500388Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T06:05:22.538037Z  INFO Connection established
+2026-02-24T06:05:22.538234Z  INFO Running ParamId068
+2026-02-24T06:05:22.576393Z  INFO Completed group 068 主板应用软件
+2026-02-24T06:05:22.576845Z  INFO Running ParamId080
+2026-02-24T06:05:22.607941Z  INFO Completed group 080 割草机状态
+2026-02-24T06:05:22.608408Z  INFO Running ParamId272
+2026-02-24T06:05:22.677425Z  INFO Completed group 272 电池信息
+2026-02-24T06:05:22.678058Z  INFO Running ParamId588
+2026-02-24T06:05:22.714635Z  INFO Completed group 588 应用软件
+2026-02-24T06:05:22.715013Z  INFO Running ParamId654
+2026-02-24T06:05:22.786733Z  INFO Completed group 654 系统软件版本
+2026-02-24T06:05:22.787132Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T06:05:22.891393Z  INFO Completed group 606 前灯设置
+2026-02-24T06:16:54.063096Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:16:57.590977Z  INFO Starting full test run
+2026-02-24T06:16:57.591547Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:16:57.592297Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T06:16:57.593387Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T06:16:57.599214Z  INFO Connecting to device
+2026-02-24T06:16:57.599335Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T06:16:57.615520Z  INFO Connection established
+2026-02-24T06:16:57.615667Z  INFO Running ParamId068
+2026-02-24T06:16:57.644778Z  INFO Completed group 068 主板应用软件
+2026-02-24T06:16:57.645174Z  INFO Running ParamId080
+2026-02-24T06:16:57.678704Z  INFO Completed group 080 割草机状态
+2026-02-24T06:16:57.679185Z  INFO Running ParamId272
+2026-02-24T06:16:57.710339Z  INFO Completed group 272 电池信息
+2026-02-24T06:16:57.710865Z  INFO Running ParamId588
+2026-02-24T06:16:57.741373Z  INFO Completed group 588 应用软件
+2026-02-24T06:16:57.741745Z  INFO Running ParamId654
+2026-02-24T06:16:57.764013Z  INFO Completed group 654 系统软件版本
+2026-02-24T06:16:57.764359Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T06:16:57.847250Z  INFO Completed group 606 前灯设置
+2026-02-24T06:28:27.453534Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:28:29.968486Z  INFO Starting full test run
+2026-02-24T06:28:29.969249Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:28:29.970088Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T06:28:29.971682Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T06:28:29.978249Z  INFO Connecting to device
+2026-02-24T06:28:29.978441Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T06:28:30.037636Z  INFO Connection established
+2026-02-24T06:28:30.037851Z  INFO Running ParamId068
+2026-02-24T06:28:30.066021Z  INFO Completed group 068 主板应用软件
+2026-02-24T06:28:30.066475Z  INFO Running ParamId080
+2026-02-24T06:28:30.097429Z  INFO Completed group 080 割草机状态
+2026-02-24T06:28:30.097889Z  INFO Running ParamId272
+2026-02-24T06:28:30.127967Z  INFO Completed group 272 电池信息
+2026-02-24T06:28:30.128479Z  INFO Running ParamId588
+2026-02-24T06:28:30.151963Z  INFO Completed group 588 应用软件
+2026-02-24T06:28:30.152384Z  INFO Running ParamId654
+2026-02-24T06:28:30.177001Z  INFO Completed group 654 系统软件版本
+2026-02-24T06:28:30.177411Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T06:28:30.206135Z  INFO Completed group 606 前灯设置
+2026-02-24T06:28:32.920943Z  INFO Starting full test run
+2026-02-24T06:28:32.922204Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:28:32.923030Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T06:28:32.924329Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T06:28:32.928829Z  INFO Connecting to device
+2026-02-24T06:28:32.928961Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T06:28:32.946683Z  INFO Connection established
+2026-02-24T06:28:32.946852Z  INFO Running ParamId068
+2026-02-24T06:28:32.970550Z  INFO Completed group 068 主板应用软件
+2026-02-24T06:28:32.970922Z  INFO Running ParamId080
+2026-02-24T06:28:33.000203Z  INFO Completed group 080 割草机状态
+2026-02-24T06:28:33.000686Z  INFO Running ParamId272
+2026-02-24T06:28:33.051622Z  INFO Completed group 272 电池信息
+2026-02-24T06:28:33.052148Z  INFO Running ParamId588
+2026-02-24T06:28:33.077164Z  INFO Completed group 588 应用软件
+2026-02-24T06:28:33.077537Z  INFO Running ParamId654
+2026-02-24T06:28:33.096615Z  INFO Completed group 654 系统软件版本
+2026-02-24T06:28:33.097021Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T06:28:33.175165Z  INFO Completed group 606 前灯设置
+2026-02-24T06:28:36.192933Z  INFO Starting full test run
+2026-02-24T06:28:36.193624Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T06:28:36.194735Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T06:28:36.195729Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T06:28:36.199926Z  INFO Connecting to device
+2026-02-24T06:28:36.200093Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T06:28:36.225190Z  INFO Connection established
+2026-02-24T06:28:36.225345Z  INFO Running ParamId068
+2026-02-24T06:28:36.288813Z  INFO Completed group 068 主板应用软件
+2026-02-24T06:28:36.289230Z  INFO Running ParamId080
+2026-02-24T06:28:36.346657Z  INFO Completed group 080 割草机状态
+2026-02-24T06:28:36.347111Z  INFO Running ParamId272
+2026-02-24T06:28:36.380901Z  INFO Completed group 272 电池信息
+2026-02-24T06:28:36.381381Z  INFO Running ParamId588
+2026-02-24T06:28:36.411107Z  INFO Completed group 588 应用软件
+2026-02-24T06:28:36.411502Z  INFO Running ParamId654
+2026-02-24T06:28:36.448420Z  INFO Completed group 654 系统软件版本
+2026-02-24T06:28:36.448827Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T06:28:36.490622Z  INFO Completed group 606 前灯设置
+2026-02-24T07:15:15.921568Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:15:18.316600Z  INFO Starting full test run
+2026-02-24T07:15:18.317057Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:15:18.317848Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:15:18.318916Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:15:18.327254Z  INFO Connecting to device
+2026-02-24T07:15:18.327391Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:15:18.347986Z  INFO Connection established
+2026-02-24T07:15:18.348161Z  INFO Running ParamId068
+2026-02-24T07:15:18.370338Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:15:18.370735Z  INFO Running ParamId080
+2026-02-24T07:15:18.404176Z  INFO Completed group 080 割草机状态
+2026-02-24T07:15:18.404553Z  INFO Running ParamId272
+2026-02-24T07:15:18.445523Z  INFO Completed group 272 电池信息
+2026-02-24T07:15:18.445936Z  INFO Running ParamId588
+2026-02-24T07:15:18.465892Z  INFO Completed group 588 应用软件
+2026-02-24T07:15:18.466312Z  INFO Running ParamId654
+2026-02-24T07:15:18.492367Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:15:18.492750Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:15:18.534250Z  INFO Completed group 606 前灯设置
+2026-02-24T07:20:16.903682Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:20:18.849492Z  INFO Starting full test run
+2026-02-24T07:20:18.853018Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:20:18.855597Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:20:18.857620Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:20:18.890300Z  INFO Connecting to device
+2026-02-24T07:20:18.890526Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:20:18.931268Z  INFO Connection established
+2026-02-24T07:20:18.932260Z  INFO Running ParamId068
+2026-02-24T07:20:18.957529Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:20:18.958096Z  INFO Running ParamId080
+2026-02-24T07:20:18.996662Z  INFO Completed group 080 割草机状态
+2026-02-24T07:20:18.997240Z  INFO Running ParamId272
+2026-02-24T07:20:19.023027Z  INFO Completed group 272 电池信息
+2026-02-24T07:20:19.023444Z  INFO Running ParamId588
+2026-02-24T07:20:19.045729Z  INFO Completed group 588 应用软件
+2026-02-24T07:20:19.047274Z  INFO Running ParamId654
+2026-02-24T07:20:19.068787Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:20:19.069518Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:20:19.133035Z  INFO Completed group 606 前灯设置
+2026-02-24T07:29:57.730531Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:29:59.714234Z  INFO Starting full test run
+2026-02-24T07:29:59.715078Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:29:59.716298Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:29:59.718836Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:29:59.729475Z  INFO Connecting to device
+2026-02-24T07:29:59.729759Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:29:59.759876Z  INFO Connection established
+2026-02-24T07:29:59.760074Z  INFO Running ParamId068
+2026-02-24T07:29:59.789646Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:29:59.790181Z  INFO Running ParamId080
+2026-02-24T07:29:59.916804Z  INFO Completed group 080 割草机状态
+2026-02-24T07:29:59.917273Z  INFO Running ParamId272
+2026-02-24T07:29:59.956253Z  INFO Completed group 272 电池信息
+2026-02-24T07:29:59.956951Z  INFO Running ParamId588
+2026-02-24T07:29:59.994195Z  INFO Completed group 588 应用软件
+2026-02-24T07:29:59.994588Z  INFO Running ParamId654
+2026-02-24T07:30:00.121839Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:30:00.122358Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:30:00.160143Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:19.890891Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:24.465329Z  INFO Starting full test run
+2026-02-24T07:37:24.466264Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:24.467372Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:24.468687Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:24.475047Z  INFO Connecting to device
+2026-02-24T07:37:24.475194Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:24.495405Z  INFO Connection established
+2026-02-24T07:37:24.495603Z  INFO Running ParamId068
+2026-02-24T07:37:24.521430Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:24.521897Z  INFO Running ParamId080
+2026-02-24T07:37:24.551905Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:24.552472Z  INFO Running ParamId272
+2026-02-24T07:37:24.592450Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:24.592930Z  INFO Running ParamId588
+2026-02-24T07:37:24.614748Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:24.615128Z  INFO Running ParamId654
+2026-02-24T07:37:24.652734Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:24.653165Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:24.804141Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:29.872768Z  WARN NewEvents emitted without explicit RedrawEventsCleared
+2026-02-24T07:37:29.877899Z  WARN RedrawEventsCleared emitted without explicit MainEventsCleared
+2026-02-24T07:37:29.962390Z  INFO Starting full test run
+2026-02-24T07:37:29.962968Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:29.964189Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:29.965700Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:29.971158Z  INFO Connecting to device
+2026-02-24T07:37:29.971378Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:29.990369Z  INFO Connection established
+2026-02-24T07:37:29.990579Z  INFO Running ParamId068
+2026-02-24T07:37:30.015336Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:30.015764Z  INFO Running ParamId080
+2026-02-24T07:37:30.049665Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:30.050131Z  INFO Running ParamId272
+2026-02-24T07:37:30.085218Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:30.085729Z  INFO Running ParamId588
+2026-02-24T07:37:30.116252Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:30.116763Z  INFO Running ParamId654
+2026-02-24T07:37:30.148883Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:30.149301Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:30.200566Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:31.469339Z  INFO Starting full test run
+2026-02-24T07:37:31.470015Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:31.470870Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:31.472222Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:31.476637Z  INFO Connecting to device
+2026-02-24T07:37:31.476786Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:31.495979Z  INFO Connection established
+2026-02-24T07:37:31.496124Z  INFO Running ParamId068
+2026-02-24T07:37:31.523605Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:31.524015Z  INFO Running ParamId080
+2026-02-24T07:37:31.556611Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:31.557203Z  INFO Running ParamId272
+2026-02-24T07:37:31.591738Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:31.592327Z  INFO Running ParamId588
+2026-02-24T07:37:31.612981Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:31.613352Z  INFO Running ParamId654
+2026-02-24T07:37:31.650768Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:31.651170Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:31.758420Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:33.141094Z  INFO Starting full test run
+2026-02-24T07:37:33.141659Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:33.142526Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:33.143702Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:33.147856Z  INFO Connecting to device
+2026-02-24T07:37:33.148048Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:33.167845Z  INFO Connection established
+2026-02-24T07:37:33.168006Z  INFO Running ParamId068
+2026-02-24T07:37:33.195156Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:33.195517Z  INFO Running ParamId080
+2026-02-24T07:37:33.238207Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:33.238635Z  INFO Running ParamId272
+2026-02-24T07:37:33.283091Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:33.283590Z  INFO Running ParamId588
+2026-02-24T07:37:33.312725Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:33.313064Z  INFO Running ParamId654
+2026-02-24T07:37:33.351517Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:33.351910Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:33.402459Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:34.648694Z  INFO Starting full test run
+2026-02-24T07:37:34.649300Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:34.650279Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:34.651514Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:34.655947Z  INFO Connecting to device
+2026-02-24T07:37:34.656110Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:34.692416Z  INFO Connection established
+2026-02-24T07:37:34.692561Z  INFO Running ParamId068
+2026-02-24T07:37:34.731646Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:34.732078Z  INFO Running ParamId080
+2026-02-24T07:37:34.777799Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:34.778302Z  INFO Running ParamId272
+2026-02-24T07:37:34.829132Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:34.829607Z  INFO Running ParamId588
+2026-02-24T07:37:34.865658Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:34.866040Z  INFO Running ParamId654
+2026-02-24T07:37:34.909140Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:34.909537Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:35.001102Z  INFO Completed group 606 前灯设置
+2026-02-24T07:37:36.637202Z  INFO Starting full test run
+2026-02-24T07:37:36.637816Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:37:36.638729Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:37:36.639897Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:37:36.644106Z  INFO Connecting to device
+2026-02-24T07:37:36.644249Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:37:36.683059Z  INFO Connection established
+2026-02-24T07:37:36.683240Z  INFO Running ParamId068
+2026-02-24T07:37:36.718916Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:37:36.719381Z  INFO Running ParamId080
+2026-02-24T07:37:36.785696Z  INFO Completed group 080 割草机状态
+2026-02-24T07:37:36.786180Z  INFO Running ParamId272
+2026-02-24T07:37:36.834788Z  INFO Completed group 272 电池信息
+2026-02-24T07:37:36.835313Z  INFO Running ParamId588
+2026-02-24T07:37:36.861175Z  INFO Completed group 588 应用软件
+2026-02-24T07:37:36.861542Z  INFO Running ParamId654
+2026-02-24T07:37:36.893899Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:37:36.894287Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:37:36.936707Z  INFO Completed group 606 前灯设置
+2026-02-24T07:42:35.736433Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:42:38.097579Z  INFO Starting full test run
+2026-02-24T07:42:38.098179Z  INFO Using config at C:\Users\Administrator\code\irs-tools\src-tauri\config/threshold.json
+2026-02-24T07:42:38.099061Z  INFO Using tests at C:\Users\Administrator\code\irs-tools\src-tauri\config/tests.json
+2026-02-24T07:42:38.100302Z  INFO Using CommDllv2.dll at \\?\C:\Users\Administrator\code\irs-tools\src-tauri\target\debug\CommDllv2.dll
+2026-02-24T07:42:38.106800Z  INFO Connecting to device
+2026-02-24T07:42:38.106914Z  INFO Using network connection 10.101.1.100:12345
+2026-02-24T07:42:38.122153Z  INFO Connection established
+2026-02-24T07:42:38.122363Z  INFO Running ParamId068
+2026-02-24T07:42:38.145582Z  INFO Completed group 068 主板应用软件
+2026-02-24T07:42:38.145980Z  INFO Running ParamId080
+2026-02-24T07:42:38.184059Z  INFO Completed group 080 割草机状态
+2026-02-24T07:42:38.184495Z  INFO Running ParamId272
+2026-02-24T07:42:38.238589Z  INFO Completed group 272 电池信息
+2026-02-24T07:42:38.239048Z  INFO Running ParamId588
+2026-02-24T07:42:38.274188Z  INFO Completed group 588 应用软件
+2026-02-24T07:42:38.274538Z  INFO Running ParamId654
+2026-02-24T07:42:38.303509Z  INFO Completed group 654 系统软件版本
+2026-02-24T07:42:38.303871Z  INFO Running ParamId606 FrontLightMode=1 Power=80
+2026-02-24T07:42:38.352971Z  INFO Completed group 606 前灯设置

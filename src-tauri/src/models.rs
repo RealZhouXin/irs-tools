@@ -19,6 +19,24 @@ pub enum ConnectionConfig {
 pub struct BaseConfig {
     pub connection: ConnectionConfig,
     pub read_timeout_ms: u32,
+    #[serde(default)]
+    pub log_level: LogLevel,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

@@ -9,7 +9,10 @@ export type ConnectionConfig =
       port: string;
     };
 
+export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
+
 export type BaseConfig = {
   connection: ConnectionConfig;
   read_timeout_ms: number;
+  log_level: LogLevel;
 };
