@@ -9,6 +9,7 @@
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
+    TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
     retestGroup,
@@ -103,7 +104,7 @@
         unlisten = stop;
       })
       .catch((err) => {
-        console.error("Failed to listen test-group-complete", err);
+        console.error(`Failed to listen ${TAURI_EVENTS.testGroupComplete}`, err);
       });
 
     loadAppInfo()
