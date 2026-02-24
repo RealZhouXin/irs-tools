@@ -1,7 +1,10 @@
-#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
-mod commands;
 mod comm_dll;
+mod commands;
 mod config;
 mod device_gateway;
 mod events;
@@ -19,13 +22,17 @@ use tracing::warn;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::{reload, Registry};
+use tracing_subscriber::{Registry, reload};
 
 use crate::models::LogLevel;
 
 fn main() {
     init_logging();
     tauri::Builder::default()
+        .setup(|app| {
+            crate::config::init_default_configs(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::start_test,
             commands::retest_group,
@@ -48,7 +55,11 @@ fn init_logging() {
     let initial_level = read_configured_log_level();
     let log_dir = resolve_log_dir();
     if let Err(err) = std::fs::create_dir_all(&log_dir) {
-        warn!("Failed to create log directory {}: {}", log_dir.display(), err);
+        warn!(
+            "Failed to create log directory {}: {}",
+            log_dir.display(),
+            err
+        );
     } else if let Err(err) = cleanup_old_logs(&log_dir) {
         warn!(
             "Failed to cleanup old log files in {}: {}",
@@ -109,6 +120,12 @@ pub fn apply_log_level(log_level: LogLevel) {
 }
 
 fn resolve_log_dir() -> PathBuf {
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        return PathBuf::from(local_app_data)
+            .join(env!("CARGO_PKG_NAME"))
+            .join("logs");
+    }
+
     if let Ok(current_dir) = std::env::current_dir() {
         return current_dir.join("logs");
     }
@@ -141,7 +158,9 @@ fn cleanup_old_logs(log_dir: &Path) -> std::io::Result<()> {
 }
 
 fn parse_log_date(file_name: &str) -> Option<NaiveDate> {
-    let date_part = file_name.strip_prefix(LOG_PREFIX)?.strip_suffix(LOG_SUFFIX)?;
+    let date_part = file_name
+        .strip_prefix(LOG_PREFIX)?
+        .strip_suffix(LOG_SUFFIX)?;
     NaiveDate::parse_from_str(date_part, "%Y-%m-%d").ok()
 }
 
@@ -166,6 +185,15 @@ fn read_configured_log_level() -> LogLevel {
 }
 
 fn resolve_config_path() -> Option<PathBuf> {
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let config_path = PathBuf::from(local_app_data)
+            .join(env!("CARGO_PKG_NAME"))
+            .join(CONFIG_RELATIVE_PATH);
+        if config_path.exists() {
+            return Some(config_path);
+        }
+    }
+
     if let Ok(current_dir) = std::env::current_dir() {
         let direct = current_dir.join(CONFIG_RELATIVE_PATH);
         if direct.exists() {

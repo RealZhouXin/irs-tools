@@ -94,16 +94,22 @@
 - `src-tauri/src/types.rs`
   - `CommandResult<T>` 使用结构化 `AppError`，替代纯字符串错误。
 
-## 4. 配置与资源
-- `src-tauri/config/threshold.json`
+## 4. 配置、资源与日志
+- **配置文件目录**
+  - 默认存放在 `%LOCALAPPDATA%\irs-tools\config\` 目录下（通过 `app.path().app_config_dir()` 获取）。
+  - 如果该目录下不存在配置文件，则会回退查找当前目录或资源目录。
+- `config/threshold.json`
   - 连接方式（serial/network）和读取超时。
-- `src-tauri/config/tests.json`
+- `config/tests.json`
   - 测试组与阈值规则，属于“配置驱动测试”核心。
 - `src-tauri/tauri.conf.json`
   - Tauri 构建配置：
     - 开发前置命令：`bun run dev`
     - 打包前置命令：`bun run build`
     - 资源打包包括：配置文件、`CommDllv2.dll`、`libcrypto-3-x64.dll`
+- **日志目录**
+  - 默认存放在 `%LOCALAPPDATA%\irs-tools\logs\` 目录下。
+  - 记录应用运行时的各类信息、警告和错误，按天滚动保存。
 
 ## 5. 前后端调用链
 1. 前端在 `App.svelte` 中触发动作（开始测试/重测/保存设置）。

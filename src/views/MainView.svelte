@@ -72,9 +72,9 @@
     <h3>{text.configTitle}</h3>
     <p>
       {text.configPrefix}
-      <code>src-tauri/config/threshold.json</code>
+      <code>AppData\Roaming\com.greenworks.irs-tools\config\threshold.json</code>
       {text.configMiddle}
-      <code>src-tauri/config/tests.json</code>
+      <code>AppData\Roaming\com.greenworks.irs-tools\config\tests.json</code>
       {text.configSuffix}
     </p>
   </section>
