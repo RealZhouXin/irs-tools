@@ -4,5 +4,6 @@
     "ip_address": "10.101.1.100",
     "port": "12345"
   },
-  "read_timeout_ms": 1000
+  "read_timeout_ms": 1000,
+  "log_level": "info"
 }

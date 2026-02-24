@@ -9,6 +9,7 @@
     port: string;
     port_number: number;
     read_timeout_ms: number;
+    log_level: "error" | "warn" | "info" | "debug" | "trace";
   };
 
   let {

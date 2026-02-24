@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type {
     BaseConfig,
+    LogLevel,
     Language,
     StatusKey,
     SummaryState,
@@ -28,6 +29,7 @@
     port: string;
     port_number: number;
     read_timeout_ms: number;
+    log_level: LogLevel;
   };
 
   // Svelte 5 Runes state management
@@ -65,6 +67,7 @@
         port: config.connection.port,
         port_number: 1,
         read_timeout_ms: config.read_timeout_ms,
+        log_level: config.log_level ?? "info",
       };
     } else {
       settingsDraft = {
@@ -73,6 +76,7 @@
         port: "",
         port_number: config.connection.port_number,
         read_timeout_ms: config.read_timeout_ms,
+        log_level: config.log_level ?? "info",
       };
     }
   }
@@ -197,6 +201,7 @@
               port: settingsDraft.port,
             },
             read_timeout_ms: settingsDraft.read_timeout_ms,
+            log_level: settingsDraft.log_level,
           }
         : {
             connection: {
@@ -204,6 +209,7 @@
               port_number: settingsDraft.port_number,
             },
             read_timeout_ms: settingsDraft.read_timeout_ms,
+            log_level: settingsDraft.log_level,
           };
 
     try {
@@ -215,6 +221,7 @@
           port: saved.connection.port,
           port_number: settingsDraft.port_number,
           read_timeout_ms: saved.read_timeout_ms,
+          log_level: saved.log_level,
         };
       } else {
         settingsDraft = {
@@ -223,6 +230,7 @@
           port: settingsDraft.port,
           port_number: saved.connection.port_number,
           read_timeout_ms: saved.read_timeout_ms,
+          log_level: saved.log_level,
         };
       }
       settingsSaved = true;

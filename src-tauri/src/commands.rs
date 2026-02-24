@@ -33,5 +33,7 @@ pub fn get_base_config(app: tauri::AppHandle) -> CommandResult<BaseConfig> {
 #[tauri::command]
 pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandResult<BaseConfig> {
     write_base_config(&app, &config)?;
-    read_base_config(&app)
+    let saved = read_base_config(&app)?;
+    crate::apply_log_level(saved.log_level);
+    Ok(saved)
 }

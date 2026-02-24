@@ -14,33 +14,12 @@ type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
 type ConnectMowerViaNetworkFn = unsafe extern "system" fn(*mut i8, *mut i8) -> u8;
 type CloseComPortFn = unsafe extern "system" fn() -> u8;
 type SetReadTimeoutFn = unsafe extern "system" fn(u32);
-type ParamId588Fn = unsafe extern "system" fn(
-    *mut u8,
-    *mut u16,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u32,
-);
-type ParamId068Fn = unsafe extern "system" fn(
-    *mut u8,
-    *mut u16,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u32,
-);
-type ParamId654Fn = unsafe extern "system" fn(
-    *mut u8,
-    *mut u16,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u8,
-    *mut u32,
-);
+type ParamId588Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId068Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId654Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
 type ParamId272Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u32,
@@ -111,11 +90,11 @@ impl CommSession {
                         .ok_or_else(|| "DLL 未提供 ConnectMowerViaNetwork 接口".to_string())?;
                     let ip_c = CString::new(ip_address.as_str())
                         .map_err(|_| "IP 地址包含非法字符".to_string())?;
-                    let port_c =
-                        CString::new(port.as_str()).map_err(|_| "端口号包含非法字符".to_string())?;
+                    let port_c = CString::new(port.as_str())
+                        .map_err(|_| "端口号包含非法字符".to_string())?;
                     (connect_fn)(ip_c.as_ptr() as *mut i8, port_c.as_ptr() as *mut i8)
                 }
-                };
+            };
             if code != 0 {
                 error!("Connect failed with code {}", code);
                 return Err(AppError::msg(format!(
@@ -408,14 +387,18 @@ where
     T: Copy,
 {
     for name in names {
-        if let Ok(symbol) = lib.get::<T>(*name) {
+        if let Ok(symbol) = unsafe { lib.get::<T>(*name) } {
             return Ok(*symbol);
         }
     }
 
     let name_list = names
         .iter()
-        .map(|name| String::from_utf8_lossy(name).trim_end_matches('\0').to_string())
+        .map(|name| {
+            String::from_utf8_lossy(name)
+                .trim_end_matches('\0')
+                .to_string()
+        })
         .collect::<Vec<_>>()
         .join("/");
     Err(AppError::msg(format!("无法加载 DLL 符号: {name_list}")))
@@ -426,7 +409,7 @@ where
     T: Copy,
 {
     for name in names {
-        if let Ok(symbol) = lib.get::<T>(*name) {
+        if let Ok(symbol) = unsafe { lib.get::<T>(*name) } {
             return Some(*symbol);
         }
     }
@@ -435,66 +418,72 @@ where
 
 impl CommDll {
     pub unsafe fn load(path: &Path) -> CommandResult<Self> {
-        let lib = Library::new(path)
-            .map_err(|err| AppError::dll("无法加载 CommDllv2.dll", err))?;
+        unsafe {
+            let lib =
+                Library::new(path).map_err(|err| AppError::dll("无法加载 CommDllv2.dll", err))?;
 
-        let connect_mower = load_symbol::<ConnectMowerFn>(
-            &lib,
-            &[b"ConnectMower\0", b"ConnectMower@2\0", b"_ConnectMower@2\0"],
-        )?;
-        let connect_mower_via_network = load_symbol_optional::<ConnectMowerViaNetworkFn>(
-            &lib,
-            &[
-                b"ConnectMowerViaNetwork\0",
-                b"ConnectMowerViaNetwork@8\0",
-                b"_ConnectMowerViaNetwork@8\0",
-            ],
-        );
-        let close_com_port = load_symbol::<CloseComPortFn>(
-            &lib,
-            &[b"CloseCOMPort\0", b"CloseCOMPort@0\0", b"_CloseCOMPort@0\0"],
-        )?;
-        let set_read_timeout = load_symbol_optional::<SetReadTimeoutFn>(
-            &lib,
-            &[b"SetReadTimeout\0", b"SetReadTimeout@4\0", b"_SetReadTimeout@4\0"],
-        );
-        let param_id588 = load_symbol::<ParamId588Fn>(
-            &lib,
-            &[b"ParamId588\0", b"ParamId588@28\0", b"_ParamId588@28\0"],
-        )?;
-        let param_id068 = load_symbol::<ParamId068Fn>(
-            &lib,
-            &[b"ParamId068\0", b"ParamId068@28\0", b"_ParamId068@28\0"],
-        )?;
-        let param_id606 = load_symbol::<ParamId606Fn>(
-            &lib,
-            &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
-        )?;
-        let param_id654 = load_symbol::<ParamId654Fn>(
-            &lib,
-            &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
-        )?;
-        let param_id272 = load_symbol::<ParamId272Fn>(
-            &lib,
-            &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
-        )?;
-        let param_id080 = load_symbol::<ParamId080Fn>(
-            &lib,
-            &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
-        )?;
+            let connect_mower = load_symbol::<ConnectMowerFn>(
+                &lib,
+                &[b"ConnectMower\0", b"ConnectMower@2\0", b"_ConnectMower@2\0"],
+            )?;
+            let connect_mower_via_network = load_symbol_optional::<ConnectMowerViaNetworkFn>(
+                &lib,
+                &[
+                    b"ConnectMowerViaNetwork\0",
+                    b"ConnectMowerViaNetwork@8\0",
+                    b"_ConnectMowerViaNetwork@8\0",
+                ],
+            );
+            let close_com_port = load_symbol::<CloseComPortFn>(
+                &lib,
+                &[b"CloseCOMPort\0", b"CloseCOMPort@0\0", b"_CloseCOMPort@0\0"],
+            )?;
+            let set_read_timeout = load_symbol_optional::<SetReadTimeoutFn>(
+                &lib,
+                &[
+                    b"SetReadTimeout\0",
+                    b"SetReadTimeout@4\0",
+                    b"_SetReadTimeout@4\0",
+                ],
+            );
+            let param_id588 = load_symbol::<ParamId588Fn>(
+                &lib,
+                &[b"ParamId588\0", b"ParamId588@28\0", b"_ParamId588@28\0"],
+            )?;
+            let param_id068 = load_symbol::<ParamId068Fn>(
+                &lib,
+                &[b"ParamId068\0", b"ParamId068@28\0", b"_ParamId068@28\0"],
+            )?;
+            let param_id606 = load_symbol::<ParamId606Fn>(
+                &lib,
+                &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
+            )?;
+            let param_id654 = load_symbol::<ParamId654Fn>(
+                &lib,
+                &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
+            )?;
+            let param_id272 = load_symbol::<ParamId272Fn>(
+                &lib,
+                &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
+            )?;
+            let param_id080 = load_symbol::<ParamId080Fn>(
+                &lib,
+                &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
+            )?;
 
-        Ok(Self {
-            _lib: lib,
-            connect_mower,
-            connect_mower_via_network,
-            close_com_port,
-            set_read_timeout,
-            param_id068,
-            param_id588,
-            param_id654,
-            param_id272,
-            param_id080,
-            param_id606,
-        })
+            Ok(Self {
+                _lib: lib,
+                connect_mower,
+                connect_mower_via_network,
+                close_com_port,
+                set_read_timeout,
+                param_id068,
+                param_id588,
+                param_id654,
+                param_id272,
+                param_id080,
+                param_id606,
+            })
+        }
     }
 }
