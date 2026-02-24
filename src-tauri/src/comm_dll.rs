@@ -131,48 +131,67 @@ impl CommSession {
     }
 
     pub fn param_id588(&self) -> CommandResult<ParamId588Result> {
-        info!("Running ParamId588");
-        let mut return_code: u8 = 9;
-        let mut dev_gr_no: u16 = 0;
-        let mut sub_dev_gr_no: u8 = 0;
-        let mut var_no: u8 = 0;
-        let mut maj_par_sw_ver: u8 = 0;
-        let mut min_par_sw_ver: u8 = 0;
-        let mut build_no: u32 = 0;
-
-        unsafe {
-            (self.dll.param_id588)(
-                &mut return_code,
-                &mut dev_gr_no,
-                &mut sub_dev_gr_no,
-                &mut var_no,
-                &mut maj_par_sw_ver,
-                &mut min_par_sw_ver,
-                &mut build_no,
-            );
-        }
-
-        if return_code != 0 {
-            error!("ParamId588 failed with code {}", return_code);
-            return Err(format!(
-                "ParamId588 执行失败: {} (ReturnCode={})",
-                return_code_message(return_code),
-                return_code
-            ));
-        }
-
-        Ok(ParamId588Result {
-            dev_gr_no,
-            sub_dev_gr_no,
-            var_no,
-            maj_par_sw_ver,
-            min_par_sw_ver,
-            build_no,
-        })
+        self.run_common_param_command("ParamId588", self.dll.param_id588)
+            .map(
+                |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
+                    ParamId588Result {
+                        dev_gr_no,
+                        sub_dev_gr_no,
+                        var_no,
+                        maj_par_sw_ver,
+                        min_par_sw_ver,
+                        build_no,
+                    }
+                },
+            )
     }
 
     pub fn param_id068(&self) -> CommandResult<ParamId068Result> {
-        info!("Running ParamId068");
+        self.run_common_param_command("ParamId068", self.dll.param_id068)
+            .map(
+                |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
+                    ParamId068Result {
+                        dev_gr_no,
+                        sub_dev_gr_no,
+                        var_no,
+                        maj_par_sw_ver,
+                        min_par_sw_ver,
+                        build_no,
+                    }
+                },
+            )
+    }
+
+    pub fn param_id654(&self) -> CommandResult<ParamId654Result> {
+        self.run_common_param_command("ParamId654", self.dll.param_id654)
+            .map(
+                |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
+                    ParamId654Result {
+                        dev_gr_no,
+                        sub_dev_gr_no,
+                        var_no,
+                        maj_par_sw_ver,
+                        min_par_sw_ver,
+                        build_no,
+                    }
+                },
+            )
+    }
+
+    fn run_common_param_command(
+        &self,
+        name: &str,
+        func: unsafe extern "system" fn(
+            *mut u8,
+            *mut u16,
+            *mut u8,
+            *mut u8,
+            *mut u8,
+            *mut u8,
+            *mut u32,
+        ),
+    ) -> CommandResult<(u16, u8, u8, u8, u8, u32)> {
+        info!("Running {}", name);
         let mut return_code: u8 = 9;
         let mut dev_gr_no: u16 = 0;
         let mut sub_dev_gr_no: u8 = 0;
@@ -182,7 +201,7 @@ impl CommSession {
         let mut build_no: u32 = 0;
 
         unsafe {
-            (self.dll.param_id068)(
+            func(
                 &mut return_code,
                 &mut dev_gr_no,
                 &mut sub_dev_gr_no,
@@ -194,22 +213,23 @@ impl CommSession {
         }
 
         if return_code != 0 {
-            error!("ParamId068 failed with code {}", return_code);
+            error!("{} failed with code {}", name, return_code);
             return Err(format!(
-                "ParamId068 执行失败: {} (ReturnCode={})",
+                "{} 执行失败: {} (ReturnCode={})",
+                name,
                 return_code_message(return_code),
                 return_code
             ));
         }
 
-        Ok(ParamId068Result {
+        Ok((
             dev_gr_no,
             sub_dev_gr_no,
             var_no,
             maj_par_sw_ver,
             min_par_sw_ver,
             build_no,
-        })
+        ))
     }
 
     pub fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()> {
@@ -233,47 +253,6 @@ impl CommSession {
         }
 
         Ok(())
-    }
-
-    pub fn param_id654(&self) -> CommandResult<ParamId654Result> {
-        info!("Running ParamId654");
-        let mut return_code: u8 = 9;
-        let mut dev_gr_no: u16 = 0;
-        let mut sub_dev_gr_no: u8 = 0;
-        let mut var_no: u8 = 0;
-        let mut maj_par_sw_ver: u8 = 0;
-        let mut min_par_sw_ver: u8 = 0;
-        let mut build_no: u32 = 0;
-
-        unsafe {
-            (self.dll.param_id654)(
-                &mut return_code,
-                &mut dev_gr_no,
-                &mut sub_dev_gr_no,
-                &mut var_no,
-                &mut maj_par_sw_ver,
-                &mut min_par_sw_ver,
-                &mut build_no,
-            );
-        }
-
-        if return_code != 0 {
-            error!("ParamId654 failed with code {}", return_code);
-            return Err(format!(
-                "ParamId654 执行失败: {} (ReturnCode={})",
-                return_code_message(return_code),
-                return_code
-            ));
-        }
-
-        Ok(ParamId654Result {
-            dev_gr_no,
-            sub_dev_gr_no,
-            var_no,
-            maj_par_sw_ver,
-            min_par_sw_ver,
-            build_no,
-        })
     }
 
     pub fn param_id272(&self) -> CommandResult<ParamId272Result> {

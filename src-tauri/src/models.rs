@@ -39,6 +39,94 @@ pub enum CommandGroupSpec {
     ParamId606 { front_light_mode: u8, power: u8 },
 }
 
+pub trait CheckConfig {
+    type OutputEnum: Copy;
+    fn name(&self) -> &str;
+    fn output(&self) -> Self::OutputEnum;
+    fn min(&self) -> f64;
+    fn max(&self) -> f64;
+}
+
+impl CheckConfig for ParamId068Check {
+    type OutputEnum = ParamId068Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId588Check {
+    type OutputEnum = ParamId588Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId654Check {
+    type OutputEnum = ParamId654Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId272Check {
+    type OutputEnum = ParamId272Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId080Check {
+    type OutputEnum = ParamId080Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId068Check {
     pub name: String,
@@ -168,6 +256,93 @@ pub struct TestResult {
 pub struct TestSummary {
     pub results: Vec<TestResult>,
     pub overall_passed: bool,
+}
+
+pub trait CheckableResult {
+    type OutputEnum;
+    fn get_value(&self, output: Self::OutputEnum) -> f64;
+}
+
+impl CheckableResult for ParamId588Result {
+    type OutputEnum = ParamId588Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId588Output::DevGrNo => self.dev_gr_no as f64,
+            ParamId588Output::SubDevGrNo => self.sub_dev_gr_no as f64,
+            ParamId588Output::VarNo => self.var_no as f64,
+            ParamId588Output::MajParSwVer => self.maj_par_sw_ver as f64,
+            ParamId588Output::MinParSwVer => self.min_par_sw_ver as f64,
+            ParamId588Output::BuildNo => self.build_no as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId068Result {
+    type OutputEnum = ParamId068Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId068Output::DevGrNo => self.dev_gr_no as f64,
+            ParamId068Output::SubDevGrNo => self.sub_dev_gr_no as f64,
+            ParamId068Output::VarNo => self.var_no as f64,
+            ParamId068Output::MajParSwVer => self.maj_par_sw_ver as f64,
+            ParamId068Output::MinParSwVer => self.min_par_sw_ver as f64,
+            ParamId068Output::BuildNo => self.build_no as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId654Result {
+    type OutputEnum = ParamId654Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId654Output::DevGrNo => self.dev_gr_no as f64,
+            ParamId654Output::SubDevGrNo => self.sub_dev_gr_no as f64,
+            ParamId654Output::VarNo => self.var_no as f64,
+            ParamId654Output::MajParSwVer => self.maj_par_sw_ver as f64,
+            ParamId654Output::MinParSwVer => self.min_par_sw_ver as f64,
+            ParamId654Output::BuildNo => self.build_no as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId272Result {
+    type OutputEnum = ParamId272Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId272Output::BattPackPn => self.batt_pack_pn as f64,
+            ParamId272Output::BattPackRev => self.batt_pack_rev as f64,
+            ParamId272Output::BattPackProdDate => self.batt_pack_prod_date as f64,
+            ParamId272Output::BattSwVer => self.batt_sw_ver as f64,
+            ParamId272Output::BattSerNo => self.batt_ser_no as f64,
+            ParamId272Output::BattDevGrNo => self.batt_dev_gr_no as f64,
+            ParamId272Output::BattSubDevNo => self.batt_sub_dev_no as f64,
+            ParamId272Output::BattVarNo => self.batt_var_no as f64,
+            ParamId272Output::BmsDevGrNo => self.bms_dev_gr_no as f64,
+            ParamId272Output::BmsSubDevNo => self.bms_sub_dev_no as f64,
+            ParamId272Output::BmsVarNo => self.bms_var_no as f64,
+            ParamId272Output::BmsPcbaPn => self.bms_pcba_pn as f64,
+            ParamId272Output::BmsPcbaRev => self.bms_pcba_rev as f64,
+            ParamId272Output::BmsTempSensorType => self.bms_temp_sensor_type as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId080Result {
+    type OutputEnum = ParamId080Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId080Output::MowerMainP => self.mower_main_p as f64,
+            ParamId080Output::MowerSubState => self.mower_sub_state as f64,
+            ParamId080Output::TimeStpNxtStart => self.time_stp_nxt_start as f64,
+            ParamId080Output::BattStat => self.batt_stat as f64,
+            ParamId080Output::StatFlags => self.stat_flags as f64,
+            ParamId080Output::WrlessConStat => self.wrless_con_stat as f64,
+            ParamId080Output::SignQuality => self.sign_quality as f64,
+            ParamId080Output::SourceForNextStartStop => self.source_for_next_start_stop as f64,
+            ParamId080Output::Notify => self.notify as f64,
+            ParamId080Output::ConfigurationHash => self.configuration_hash as f64,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
