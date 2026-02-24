@@ -1,7 +1,11 @@
 mod commands;
 mod comm_dll;
 mod config;
+mod device_gateway;
+mod events;
 mod models;
+mod test_runner;
+mod test_service;
 mod types;
 
 use tracing::warn;

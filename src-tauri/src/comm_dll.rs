@@ -8,7 +8,7 @@ use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId272Result, ParamId588Result,
     ParamId654Result,
 };
-use crate::types::CommandResult;
+use crate::types::{AppError, CommandResult};
 
 type ConnectMowerFn = unsafe extern "system" fn(u16) -> u8;
 type ConnectMowerViaNetworkFn = unsafe extern "system" fn(*mut i8, *mut i8) -> u8;
@@ -115,14 +115,14 @@ impl CommSession {
                         CString::new(port.as_str()).map_err(|_| "端口号包含非法字符".to_string())?;
                     (connect_fn)(ip_c.as_ptr() as *mut i8, port_c.as_ptr() as *mut i8)
                 }
-            };
+                };
             if code != 0 {
                 error!("Connect failed with code {}", code);
-                return Err(format!(
+                return Err(AppError::msg(format!(
                     "连接串口失败: {} (ReturnCode={})",
                     connect_return_code_message(code),
                     code
-                ));
+                )));
             }
         }
 
@@ -214,12 +214,12 @@ impl CommSession {
 
         if return_code != 0 {
             error!("{} failed with code {}", name, return_code);
-            return Err(format!(
+            return Err(AppError::msg(format!(
                 "{} 执行失败: {} (ReturnCode={})",
                 name,
                 return_code_message(return_code),
                 return_code
-            ));
+            )));
         }
 
         Ok((
@@ -245,11 +245,11 @@ impl CommSession {
 
         if return_code != 0 {
             error!("ParamId606 failed with code {}", return_code);
-            return Err(format!(
+            return Err(AppError::msg(format!(
                 "ParamId606 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
                 return_code
-            ));
+            )));
         }
 
         Ok(())
@@ -295,11 +295,11 @@ impl CommSession {
 
         if return_code != 0 {
             error!("ParamId272 failed with code {}", return_code);
-            return Err(format!(
+            return Err(AppError::msg(format!(
                 "ParamId272 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
                 return_code
-            ));
+            )));
         }
 
         Ok(ParamId272Result {
@@ -352,11 +352,11 @@ impl CommSession {
 
         if return_code != 0 {
             error!("ParamId080 failed with code {}", return_code);
-            return Err(format!(
+            return Err(AppError::msg(format!(
                 "ParamId080 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
                 return_code
-            ));
+            )));
         }
 
         Ok(ParamId080Result {
@@ -418,7 +418,7 @@ where
         .map(|name| String::from_utf8_lossy(name).trim_end_matches('\0').to_string())
         .collect::<Vec<_>>()
         .join("/");
-    Err(format!("无法加载 DLL 符号: {name_list}"))
+    Err(AppError::msg(format!("无法加载 DLL 符号: {name_list}")))
 }
 
 unsafe fn load_symbol_optional<T>(lib: &Library, names: &[&[u8]]) -> Option<T>
@@ -436,7 +436,7 @@ where
 impl CommDll {
     pub unsafe fn load(path: &Path) -> CommandResult<Self> {
         let lib = Library::new(path)
-            .map_err(|err| format!("无法加载 CommDllv2.dll ({}): {err}", path.display()))?;
+            .map_err(|err| AppError::dll("无法加载 CommDllv2.dll", err))?;
 
         let connect_mower = load_symbol::<ConnectMowerFn>(
             &lib,
