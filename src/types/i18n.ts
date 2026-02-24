@@ -1,0 +1,60 @@
+export type Language = "zh" | "en";
+
+export type Translation = {
+  title: string;
+  subtitle: string;
+  start: string;
+  statusTitle: string;
+  status: {
+    idle: string;
+    running: string;
+    done: string;
+    failed: string;
+  };
+  summary: {
+    pass: string;
+    fail: string;
+    pending: string;
+    idle: string;
+  };
+  table: {
+    group: string;
+    command: string;
+    range: string;
+    value: string;
+    result: string;
+    empty: string;
+  };
+  pass: string;
+  fail: string;
+  retest: string;
+  retesting: string;
+  configTitle: string;
+  configPrefix: string;
+  configMiddle: string;
+  configSuffix: string;
+  navTests: string;
+  navSettings: string;
+  settingsTitle: string;
+  settingsSubtitle: string;
+  settingsSave: string;
+  settingsSaving: string;
+  settingsSaved: string;
+  settingsError: string;
+  settingsLoading: string;
+  fieldMode: string;
+  fieldNetwork: string;
+  fieldSerial: string;
+  fieldIp: string;
+  fieldPort: string;
+  fieldSerialPort: string;
+  fieldTimeout: string;
+  langLabel: string;
+  aboutTitle: string;
+  aboutSubtitle: string;
+  aboutName: string;
+  aboutVersion: string;
+  aboutTauriVersion: string;
+  aboutLoading: string;
+  aboutError: string;
+};

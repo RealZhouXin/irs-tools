@@ -1,0 +1,20 @@
+export type CheckResult = {
+  name: string;
+  min: number | null;
+  max: number | null;
+  value: number | null;
+  passed: boolean;
+};
+
+export type TestResult = {
+  name: string;
+  command: string;
+  raw_response: string;
+  passed: boolean;
+  checks: CheckResult[];
+};
+
+export type TestSummary = {
+  results: TestResult[];
+  overall_passed: boolean;
+};
