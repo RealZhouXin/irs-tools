@@ -49,16 +49,42 @@ pub struct TestGroup {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum CommandGroupSpec {
-    ParamId068 { checks: Vec<ParamId068Check> },
-    ParamId588 { checks: Vec<ParamId588Check> },
-    ParamId654 { checks: Vec<ParamId654Check> },
-    ParamId272 { checks: Vec<ParamId272Check> },
-    ParamId080 { checks: Vec<ParamId080Check> },
-    ParamId120 { checks: Vec<ParamId120Check> },
-    ParamId122 { checks: Vec<ParamId122Check> },
-    ParamId470 { checks: Vec<ParamId470Check> },
-    ParamId468 { cutting_height_mm: u8 },
-    ParamId606 { front_light_mode: u8, power: u8 },
+    ParamId068 {
+        checks: Vec<ParamId068Check>,
+    },
+    ParamId588 {
+        checks: Vec<ParamId588Check>,
+    },
+    ParamId654 {
+        checks: Vec<ParamId654Check>,
+    },
+    ParamId272 {
+        checks: Vec<ParamId272Check>,
+    },
+    ParamId080 {
+        checks: Vec<ParamId080Check>,
+    },
+    ParamId120 {
+        checks: Vec<ParamId120Check>,
+    },
+    ParamId122 {
+        checks: Vec<ParamId122Check>,
+    },
+    ParamId470 {
+        checks: Vec<ParamId470Check>,
+    },
+    ParamId468 {
+        cutting_height_mm: u8,
+    },
+    CuttingHeightSetAndVerify {
+        cutting_height_mm: u8,
+        wait_ms: u64,
+        checks: Vec<ParamId470Check>,
+    },
+    ParamId606 {
+        front_light_mode: u8,
+        power: u8,
+    },
 }
 
 pub trait CheckConfig {

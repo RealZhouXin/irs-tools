@@ -6,13 +6,21 @@ use crate::test_service::TestService;
 use crate::types::CommandResult;
 
 #[tauri::command]
-pub fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
-    TestService::new(app).start_test()
+pub async fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || TestService::new(app_handle).start_test())
+        .await
+        .map_err(|err| format!("测试任务线程执行失败: {err}"))?
 }
 
 #[tauri::command]
-pub fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
-    TestService::new(app).retest_group(group_name)
+pub async fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        TestService::new(app_handle).retest_group(group_name)
+    })
+    .await
+    .map_err(|err| format!("重测任务线程执行失败: {err}"))?
 }
 
 #[tauri::command]

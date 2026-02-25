@@ -99,7 +99,17 @@ where
             .find(|item| item.name == group_name)
             .ok_or_else(|| format!("未找到测试项: {group_name}"))?;
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
-        run_group(gateway.as_ref(), group)
+        gateway.param_id374(2)?;
+        let result = run_group(gateway.as_ref(), group);
+        let exit_mode_result = gateway.param_id374(0);
+        match (result, exit_mode_result) {
+            (Ok(test_result), Ok(())) => Ok(test_result),
+            (Err(run_err), Ok(())) => Err(run_err),
+            (Ok(_), Err(exit_err)) => Err(exit_err),
+            (Err(run_err), Err(exit_err)) => Err(AppError::msg(format!(
+                "{run_err}; 且退出测试模式失败: {exit_err}"
+            ))),
+        }
     }
 
     fn build_gateway(
