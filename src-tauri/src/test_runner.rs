@@ -6,6 +6,7 @@ use crate::types::CommandResult;
 use std::fmt::Display;
 use std::thread;
 use std::time::Duration;
+use tracing::{info, warn};
 
 const PARAM_ID470_MAX_RETRIES: u32 = 5;
 #[cfg(test)]
@@ -89,6 +90,13 @@ where
     let mut retry_count = 0_u32;
 
     while retry_count < max_retries && check_results.iter().any(|item| !item.passed) {
+        warn!(
+            "Command {} check failed, retry {}/{} in {}ms",
+            command,
+            retry_count + 1,
+            max_retries,
+            retry_delay_ms
+        );
         thread::sleep(Duration::from_millis(retry_delay_ms));
         response = fetch_result()?;
         check_results = process_checks(checks, &response);
@@ -99,6 +107,14 @@ where
     let mut raw_response = response.to_string();
     if retry_count > 0 {
         raw_response = format!("{raw_response}, Retries={retry_count}");
+        if passed {
+            info!("Command {} passed after {} retries", command, retry_count);
+        } else {
+            warn!(
+                "Command {} still failed after {} retries",
+                command, retry_count
+            );
+        }
     }
 
     Ok(TestResult {

@@ -1,4 +1,5 @@
 use tauri::Manager;
+use tracing::error;
 
 use crate::config::{read_base_config, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
@@ -10,7 +11,10 @@ pub async fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
     let app_handle = app.clone();
     tauri::async_runtime::spawn_blocking(move || TestService::new(app_handle).start_test())
         .await
-        .map_err(|err| format!("测试任务线程执行失败: {err}"))?
+        .map_err(|err| {
+            error!("start_test worker failed: {}", err);
+            format!("测试任务线程执行失败: {err}")
+        })?
 }
 
 #[tauri::command]
@@ -20,7 +24,10 @@ pub async fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandR
         TestService::new(app_handle).retest_group(group_name)
     })
     .await
-    .map_err(|err| format!("重测任务线程执行失败: {err}"))?
+    .map_err(|err| {
+        error!("retest_group worker failed: {}", err);
+        format!("重测任务线程执行失败: {err}")
+    })?
 }
 
 #[tauri::command]

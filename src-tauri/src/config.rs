@@ -123,6 +123,13 @@ fn resolve_readable_config_path(
         if config_path.exists() {
             return Ok(config_path);
         }
+        warn!(
+            "{} not found at expected path: {}",
+            label,
+            config_path.display()
+        );
+    } else {
+        warn!("Failed to get app config dir when reading {}", label);
     }
 
     Err(AppError::msg(format!("无法找到{label}路径")))
@@ -136,6 +143,7 @@ fn resolve_writable_config_path(
     if let Ok(app_config_dir) = app.path().app_config_dir() {
         return Ok(app_config_dir.join(relative));
     }
+    warn!("Failed to get app config dir when writing {}", label);
 
     Err(AppError::msg(format!("无法找到{label}写入路径")))
 }
