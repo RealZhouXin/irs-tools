@@ -5,17 +5,22 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId272Result, ParamId588Result,
-    ParamId654Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
+    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
 };
 use crate::types::{AppError, CommandResult};
 
 pub trait DeviceGateway {
+    fn param_id374(&self, test_mode: u8) -> CommandResult<()>;
     fn param_id068(&self) -> CommandResult<ParamId068Result>;
     fn param_id588(&self) -> CommandResult<ParamId588Result>;
     fn param_id654(&self) -> CommandResult<ParamId654Result>;
     fn param_id272(&self) -> CommandResult<ParamId272Result>;
     fn param_id080(&self) -> CommandResult<ParamId080Result>;
+    fn param_id120(&self) -> CommandResult<ParamId120Result>;
+    fn param_id122(&self) -> CommandResult<ParamId122Result>;
+    fn param_id470(&self) -> CommandResult<ParamId470Result>;
+    fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()>;
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()>;
 }
 
@@ -49,6 +54,10 @@ struct DllDeviceGateway {
 }
 
 impl DeviceGateway for DllDeviceGateway {
+    fn param_id374(&self, test_mode: u8) -> CommandResult<()> {
+        self.session.param_id374(test_mode)
+    }
+
     fn param_id068(&self) -> CommandResult<ParamId068Result> {
         self.session.param_id068()
     }
@@ -67,6 +76,22 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id080(&self) -> CommandResult<ParamId080Result> {
         self.session.param_id080()
+    }
+
+    fn param_id120(&self) -> CommandResult<ParamId120Result> {
+        self.session.param_id120()
+    }
+
+    fn param_id122(&self) -> CommandResult<ParamId122Result> {
+        self.session.param_id122()
+    }
+
+    fn param_id470(&self) -> CommandResult<ParamId470Result> {
+        self.session.param_id470()
+    }
+
+    fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()> {
+        self.session.param_id468(cutting_height_mm)
     }
 
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()> {

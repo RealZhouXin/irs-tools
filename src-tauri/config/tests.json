@@ -229,6 +229,49 @@
       ]
     },
     {
+      "name": "120 加速度计数据",
+      "command": "param_id120",
+      "checks": [
+        { "name": "pitch_angle", "output": "pitch_angle", "min": -32768, "max": 32767 },
+        { "name": "roll_angle", "output": "roll_angle", "min": -32768, "max": 32767 },
+        { "name": "mover_vert_g_force", "output": "mover_vert_g_force", "min": -32768, "max": 32767 },
+        { "name": "accel_x", "output": "accel_x", "min": -1000, "max": 1000 },
+        { "name": "accel_y", "output": "accel_y", "min": -1000, "max": 1000 },
+        { "name": "accel_z", "output": "accel_z", "min": -1000, "max": 1000 },
+        { "name": "gyro_x", "output": "gyro_x", "min": -100000, "max": 100000 },
+        { "name": "gyro_y", "output": "gyro_y", "min": -100000, "max": 100000 },
+        { "name": "gyro_z", "output": "gyro_z", "min": -100000, "max": 100000 },
+        { "name": "utc_sec", "output": "utc_sec", "min": 0, "max": 4294967295 },
+        { "name": "utc_usec", "output": "utc_usec", "min": 0, "max": 999999 }
+      ]
+    },
+    {
+      "name": "122 温度数据",
+      "command": "param_id122",
+      "checks": [
+        { "name": "mover_temp", "output": "mover_temp", "min": -400, "max": 1500 },
+        { "name": "cs_temp", "output": "cs_temp", "min": -400, "max": 1500 },
+        { "name": "bat_temp", "output": "bat_temp", "min": -400, "max": 1500 },
+        { "name": "cutting_motor_temp", "output": "cutting_motor_temp", "min": -400, "max": 1500 },
+        { "name": "right_wm_temp", "output": "right_wm_temp", "min": -400, "max": 1500 },
+        { "name": "left_wm_temp", "output": "left_wm_temp", "min": -400, "max": 1500 },
+        { "name": "app_board_temp", "output": "app_board_temp", "min": -400, "max": 1500 },
+        { "name": "radar_temp", "output": "radar_temp", "min": -400, "max": 1500 }
+      ]
+    },
+    {
+      "name": "470 切割高度读取",
+      "command": "param_id470",
+      "checks": [
+        { "name": "cutting_height_mm", "output": "cutting_height_mm", "min": 10, "max": 70 }
+      ]
+    },
+    {
+      "name": "468 切割高度设置",
+      "command": "param_id468",
+      "cutting_height_mm": 35
+    },
+    {
       "name": "606 前灯设置",
       "command": "param_id606",
       "front_light_mode": 1,

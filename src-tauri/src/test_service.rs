@@ -6,7 +6,7 @@ use crate::device_gateway::{DeviceGatewayFactory, DllDeviceGatewayFactory};
 use crate::events::TEST_GROUP_COMPLETE;
 use crate::models::{ConnectionConfig, TestConfig, TestResult, TestSummary};
 use crate::test_runner::run_group;
-use crate::types::CommandResult;
+use crate::types::{AppError, CommandResult};
 
 pub struct TestService<F = DllDeviceGatewayFactory>
 where
@@ -47,6 +47,8 @@ where
         } = config;
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
         let mut results = Vec::with_capacity(tests.len());
+        gateway.param_id374(2)?;
+        let mut run_error: Option<AppError> = None;
 
         for group in tests {
             let name = group.name.clone();
@@ -60,10 +62,22 @@ where
                 }
                 Err(err) => {
                     error!("Group {} failed: {}", name, err);
-                    return Err(err);
+                    run_error = Some(err);
+                    break;
                 }
             }
         }
+
+        let exit_mode_result = gateway.param_id374(0);
+        if let Some(err) = run_error {
+            if let Err(exit_err) = exit_mode_result {
+                return Err(AppError::msg(format!(
+                    "{err}; 且退出测试模式失败: {exit_err}"
+                )));
+            }
+            return Err(err);
+        }
+        exit_mode_result?;
 
         let overall_passed = results.iter().all(|item| item.passed);
         Ok(TestSummary {

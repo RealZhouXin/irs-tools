@@ -1,8 +1,8 @@
 use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 
-use serde::ser::Serializer;
 use serde::Serialize;
+use serde::ser::Serializer;
 
 #[derive(Debug)]
 pub enum AppError {

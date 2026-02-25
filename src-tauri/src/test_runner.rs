@@ -111,6 +111,41 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
                 &response,
             ))
         }
+        CommandGroupSpec::ParamId120 { checks } => {
+            let response = gateway.param_id120()?;
+            Ok(build_checked_result(
+                name,
+                "ParamId120".to_string(),
+                &checks,
+                &response,
+            ))
+        }
+        CommandGroupSpec::ParamId122 { checks } => {
+            let response = gateway.param_id122()?;
+            Ok(build_checked_result(
+                name,
+                "ParamId122".to_string(),
+                &checks,
+                &response,
+            ))
+        }
+        CommandGroupSpec::ParamId470 { checks } => {
+            let response = gateway.param_id470()?;
+            Ok(build_checked_result(
+                name,
+                "ParamId470".to_string(),
+                &checks,
+                &response,
+            ))
+        }
+        CommandGroupSpec::ParamId468 { cutting_height_mm } => {
+            gateway.param_id468(cutting_height_mm)?;
+            Ok(build_action_result(
+                name,
+                "ParamId468".to_string(),
+                format!("CuttingHeightMm={}, ReturnCode=0", cutting_height_mm),
+            ))
+        }
         CommandGroupSpec::ParamId606 {
             front_light_mode,
             power,
@@ -136,7 +171,8 @@ mod tests {
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
         CommandGroupSpec, ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result,
-        ParamId272Result, ParamId588Result, ParamId654Result, TestGroup,
+        ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result,
+        ParamId654Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -146,6 +182,10 @@ mod tests {
     }
 
     impl DeviceGateway for FakeGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
         fn param_id068(&self) -> CommandResult<ParamId068Result> {
             Ok(self.result_068)
         }
@@ -163,6 +203,22 @@ mod tests {
         }
 
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
             panic!("not used in this test")
         }
 

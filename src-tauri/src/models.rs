@@ -54,6 +54,10 @@ pub enum CommandGroupSpec {
     ParamId654 { checks: Vec<ParamId654Check> },
     ParamId272 { checks: Vec<ParamId272Check> },
     ParamId080 { checks: Vec<ParamId080Check> },
+    ParamId120 { checks: Vec<ParamId120Check> },
+    ParamId122 { checks: Vec<ParamId122Check> },
+    ParamId470 { checks: Vec<ParamId470Check> },
+    ParamId468 { cutting_height_mm: u8 },
     ParamId606 { front_light_mode: u8, power: u8 },
 }
 
@@ -131,6 +135,54 @@ impl CheckConfig for ParamId272Check {
 
 impl CheckConfig for ParamId080Check {
     type OutputEnum = ParamId080Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId120Check {
+    type OutputEnum = ParamId120Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId122Check {
+    type OutputEnum = ParamId122Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId470Check {
+    type OutputEnum = ParamId470Output;
     fn name(&self) -> &str {
         &self.name
     }
@@ -252,6 +304,65 @@ pub enum ParamId080Output {
     ConfigurationHash,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId120Check {
+    pub name: String,
+    pub output: ParamId120Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId120Output {
+    PitchAngle,
+    RollAngle,
+    MoverVertGForce,
+    AccelX,
+    AccelY,
+    AccelZ,
+    GyroX,
+    GyroY,
+    GyroZ,
+    UtcSec,
+    UtcUsec,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId122Check {
+    pub name: String,
+    pub output: ParamId122Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId122Output {
+    MoverTemp,
+    CsTemp,
+    BatTemp,
+    CuttingMotorTemp,
+    RightWmTemp,
+    LeftWmTemp,
+    AppBoardTemp,
+    RadarTemp,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId470Check {
+    pub name: String,
+    pub output: ParamId470Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId470Output {
+    CuttingHeightMm,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CheckResult {
     pub name: String,
@@ -363,6 +474,50 @@ impl CheckableResult for ParamId080Result {
     }
 }
 
+impl CheckableResult for ParamId120Result {
+    type OutputEnum = ParamId120Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId120Output::PitchAngle => self.pitch_angle as f64,
+            ParamId120Output::RollAngle => self.roll_angle as f64,
+            ParamId120Output::MoverVertGForce => self.mover_vert_g_force as f64,
+            ParamId120Output::AccelX => self.accel_x as f64,
+            ParamId120Output::AccelY => self.accel_y as f64,
+            ParamId120Output::AccelZ => self.accel_z as f64,
+            ParamId120Output::GyroX => self.gyro_x as f64,
+            ParamId120Output::GyroY => self.gyro_y as f64,
+            ParamId120Output::GyroZ => self.gyro_z as f64,
+            ParamId120Output::UtcSec => self.utc_sec as f64,
+            ParamId120Output::UtcUsec => self.utc_usec as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId122Result {
+    type OutputEnum = ParamId122Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId122Output::MoverTemp => self.mover_temp as f64,
+            ParamId122Output::CsTemp => self.cs_temp as f64,
+            ParamId122Output::BatTemp => self.bat_temp as f64,
+            ParamId122Output::CuttingMotorTemp => self.cutting_motor_temp as f64,
+            ParamId122Output::RightWmTemp => self.right_wm_temp as f64,
+            ParamId122Output::LeftWmTemp => self.left_wm_temp as f64,
+            ParamId122Output::AppBoardTemp => self.app_board_temp as f64,
+            ParamId122Output::RadarTemp => self.radar_temp as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId470Result {
+    type OutputEnum = ParamId470Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId470Output::CuttingHeightMm => self.cutting_height_mm as f64,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ParamId588Result {
     pub dev_gr_no: u16,
@@ -423,6 +578,38 @@ pub struct ParamId080Result {
     pub source_for_next_start_stop: u8,
     pub notify: u16,
     pub configuration_hash: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId120Result {
+    pub pitch_angle: i16,
+    pub roll_angle: i16,
+    pub mover_vert_g_force: i16,
+    pub accel_x: f32,
+    pub accel_y: f32,
+    pub accel_z: f32,
+    pub gyro_x: f32,
+    pub gyro_y: f32,
+    pub gyro_z: f32,
+    pub utc_sec: u32,
+    pub utc_usec: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId122Result {
+    pub mover_temp: i16,
+    pub cs_temp: i16,
+    pub bat_temp: i16,
+    pub cutting_motor_temp: i16,
+    pub right_wm_temp: i16,
+    pub left_wm_temp: i16,
+    pub app_board_temp: i16,
+    pub radar_temp: i16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId470Result {
+    pub cutting_height_mm: u8,
 }
 
 impl fmt::Display for ParamId588Result {
@@ -509,5 +696,48 @@ impl fmt::Display for ParamId080Result {
             self.notify,
             self.configuration_hash
         )
+    }
+}
+
+impl fmt::Display for ParamId120Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "PitchAngle={}, RollAngle={}, MoverVertGForce={}, AccelX={}, AccelY={}, AccelZ={}, GyroX={}, GyroY={}, GyroZ={}, UtcSec={}, UtcUsec={}",
+            self.pitch_angle,
+            self.roll_angle,
+            self.mover_vert_g_force,
+            self.accel_x,
+            self.accel_y,
+            self.accel_z,
+            self.gyro_x,
+            self.gyro_y,
+            self.gyro_z,
+            self.utc_sec,
+            self.utc_usec
+        )
+    }
+}
+
+impl fmt::Display for ParamId122Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "MoverTemp={}, CSTemp={}, BatTemp={}, CuttingMotorTemp={}, RightWmTemp={}, LeftWmTemp={}, AppBoardTemp={}, RadarTemp={}",
+            self.mover_temp,
+            self.cs_temp,
+            self.bat_temp,
+            self.cutting_motor_temp,
+            self.right_wm_temp,
+            self.left_wm_temp,
+            self.app_board_temp,
+            self.radar_temp
+        )
+    }
+}
+
+impl fmt::Display for ParamId470Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CuttingHeightMm={}", self.cutting_height_mm)
     }
 }
