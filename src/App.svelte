@@ -20,6 +20,7 @@
     subscribeTestGroupComplete,
   } from "./services/tauri";
   import Sidebar from "./components/Sidebar.svelte";
+  import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -50,6 +51,8 @@
   let appVersion = $state<string | null>(null);
   let tauriVersion = $state<string | null>(null);
   let aboutError = $state<string | null>(null);
+  let pendingLightConfirm = $state<TestResult | null>(null);
+  let showLightConfirmDialog = $state(false);
 
   // Derived state
   const text = $derived(getTranslation(language));
@@ -82,11 +85,58 @@
   }
 
   function handleIncomingResult(incoming: TestResult) {
-    const existingIndex = results.findIndex((item) => item.name === incoming.name);
+    if (incoming.command === "ParamId606" && incoming.passed) {
+      pendingLightConfirm = incoming;
+      showLightConfirmDialog = true;
+      return;
+    }
+    upsertResult(incoming);
+  }
+
+  function upsertResult(result: TestResult) {
+    const existingIndex = results.findIndex((item) => item.name === result.name);
     if (existingIndex === -1) {
-      results.push(incoming);
+      results.push(result);
     } else {
-      results[existingIndex] = incoming;
+      results[existingIndex] = result;
+    }
+  }
+
+  function recalcSummaryState() {
+    if (results.length === 0) {
+      summaryState = "idle";
+      return;
+    }
+    summaryState = results.every((item) => item.passed) ? "pass" : "fail";
+  }
+
+  function confirmLightResult(isLit: boolean) {
+    if (!pendingLightConfirm) {
+      showLightConfirmDialog = false;
+      return;
+    }
+
+    const confirmed: TestResult = {
+      ...pendingLightConfirm,
+      passed: isLit,
+      raw_response: `${pendingLightConfirm.raw_response}, LightOn=${isLit ? 1 : 0}`,
+      checks: [
+        {
+          name: "light_confirmed",
+          min: null,
+          max: null,
+          value: isLit ? 1 : 0,
+          passed: isLit,
+        },
+      ],
+    };
+
+    upsertResult(confirmed);
+    pendingLightConfirm = null;
+    showLightConfirmDialog = false;
+
+    if (!running) {
+      recalcSummaryState();
     }
   }
 
@@ -142,14 +192,24 @@
     retesting = null;
     error = null;
     results = [];
+    pendingLightConfirm = null;
+    showLightConfirmDialog = false;
     statusKey = "running";
     summaryState = "pending";
 
     try {
       const summary = await startTest();
-      results = summary.results;
       statusKey = "done";
-      summaryState = summary.overall_passed ? "pass" : "fail";
+
+      for (const result of summary.results) {
+        handleIncomingResult(result);
+      }
+
+      if (showLightConfirmDialog) {
+        summaryState = "pending";
+      } else {
+        recalcSummaryState();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error = message;
@@ -169,13 +229,14 @@
 
     try {
       const updated = await retestGroup(groupName);
-      const idx = results.findIndex((r) => r.name === updated.name);
-      if (idx !== -1) {
-        results[idx] = updated;
+      if (updated.command === "ParamId606" && updated.passed) {
+        pendingLightConfirm = updated;
+        showLightConfirmDialog = true;
+        summaryState = "pending";
+      } else {
+        upsertResult(updated);
+        recalcSummaryState();
       }
-
-      const allPassed = results.every((item) => item.passed);
-      summaryState = allPassed ? "pass" : "fail";
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error = message;
@@ -282,4 +343,14 @@
       />
     {/if}
   </div>
+
+  <ConfirmDialog
+    open={showLightConfirmDialog}
+    title={text.confirmTitle}
+    message={text.confirmLightQuestion}
+    yesLabel={text.confirmYes}
+    noLabel={text.confirmNo}
+    onYes={() => confirmLightResult(true)}
+    onNo={() => confirmLightResult(false)}
+  />
 </div>

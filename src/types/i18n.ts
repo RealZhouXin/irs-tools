@@ -63,4 +63,8 @@ export type Translation = {
   aboutTauriVersion: string;
   aboutLoading: string;
   aboutError: string;
+  confirmTitle: string;
+  confirmLightQuestion: string;
+  confirmYes: string;
+  confirmNo: string;
 };
