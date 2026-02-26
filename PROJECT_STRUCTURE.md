@@ -122,7 +122,7 @@
     - 打包前置命令：`bun run build`
     - 资源打包包括：配置文件、`CommDllv2.dll`、`libcrypto-3-x64.dll`
 - **日志目录**
-  - 默认存放在 `%LOCALAPPDATA%\irs-tools\logs\` 目录下。
+  - 默认通过 `app.path().app_log_dir()` 获取日志目录（Windows 下通常位于 `%LOCALAPPDATA%\irs-tools\logs\`）。
   - 记录应用运行时的各类信息、警告和错误，按天滚动保存。
 
 ## 5. 前后端调用链
