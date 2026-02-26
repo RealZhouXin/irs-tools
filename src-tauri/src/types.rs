@@ -1,8 +1,8 @@
 use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 
-use serde::ser::Serializer;
 use serde::Serialize;
+use serde::ser::Serializer;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -11,9 +11,13 @@ pub enum AppError {
         context: &'static str,
         source: std::io::Error,
     },
-    Json {
+    TomlDe {
         context: &'static str,
-        source: serde_json::Error,
+        source: toml::de::Error,
+    },
+    TomlSer {
+        context: &'static str,
+        source: toml::ser::Error,
     },
     Dll {
         context: &'static str,
@@ -30,8 +34,12 @@ impl AppError {
         Self::Io { context, source }
     }
 
-    pub fn json(context: &'static str, source: serde_json::Error) -> Self {
-        Self::Json { context, source }
+    pub fn toml_de(context: &'static str, source: toml::de::Error) -> Self {
+        Self::TomlDe { context, source }
+    }
+
+    pub fn toml_ser(context: &'static str, source: toml::ser::Error) -> Self {
+        Self::TomlSer { context, source }
     }
 
     pub fn dll(context: &'static str, source: libloading::Error) -> Self {
@@ -44,7 +52,8 @@ impl Display for AppError {
         match self {
             Self::Message(message) => write!(f, "{message}"),
             Self::Io { context, source } => write!(f, "{context}: {source}"),
-            Self::Json { context, source } => write!(f, "{context}: {source}"),
+            Self::TomlDe { context, source } => write!(f, "{context}: {source}"),
+            Self::TomlSer { context, source } => write!(f, "{context}: {source}"),
             Self::Dll { context, source } => write!(f, "{context}: {source}"),
         }
     }
@@ -54,7 +63,8 @@ impl StdError for AppError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Io { source, .. } => Some(source),
-            Self::Json { source, .. } => Some(source),
+            Self::TomlDe { source, .. } => Some(source),
+            Self::TomlSer { source, .. } => Some(source),
             Self::Dll { source, .. } => Some(source),
             Self::Message(_) => None,
         }

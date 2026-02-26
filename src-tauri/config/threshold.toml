@@ -1,0 +1,7 @@
+read_timeout_ms = 1000
+log_level = "info"
+
+[connection]
+mode = "network"
+ip_address = "10.101.1.64"
+port = "12345"

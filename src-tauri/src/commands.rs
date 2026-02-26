@@ -1,4 +1,5 @@
 use tauri::Manager;
+use tracing::error;
 
 use crate::config::{read_base_config, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
@@ -6,20 +7,32 @@ use crate::test_service::TestService;
 use crate::types::CommandResult;
 
 #[tauri::command]
-pub fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
-    TestService::new(app).start_test()
+pub async fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || TestService::new(app_handle).start_test())
+        .await
+        .map_err(|err| {
+            error!("start_test worker failed: {}", err);
+            format!("测试任务线程执行失败: {err}")
+        })?
 }
 
 #[tauri::command]
-pub fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
-    TestService::new(app).retest_group(group_name)
+pub async fn retest_group(app: tauri::AppHandle, group_name: String) -> CommandResult<TestResult> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        TestService::new(app_handle).retest_group(group_name)
+    })
+    .await
+    .map_err(|err| {
+        error!("retest_group worker failed: {}", err);
+        format!("重测任务线程执行失败: {err}")
+    })?
 }
 
 #[tauri::command]
 pub fn show_main_window(app: tauri::AppHandle) -> CommandResult<()> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("未找到主窗口")?;
+    let window = app.get_webview_window("main").ok_or("未找到主窗口")?;
     window.show().map_err(|err| err.to_string())?;
     window.set_focus().map_err(|err| err.to_string())?;
     Ok(())

@@ -64,6 +64,10 @@ export const textMap: Record<Language, Translation> = {
         aboutTauriVersion: "Tauri 版本",
         aboutLoading: "正在读取版本信息...",
         aboutError: "读取失败",
+        confirmTitle: "人工确认",
+        confirmLightQuestion: "补光灯是否点亮？",
+        confirmYes: "是",
+        confirmNo: "否",
     },
     en: {
         title: "Test Console",
@@ -128,6 +132,10 @@ export const textMap: Record<Language, Translation> = {
         aboutTauriVersion: "Tauri Version",
         aboutLoading: "Loading version info...",
         aboutError: "Failed to load",
+        confirmTitle: "Manual Confirmation",
+        confirmLightQuestion: "Is the fill light on?",
+        confirmYes: "Yes",
+        confirmNo: "No",
     },
 };
 

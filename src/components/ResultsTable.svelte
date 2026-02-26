@@ -15,6 +15,10 @@
 </script>
 
 <section>
+    {#if error}
+        <div class="error">{error}</div>
+    {/if}
+
     <table>
         <thead>
             <tr>
@@ -26,13 +30,7 @@
             </tr>
         </thead>
         <tbody>
-            {#if error}
-                <tr>
-                    <td colspan="5" class="error">
-                        {error}
-                    </td>
-                </tr>
-            {:else if results.length === 0}
+            {#if results.length === 0}
                 <tr>
                     <td colspan="5" class="empty">
                         {text.table.empty}

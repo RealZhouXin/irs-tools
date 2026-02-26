@@ -1,12 +1,12 @@
 use tauri::Emitter;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::config::read_config;
 use crate::device_gateway::{DeviceGatewayFactory, DllDeviceGatewayFactory};
 use crate::events::TEST_GROUP_COMPLETE;
 use crate::models::{ConnectionConfig, TestConfig, TestResult, TestSummary};
 use crate::test_runner::run_group;
-use crate::types::CommandResult;
+use crate::types::{AppError, CommandResult};
 
 pub struct TestService<F = DllDeviceGatewayFactory>
 where
@@ -45,14 +45,26 @@ where
             read_timeout_ms,
             tests,
         } = config;
+        info!(
+            "Loaded test config: total_groups={}, read_timeout_ms={}",
+            tests.len(),
+            read_timeout_ms
+        );
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
         let mut results = Vec::with_capacity(tests.len());
+        info!("Entering test mode via ParamId374(TestMode=2)");
+        if let Err(err) = gateway.param_id374(2) {
+            error!("Failed to enter test mode: {}", err);
+            return Err(err);
+        }
+        let mut run_error: Option<AppError> = None;
 
         for group in tests {
             let name = group.name.clone();
+            info!("Starting group {}", name);
             match run_group(gateway.as_ref(), group) {
                 Ok(result) => {
-                    info!("Completed group {}", name);
+                    info!("Completed group {} with passed={}", name, result.passed);
                     if let Err(err) = self.app.emit(TEST_GROUP_COMPLETE, &result) {
                         error!("Failed to emit result for {}: {}", name, err);
                     }
@@ -60,12 +72,32 @@ where
                 }
                 Err(err) => {
                     error!("Group {} failed: {}", name, err);
-                    return Err(err);
+                    run_error = Some(err);
+                    break;
                 }
             }
         }
 
+        info!("Leaving test mode via ParamId374(TestMode=0)");
+        let exit_mode_result = gateway.param_id374(0);
+        if let Some(err) = run_error {
+            if let Err(exit_err) = exit_mode_result {
+                error!("Failed to leave test mode after group failure: {}", exit_err);
+                return Err(AppError::msg(format!(
+                    "{err}; 且退出测试模式失败: {exit_err}"
+                )));
+            }
+            warn!("Test run ended with error: {}", err);
+            return Err(err);
+        }
+        exit_mode_result?;
+
         let overall_passed = results.iter().all(|item| item.passed);
+        info!(
+            "Test run finished: overall_passed={}, completed_groups={}",
+            overall_passed,
+            results.len()
+        );
         Ok(TestSummary {
             results,
             overall_passed,
@@ -85,7 +117,31 @@ where
             .find(|item| item.name == group_name)
             .ok_or_else(|| format!("未找到测试项: {group_name}"))?;
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
-        run_group(gateway.as_ref(), group)
+        info!("Retest entering test mode via ParamId374(TestMode=2)");
+        gateway.param_id374(2)?;
+        let result = run_group(gateway.as_ref(), group);
+        info!("Retest leaving test mode via ParamId374(TestMode=0)");
+        let exit_mode_result = gateway.param_id374(0);
+        match (result, exit_mode_result) {
+            (Ok(test_result), Ok(())) => {
+                info!(
+                    "Retest finished: group={}, passed={}",
+                    test_result.name, test_result.passed
+                );
+                Ok(test_result)
+            }
+            (Err(run_err), Ok(())) => {
+                error!("Retest run failed: {}", run_err);
+                Err(run_err)
+            }
+            (Ok(_), Err(exit_err)) => {
+                error!("Retest failed to leave test mode: {}", exit_err);
+                Err(exit_err)
+            }
+            (Err(run_err), Err(exit_err)) => Err(AppError::msg(format!(
+                "{run_err}; 且退出测试模式失败: {exit_err}"
+            ))),
+        }
     }
 
     fn build_gateway(

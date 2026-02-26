@@ -18,18 +18,20 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use chrono::{Local, NaiveDate};
+use tauri::Manager;
 use tracing::warn;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::fmt::time::LocalTime;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{Registry, reload};
 
 use crate::models::LogLevel;
 
 fn main() {
-    init_logging();
     tauri::Builder::default()
         .setup(|app| {
+            init_logging(app.handle());
             crate::config::init_default_configs(app.handle());
             Ok(())
         })
@@ -49,11 +51,11 @@ static LOG_LEVEL_RELOAD_HANDLE: OnceLock<reload::Handle<LevelFilter, Registry>> 
 const LOG_PREFIX: &str = "irs-tools-";
 const LOG_SUFFIX: &str = ".log";
 const LOG_RETENTION_DAYS: i64 = 3;
-const CONFIG_RELATIVE_PATH: &str = "config/threshold.json";
+const CONFIG_RELATIVE_PATH: &str = "config/threshold.toml";
 
-fn init_logging() {
-    let initial_level = read_configured_log_level();
-    let log_dir = resolve_log_dir();
+fn init_logging(app: &tauri::AppHandle) {
+    let initial_level = read_configured_log_level(app);
+    let log_dir = resolve_log_dir(app);
     if let Err(err) = std::fs::create_dir_all(&log_dir) {
         warn!(
             "Failed to create log directory {}: {}",
@@ -70,7 +72,11 @@ fn init_logging() {
     let log_path = resolve_log_path(&log_dir);
 
     let stdout_layer = if cfg!(debug_assertions) {
-        Some(tracing_subscriber::fmt::layer().with_target(false))
+        Some(
+            tracing_subscriber::fmt::layer()
+                .with_timer(LocalTime::rfc_3339())
+                .with_target(false),
+        )
     } else {
         None
     };
@@ -81,6 +87,7 @@ fn init_logging() {
             let (level_filter, handle) = reload::Layer::new(to_level_filter(initial_level));
             let _ = LOG_LEVEL_RELOAD_HANDLE.set(handle);
             let file_layer = tracing_subscriber::fmt::layer()
+                .with_timer(LocalTime::rfc_3339())
                 .with_ansi(false)
                 .with_target(false)
                 .with_writer(file_writer);
@@ -119,11 +126,9 @@ pub fn apply_log_level(log_level: LogLevel) {
     }
 }
 
-fn resolve_log_dir() -> PathBuf {
-    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-        return PathBuf::from(local_app_data)
-            .join(env!("CARGO_PKG_NAME"))
-            .join("logs");
+fn resolve_log_dir(app: &tauri::AppHandle) -> PathBuf {
+    if let Ok(app_log_dir) = app.path().app_log_dir() {
+        return app_log_dir;
     }
 
     if let Ok(current_dir) = std::env::current_dir() {
@@ -164,8 +169,8 @@ fn parse_log_date(file_name: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(date_part, "%Y-%m-%d").ok()
 }
 
-fn read_configured_log_level() -> LogLevel {
-    let Some(path) = resolve_config_path() else {
+fn read_configured_log_level(app: &tauri::AppHandle) -> LogLevel {
+    let Some(path) = resolve_config_path(app) else {
         return LogLevel::default();
     };
 
@@ -179,16 +184,14 @@ fn read_configured_log_level() -> LogLevel {
         log_level: LogLevel,
     }
 
-    serde_json::from_str::<LogLevelConfig>(&config_text)
+    toml::from_str::<LogLevelConfig>(&config_text)
         .map(|cfg| cfg.log_level)
         .unwrap_or_default()
 }
 
-fn resolve_config_path() -> Option<PathBuf> {
-    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-        let config_path = PathBuf::from(local_app_data)
-            .join(env!("CARGO_PKG_NAME"))
-            .join(CONFIG_RELATIVE_PATH);
+fn resolve_config_path(app: &tauri::AppHandle) -> Option<PathBuf> {
+    if let Ok(app_config_dir) = app.path().app_config_dir() {
+        let config_path = app_config_dir.join(CONFIG_RELATIVE_PATH);
         if config_path.exists() {
             return Some(config_path);
         }
