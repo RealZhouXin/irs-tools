@@ -72,9 +72,9 @@
     <h3>{text.configTitle}</h3>
     <p>
       {text.configPrefix}
-      <code>AppData\Roaming\com.greenworks.irs-tools\config\threshold.json</code>
+      <code>AppData\Roaming\com.greenworks.irs-tools\config\threshold.toml</code>
       {text.configMiddle}
-      <code>AppData\Roaming\com.greenworks.irs-tools\config\tests.json</code>
+      <code>AppData\Roaming\com.greenworks.irs-tools\config\tests.toml</code>
       {text.configSuffix}
     </p>
   </section>

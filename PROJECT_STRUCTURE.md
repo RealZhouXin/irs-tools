@@ -77,8 +77,8 @@
 
 - `src-tauri/src/config.rs`
   - 配置读取与写入逻辑：
-    - `threshold.json`：基础连接参数和超时设置
-    - `tests.json`：测试项及阈值规则
+    - `threshold.toml`：基础连接参数和超时设置
+    - `tests.toml`：测试项及阈值规则
   - 启动时将“基础配置 + 测试配置”组合成完整测试配置。
 
 ### 3.7 设备网关抽象层
@@ -112,9 +112,9 @@
 - **配置文件目录**
   - 默认存放在 `%LOCALAPPDATA%\irs-tools\config\` 目录下（通过 `app.path().app_config_dir()` 获取）。
   - 如果该目录下不存在配置文件，则会回退查找当前目录或资源目录。
-- `config/threshold.json`
+- `config/threshold.toml`
   - 连接方式（serial/network）和读取超时。
-- `config/tests.json`
+- `config/tests.toml`
   - 测试组与阈值规则，属于“配置驱动测试”核心。
 - `src-tauri/tauri.conf.json`
   - Tauri 构建配置：
@@ -177,7 +177,7 @@ bun run tauri build
 1. 先执行 `bun run dev`，确认前端页面可正常打开。
 2. 再执行 `bun run tauri dev`，确认桌面窗口可启动。
 3. 打开设置页，检查连接模式（serial/network）和超时参数。
-4. 检查 `src-tauri/config/tests.json` 测试项是否符合当前设备。
+4. 检查 `src-tauri/config/tests.toml` 测试项是否符合当前设备。
 5. 执行“开始测试”，观察是否持续收到分组完成结果。
 
 ### 7.4 常见问题排查
@@ -187,8 +187,8 @@ bun run tauri build
 - 问题：提示找不到 `CommDllv2.dll`
   - 排查：确认 DLL 在资源目录或运行目录；`commands.rs` 会按多个候选路径查找。
 - 问题：连接失败（串口或网络）
-  - 排查：检查 `threshold.json` 的连接参数、设备在线状态、端口占用、网络连通性。
+  - 排查：检查 `threshold.toml` 的连接参数、设备在线状态、端口占用、网络连通性。
 - 问题：测试项解析失败
-  - 排查：检查 `tests.json` 的字段名、`command` 值、`checks` 结构与枚举值是否匹配。
+  - 排查：检查 `tests.toml` 的字段名、`command` 值、`checks` 结构与枚举值是否匹配。
 - 问题：前端能启动但无法调用后端命令
   - 排查：确认命令已在 `main.rs` 的 `invoke_handler` 注册，且前端 `invoke` 名称一致。

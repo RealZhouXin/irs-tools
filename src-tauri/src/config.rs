@@ -6,7 +6,7 @@ use tracing::{info, warn};
 use crate::models::{BaseConfig, TestConfig, TestGroup};
 use crate::types::{AppError, CommandResult};
 
-const DEFAULT_CONFIG_FILES: &[&str] = &["config/threshold.json", "config/tests.json"];
+const DEFAULT_CONFIG_FILES: &[&str] = &["config/threshold.toml", "config/tests.toml"];
 
 pub fn init_default_configs(app: &tauri::AppHandle) {
     let app_config_dir = match app.path().app_config_dir() {
@@ -84,27 +84,27 @@ pub fn read_config(app: &tauri::AppHandle) -> CommandResult<TestConfig> {
 }
 
 pub fn read_base_config(app: &tauri::AppHandle) -> CommandResult<BaseConfig> {
-    let base_path = resolve_readable_config_path(app, "config/threshold.json", "配置文件")?;
+    let base_path = resolve_readable_config_path(app, "config/threshold.toml", "配置文件")?;
     info!("Using config at {}", base_path.display());
     let base_data =
         std::fs::read_to_string(&base_path).map_err(|err| AppError::io("无法读取配置文件", err))?;
-    serde_json::from_str(&base_data).map_err(|err| AppError::json("配置文件解析失败", err))
+    toml::from_str(&base_data).map_err(|err| AppError::toml_de("配置文件解析失败", err))
 }
 
 pub fn read_tests_config(app: &tauri::AppHandle) -> CommandResult<Vec<TestGroup>> {
-    let tests_path = resolve_readable_config_path(app, "config/tests.json", "测试项配置文件")?;
+    let tests_path = resolve_readable_config_path(app, "config/tests.toml", "测试项配置文件")?;
     info!("Using tests at {}", tests_path.display());
     let tests_data = std::fs::read_to_string(&tests_path)
         .map_err(|err| AppError::io("无法读取测试项配置文件", err))?;
-    let tests_config: TestsConfig = serde_json::from_str(&tests_data)
-        .map_err(|err| AppError::json("测试项配置解析失败", err))?;
+    let tests_config: TestsConfig =
+        toml::from_str(&tests_data).map_err(|err| AppError::toml_de("测试项配置解析失败", err))?;
     Ok(tests_config.tests)
 }
 
 pub fn write_base_config(app: &tauri::AppHandle, config: &BaseConfig) -> CommandResult<()> {
-    let path = resolve_writable_config_path(app, "config/threshold.json", "配置文件")?;
-    let data = serde_json::to_string_pretty(config)
-        .map_err(|err| AppError::json("配置文件序列化失败", err))?;
+    let path = resolve_writable_config_path(app, "config/threshold.toml", "配置文件")?;
+    let data =
+        toml::to_string_pretty(config).map_err(|err| AppError::toml_ser("配置文件序列化失败", err))?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|err| AppError::io("无法创建配置目录", err))?;
     }

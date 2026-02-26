@@ -51,7 +51,7 @@ static LOG_LEVEL_RELOAD_HANDLE: OnceLock<reload::Handle<LevelFilter, Registry>> 
 const LOG_PREFIX: &str = "irs-tools-";
 const LOG_SUFFIX: &str = ".log";
 const LOG_RETENTION_DAYS: i64 = 3;
-const CONFIG_RELATIVE_PATH: &str = "config/threshold.json";
+const CONFIG_RELATIVE_PATH: &str = "config/threshold.toml";
 
 fn init_logging(app: &tauri::AppHandle) {
     let initial_level = read_configured_log_level(app);
@@ -184,7 +184,7 @@ fn read_configured_log_level(app: &tauri::AppHandle) -> LogLevel {
         log_level: LogLevel,
     }
 
-    serde_json::from_str::<LogLevelConfig>(&config_text)
+    toml::from_str::<LogLevelConfig>(&config_text)
         .map(|cfg| cfg.log_level)
         .unwrap_or_default()
 }

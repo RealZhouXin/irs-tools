@@ -29,8 +29,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "config/threshold.json",
-      "config/tests.json",
+      "config/threshold.toml",
+      "config/tests.toml",
       "CommDllv2.dll",
       "libcrypto-3-x64.dll"
     ]

@@ -1,0 +1,327 @@
+[[tests]]
+name = "068 主板应用软件"
+command = "param_id068"
+[[tests.checks]]
+name = "maj_par_sw_ver"
+output = "maj_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "min_par_sw_ver"
+output = "min_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "build_no"
+output = "build_no"
+min = 0
+max = 999999
+
+[[tests]]
+name = "080 割草机状态"
+command = "param_id080"
+[[tests.checks]]
+name = "mower_main_p"
+output = "mower_main_p"
+min = 0
+max = 255
+[[tests.checks]]
+name = "mower_sub_state"
+output = "mower_sub_state"
+min = 0
+max = 255
+[[tests.checks]]
+name = "time_stp_nxt_start"
+output = "time_stp_nxt_start"
+min = 0
+max = 4294967295
+[[tests.checks]]
+name = "batt_stat"
+output = "batt_stat"
+min = 0
+max = 255
+[[tests.checks]]
+name = "stat_flags"
+output = "stat_flags"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "wrless_con_stat"
+output = "wrless_con_stat"
+min = 0
+max = 255
+[[tests.checks]]
+name = "sign_quality"
+output = "sign_quality"
+min = 0
+max = 255
+[[tests.checks]]
+name = "source_for_next_start_stop"
+output = "source_for_next_start_stop"
+min = 0
+max = 255
+[[tests.checks]]
+name = "notify"
+output = "notify"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "configuration_hash"
+output = "configuration_hash"
+min = 0
+max = 255
+
+[[tests]]
+name = "272 电池信息"
+command = "param_id272"
+[[tests.checks]]
+name = "batt_pack_pn"
+output = "batt_pack_pn"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_pack_rev"
+output = "batt_pack_rev"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "batt_pack_prod_date"
+output = "batt_pack_prod_date"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_sw_ver"
+output = "batt_sw_ver"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_ser_no"
+output = "batt_ser_no"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_dev_gr_no"
+output = "batt_dev_gr_no"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_sub_dev_no"
+output = "batt_sub_dev_no"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "batt_var_no"
+output = "batt_var_no"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "bms_dev_gr_no"
+output = "bms_dev_gr_no"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "bms_sub_dev_no"
+output = "bms_sub_dev_no"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "bms_var_no"
+output = "bms_var_no"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "bms_pcba_pn"
+output = "bms_pcba_pn"
+min = 0
+max = 999999999
+[[tests.checks]]
+name = "bms_pcba_rev"
+output = "bms_pcba_rev"
+min = 0
+max = 65535
+[[tests.checks]]
+name = "bms_temp_sensor_type"
+output = "bms_temp_sensor_type"
+min = 0
+max = 999999999
+
+[[tests]]
+name = "588 应用软件"
+command = "param_id588"
+[[tests.checks]]
+name = "maj_par_sw_ver"
+output = "maj_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "min_par_sw_ver"
+output = "min_par_sw_ver"
+min = 5
+max = 255
+[[tests.checks]]
+name = "build_no"
+output = "build_no"
+min = 0
+max = 999999
+
+[[tests]]
+name = "654 系统软件版本"
+command = "param_id654"
+[[tests.checks]]
+name = "maj_par_sw_ver"
+output = "maj_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "min_par_sw_ver"
+output = "min_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "build_no"
+output = "build_no"
+min = 0
+max = 999999
+
+[[tests]]
+name = "120 加速度计数据"
+command = "param_id120"
+# [[tests.checks]]
+# name = "pitch_angle"
+# output = "pitch_angle"
+# min = -32768
+# max = 32767
+# [[tests.checks]]
+# name = "roll_angle"
+# output = "roll_angle"
+# min = -32768
+# max = 32767
+# [[tests.checks]]
+# name = "mover_vert_g_force"
+# output = "mover_vert_g_force"
+# min = -32768
+# max = 32767
+[[tests.checks]]
+name = "accel_x"
+output = "accel_x"
+min = -1000
+max = 1000
+[[tests.checks]]
+name = "accel_y"
+output = "accel_y"
+min = -1000
+max = 1000
+[[tests.checks]]
+name = "accel_z"
+output = "accel_z"
+min = -1000
+max = 1000
+# [[tests.checks]]
+# name = "gyro_x"
+# output = "gyro_x"
+# min = -100000
+# max = 100000
+# [[tests.checks]]
+# name = "gyro_y"
+# output = "gyro_y"
+# min = -100000
+# max = 100000
+# [[tests.checks]]
+# name = "gyro_z"
+# output = "gyro_z"
+# min = -100000
+# max = 100000
+# [[tests.checks]]
+# name = "utc_sec"
+# output = "utc_sec"
+# min = 0
+# max = 4294967295
+# [[tests.checks]]
+# name = "utc_usec"
+# output = "utc_usec"
+# min = 0
+# max = 999999
+
+[[tests]]
+name = "122 温度数据"
+command = "param_id122"
+[[tests.checks]]
+name = "mover_temp"
+output = "mover_temp"
+min = -400
+max = 1500
+# [[tests.checks]]
+# name = "cs_temp"
+# output = "cs_temp"
+# min = -400
+# max = 1500
+[[tests.checks]]
+name = "bat_temp"
+output = "bat_temp"
+min = -400
+max = 1500
+[[tests.checks]]
+name = "cutting_motor_temp"
+output = "cutting_motor_temp"
+min = -400
+max = 1500
+# [[tests.checks]]
+# name = "right_wm_temp"
+# output = "right_wm_temp"
+# min = -400
+# max = 1500
+# [[tests.checks]]
+# name = "left_wm_temp"
+# output = "left_wm_temp"
+# min = -400
+# max = 1500
+[[tests.checks]]
+name = "app_board_temp"
+output = "app_board_temp"
+min = -400
+max = 1500
+# [[tests.checks]]
+# name = "radar_temp"
+# output = "radar_temp"
+# min = -400
+# max = 1500
+
+[[tests]]
+name = "刀盘低位校验（30mm）"
+command = "cutting_height_set_and_verify"
+cutting_height_mm = 30
+wait_ms = 2000
+[[tests.checks]]
+name = "cutting_height_mm"
+output = "cutting_height_mm"
+min = 28
+max = 32
+
+[[tests]]
+name = "刀盘中位校验（60mm）"
+command = "cutting_height_set_and_verify"
+cutting_height_mm = 60
+wait_ms = 2000
+[[tests.checks]]
+name = "cutting_height_mm"
+output = "cutting_height_mm"
+min = 58
+max = 62
+
+[[tests]]
+name = "刀盘高位校验（90mm）"
+command = "cutting_height_set_and_verify"
+cutting_height_mm = 90
+wait_ms = 2000
+[[tests.checks]]
+name = "cutting_height_mm"
+output = "cutting_height_mm"
+min = 88
+max = 92
+
+[[tests]]
+name = "606 前灯设置"
+command = "param_id606"
+front_light_mode = 1
+power = 80
+
