@@ -42,6 +42,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::start_test,
+            commands::stop_test,
             commands::retest_group,
             commands::show_main_window,
             commands::get_base_config,

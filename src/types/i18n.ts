@@ -4,6 +4,8 @@ export type Translation = {
   title: string;
   subtitle: string;
   start: string;
+  stop: string;
+  stopping: string;
   export: string;
   exporting: string;
   statusTitle: string;

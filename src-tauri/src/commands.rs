@@ -3,7 +3,7 @@ use tracing::error;
 
 use crate::config::{read_base_config, read_test_stages, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
-use crate::test_service::TestService;
+use crate::test_service::{request_stop_test, TestService};
 use crate::types::CommandResult;
 
 #[tauri::command]
@@ -89,4 +89,10 @@ pub async fn get_available_export_dates(app: tauri::AppHandle) -> CommandResult<
             error!("get_available_export_dates worker failed: {}", err);
             format!("导出日期查询线程执行失败: {err}")
         })?
+}
+
+#[tauri::command]
+pub fn stop_test() -> CommandResult<()> {
+    request_stop_test();
+    Ok(())
 }

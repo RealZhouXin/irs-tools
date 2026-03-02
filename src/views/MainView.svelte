@@ -22,9 +22,11 @@
     exportError,
     exportSuccess,
     exporting,
+    stopping,
     stageOptions,
     selectedStage,
     onStart,
+    onStop,
     onOpenExport,
     onRetest,
     onSelectStage,
@@ -41,9 +43,11 @@
     exportError: string | null;
     exportSuccess: string | null;
     exporting: boolean;
+    stopping: boolean;
     stageOptions: string[];
     selectedStage: string;
     onStart: () => void;
+    onStop: () => void;
     onOpenExport: () => void;
     onRetest: (groupName: string) => void;
     onSelectStage: (stage: string) => void;
@@ -75,6 +79,9 @@
       </div>
       <button class="primary" onclick={onStart} disabled={running}>
         {text.start}
+      </button>
+      <button class="secondary" onclick={onStop} disabled={!running || stopping}>
+        {stopping ? text.stopping : text.stop}
       </button>
       <button class="secondary" onclick={onOpenExport} disabled={running || exporting}>
         <svg

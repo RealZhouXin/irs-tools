@@ -20,6 +20,7 @@
     saveBaseConfig,
     showMainWindow,
     startTest,
+    stopTest,
     subscribeTestGroupComplete,
   } from "./services/tauri";
   import Sidebar from "./components/Sidebar.svelte";
@@ -65,6 +66,7 @@
   let exportStartDate = $state<string | null>(null);
   let exportEndDate = $state<string | null>(null);
   let exporting = $state(false);
+  let stopping = $state(false);
   let exportError = $state<string | null>(null);
   let exportSuccess = $state<string | null>(null);
 
@@ -217,6 +219,7 @@
 
   const handleStart = async () => {
     running = true;
+    stopping = false;
     retesting = null;
     error = null;
     exportError = null;
@@ -244,11 +247,37 @@
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      error = message;
-      statusKey = "failed";
-      summaryState = "fail";
+      if (message.includes("测试已手动停止")) {
+        error = message;
+        statusKey = "idle";
+        summaryState =
+          results.length === 0
+            ? "idle"
+            : results.every((item) => item.passed)
+              ? "pass"
+              : "fail";
+      } else {
+        error = message;
+        statusKey = "failed";
+        summaryState = "fail";
+      }
     } finally {
       running = false;
+      stopping = false;
+    }
+  };
+
+  const handleStop = async () => {
+    if (!running || stopping) {
+      return;
+    }
+    stopping = true;
+    try {
+      await stopTest();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
+      stopping = false;
     }
   };
 
@@ -409,9 +438,11 @@
         {exportError}
         {exportSuccess}
         {exporting}
+        {stopping}
         stageOptions={availableStages}
         {selectedStage}
         onStart={handleStart}
+        onStop={handleStop}
         onOpenExport={handleOpenExport}
         onRetest={handleRetest}
         onSelectStage={handleSelectStage}

@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use chrono::Local;
@@ -11,6 +12,20 @@ use crate::events::TEST_GROUP_COMPLETE;
 use crate::models::{ConnectionConfig, TestConfig, TestGroup, TestResult, TestSummary};
 use crate::test_runner::run_group;
 use crate::types::{AppError, CommandResult};
+
+static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+pub fn request_stop_test() {
+    STOP_REQUESTED.store(true, Ordering::SeqCst);
+}
+
+fn clear_stop_request() {
+    STOP_REQUESTED.store(false, Ordering::SeqCst);
+}
+
+fn is_stop_requested() -> bool {
+    STOP_REQUESTED.load(Ordering::SeqCst)
+}
 
 pub struct TestService<F = DllDeviceGatewayFactory>
 where
@@ -42,6 +57,7 @@ where
     }
 
     pub fn start_test(&self, requested_stages: Vec<String>) -> CommandResult<TestSummary> {
+        clear_stop_request();
         let started_at = Local::now();
         let run_timer = Instant::now();
         let normalized_stages = normalize_requested_stages(&requested_stages);
@@ -72,8 +88,14 @@ where
             return Err(err);
         }
         let mut run_error: Option<AppError> = None;
+        let mut stopped = false;
 
         for group in tests {
+            if is_stop_requested() {
+                warn!("Stop requested before running next group");
+                stopped = true;
+                break;
+            }
             let name = group.name.clone();
             info!("Starting group {}", name);
             match run_group(gateway.as_ref(), group) {
@@ -90,10 +112,16 @@ where
                     break;
                 }
             }
+            if is_stop_requested() {
+                warn!("Stop requested after group completed");
+                stopped = true;
+                break;
+            }
         }
 
         info!("Leaving test mode via ParamId374(TestMode=0)");
         let exit_mode_result = gateway.param_id374(0);
+        clear_stop_request();
         if let Some(err) = run_error {
             if let Err(exit_err) = exit_mode_result {
                 error!(
@@ -119,6 +147,24 @@ where
             return Err(err);
         }
         exit_mode_result?;
+        if stopped {
+            let overall_passed = results.iter().all(|item| item.passed);
+            let status = if overall_passed { "Pass" } else { "Fail" };
+            if let Err(db_err) = crate::db::persist_test_results(
+                &self.app,
+                &session_stage,
+                status,
+                started_at,
+                run_timer.elapsed().as_millis() as i64,
+                &results,
+            ) {
+                error!("Failed to persist stopped test run: {}", db_err);
+                return Err(AppError::msg(format!(
+                    "测试已手动停止; 且保存测试记录失败: {db_err}"
+                )));
+            }
+            return Err(AppError::msg("测试已手动停止"));
+        }
 
         let overall_passed = results.iter().all(|item| item.passed);
         info!(

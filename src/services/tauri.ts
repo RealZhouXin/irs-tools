@@ -27,6 +27,10 @@ export function startTest(stages: string[]) {
   return invoke<TestSummary>("start_test", { stages });
 }
 
+export function stopTest() {
+  return invoke("stop_test");
+}
+
 export function retestGroup(groupName: string) {
   return invoke<TestResult>("retest_group", { groupName });
 }
