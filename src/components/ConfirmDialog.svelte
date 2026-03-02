@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button } from "$lib/components/ui/button/index.js";
+  
   let { open, title, message, yesLabel, noLabel, onYes, onNo } = $props<{
     open: boolean;
     title: string;
@@ -16,8 +18,8 @@
       <h3>{title}</h3>
       <p>{message}</p>
       <div class="actions">
-        <button class="no" onclick={onNo}>{noLabel}</button>
-        <button class="yes" onclick={onYes}>{yesLabel}</button>
+        <Button variant="secondary" onclick={onNo}>{noLabel}</Button>
+        <Button variant="default" onclick={onYes}>{yesLabel}</Button>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@
 
   import { loadAvailableExportDates } from "../services/tauri";
   import type { Translation } from "../types";
+  import { Button } from "$lib/components/ui/button/index.js";
 
   let {
     open,
@@ -184,12 +185,12 @@
       {/if}
 
       <div class="actions">
-        <button class="secondary" onclick={onClose} disabled={exporting}>
+        <Button variant="secondary" onclick={onClose} disabled={exporting}>
           {text.exportCancel}
-        </button>
-        <button class="primary" onclick={handleConfirm} disabled={disableConfirm}>
+        </Button>
+        <Button variant="default" onclick={handleConfirm} disabled={disableConfirm}>
           {exporting ? text.exporting : text.exportConfirm}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

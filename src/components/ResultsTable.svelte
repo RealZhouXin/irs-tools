@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { TestResult, SummaryState, Translation } from "../types";
+  import * as Card from "$lib/components/ui/card/index.js";
+  import * as Table from "$lib/components/ui/table/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
 
   type StageGroup = {
     stage: string;
@@ -41,97 +44,115 @@
   });
 </script>
 
-<section>
+<section class="space-y-6">
   {#if error}
-    <div class="error">{error}</div>
+    <div class="rounded-md bg-destructive/15 p-4 py-3 text-sm text-destructive font-medium border border-destructive/20 shadow-sm">{error}</div>
   {/if}
 
   {#if results.length === 0}
-    <table>
-      <thead>
-        <tr>
-          <th>{text.table.group}</th>
-          <th>{text.table.command}</th>
-          <th>{text.table.range}</th>
-          <th>{text.table.value}</th>
-          <th>{text.table.result}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="5" class="empty">
-            {text.table.empty}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <Card.Root>
+      <div class="rounded-md border-0">
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>{text.table.group}</Table.Head>
+              <Table.Head>{text.table.command}</Table.Head>
+              <Table.Head>{text.table.range}</Table.Head>
+              <Table.Head>{text.table.value}</Table.Head>
+              <Table.Head class="w-[180px]">{text.table.result}</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            <Table.Row>
+              <Table.Cell colspan={5} class="h-24 text-center text-muted-foreground">
+                {text.table.empty}
+              </Table.Cell>
+            </Table.Row>
+          </Table.Body>
+        </Table.Root>
+      </div>
+    </Card.Root>
   {:else}
-    <div class="stage-cards">
+    <div class="flex flex-col gap-6">
       {#each stageGroups as stageGroup (stageGroup.stage)}
-        <article class="stage-card">
-          <header class="stage-card-header">
-            <h3>{stageGroup.stage}</h3>
-            <span class={stageGroup.passed ? "pass" : "fail"}>
+        <Card.Root>
+          <Card.Header class="flex flex-row items-center justify-between pb-2">
+            <Card.Title class="text-base">{stageGroup.stage}</Card.Title>
+            <span class="text-sm font-bold {stageGroup.passed ? 'text-green-600' : 'text-destructive'}">
               {stageGroup.passed ? text.pass : text.fail}
             </span>
-          </header>
+          </Card.Header>
 
-          <table>
-            <thead>
-              <tr>
-                <th>{text.table.group}</th>
-                <th>{text.table.command}</th>
-                <th>{text.table.range}</th>
-                <th>{text.table.value}</th>
-                <th>{text.table.result}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each stageGroup.items as group (stageGroup.stage + "-" + group.name)}
-                <tr class="group-row">
-                  <td>{group.name}</td>
-                  <td>
-                    <code>{group.command}</code>
-                  </td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td class={group.passed ? "pass" : "fail"}>
-                    <div class="group-actions">
-                      <span>{group.passed ? text.pass : text.fail}</span>
-                      <button
-                        class="retest"
-                        onclick={() => onRetest(group.name)}
-                        disabled={running ||
-                          retesting !== null ||
-                          summaryState === "pending" ||
-                          summaryState === "idle"}
-                      >
-                        {retesting === group.name ? text.retesting : text.retest}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+          <div class="border-t">
+            <Table.Root>
+              <Table.Header>
+                <Table.Row class="bg-muted/50 hover:bg-muted/50">
+                  <Table.Head class="w-[260px] font-semibold">{text.table.group}</Table.Head>
+                  <Table.Head class="font-semibold">{text.table.command}</Table.Head>
+                  <Table.Head class="font-semibold">{text.table.range}</Table.Head>
+                  <Table.Head class="font-semibold">{text.table.value}</Table.Head>
+                  <Table.Head class="w-[200px] font-semibold">{text.table.result}</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each stageGroup.items as group (stageGroup.stage + "-" + group.name)}
+                  <Table.Row class="hover:bg-transparent bg-background">
+                    <Table.Cell class="font-medium">{group.name}</Table.Cell>
+                    <Table.Cell>
+                      <code class="relative rounded bg-muted px-[0.4rem] py-[0.2rem] font-mono text-sm font-semibold">{group.command}</code>
+                    </Table.Cell>
+                    <Table.Cell class="text-muted-foreground">-</Table.Cell>
+                    <Table.Cell class="text-muted-foreground">-</Table.Cell>
+                    <Table.Cell>
+                      <div class="flex items-center gap-3">
+                        <span class="font-medium w-10 {group.passed ? 'text-green-600' : 'text-destructive'}">
+                          {group.passed ? text.pass : text.fail}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          class="h-7 text-xs px-2"
+                          onclick={() => onRetest(group.name)}
+                          disabled={running ||
+                            retesting !== null ||
+                            summaryState === "pending" ||
+                            summaryState === "idle"}
+                        >
+                          {retesting === group.name ? text.retesting : text.retest}
+                        </Button>
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
 
-                {#each group.checks as check (stageGroup.stage + "-" + group.name + "-" + check.name)}
-                  <tr class="child-row">
-                    <td class="indent">{check.name}</td>
-                    <td>-</td>
-                    <td>
-                      {check.min === null || check.max === null
-                        ? "-"
-                        : `${check.min} ~ ${check.max}`}
-                    </td>
-                    <td>{check.value === null ? "-" : check.value}</td>
-                    <td class={check.passed ? "pass" : "fail"}>
-                      {check.passed ? text.pass : text.fail}
-                    </td>
-                  </tr>
+                  {#each group.checks as check (stageGroup.stage + "-" + group.name + "-" + check.name)}
+                    <Table.Row class="bg-muted/20 border-b-0 last:border-b">
+                      <Table.Cell class="pl-8 text-muted-foreground text-sm flex items-center gap-2">
+                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                        {check.name}
+                      </Table.Cell>
+                      <Table.Cell class="text-muted-foreground shrink-0">-</Table.Cell>
+                      <Table.Cell class="text-slate-600 font-mono text-xs">
+                        {check.min === null || check.max === null
+                          ? "-"
+                          : `${check.min} ~ ${check.max}`}
+                      </Table.Cell>
+                      <Table.Cell class="font-mono font-medium text-sm">
+                        {check.value === null ? "-" : check.value}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span class="text-sm font-medium {check.passed ? 'text-green-600' : 'text-destructive'}">
+                          {check.passed ? text.pass : text.fail}
+                        </span>
+                      </Table.Cell>
+                    </Table.Row>
+                  {/each}
                 {/each}
-              {/each}
-            </tbody>
-          </table>
-        </article>
+              </Table.Body>
+            </Table.Root>
+          </div>
+        </Card.Root>
       {/each}
     </div>
   {/if}
 </section>
+

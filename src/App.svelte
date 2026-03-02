@@ -416,7 +416,7 @@
   };
 </script>
 
-<div class="app-shell">
+<div class="flex h-screen overflow-hidden">
   <Sidebar
     {view}
     {text}
@@ -424,7 +424,7 @@
     onOpenSettings={handleOpenSettings}
   />
 
-  <div class="content">
+  <div class="flex-1 overflow-auto">
     {#if view === "main"}
       <MainView
         {text}
