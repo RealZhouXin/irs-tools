@@ -25,6 +25,9 @@ export type Translation = {
     result: string;
     empty: string;
   };
+  stageLabel: string;
+  stageAll: string;
+  stageUnassigned: string;
   pass: string;
   fail: string;
   retest: string;

@@ -8,6 +8,8 @@
     Translation,
   } from "../types";
 
+  const ALL_STAGES_VALUE = "__all__";
+
   let {
     text,
     results,
@@ -17,8 +19,11 @@
     summaryState,
     summaryLabel,
     retesting,
+    stageOptions,
+    selectedStage,
     onStart,
     onRetest,
+    onSelectStage,
     onToggleLanguage,
   } = $props<{
     text: Translation;
@@ -29,8 +34,11 @@
     summaryState: SummaryState;
     summaryLabel: string;
     retesting: string | null;
+    stageOptions: string[];
+    selectedStage: string;
     onStart: () => void;
     onRetest: (groupName: string) => void;
+    onSelectStage: (stage: string) => void;
     onToggleLanguage: () => void;
   }>();
 </script>
@@ -42,6 +50,21 @@
       <p class="subtitle">{text.subtitle}</p>
     </div>
     <div class="header-actions">
+      <div class="stage-filter">
+        <label for="stage-select">{text.stageLabel}</label>
+        <select
+          id="stage-select"
+          value={selectedStage}
+          onchange={(event) =>
+            onSelectStage((event.currentTarget as HTMLSelectElement).value)}
+          disabled={running}
+        >
+          <option value={ALL_STAGES_VALUE}>{text.stageAll}</option>
+          {#each stageOptions as stage (stage)}
+            <option value={stage}>{stage}</option>
+          {/each}
+        </select>
+      </div>
       <button class="primary" onclick={onStart} disabled={running}>
         {text.start}
       </button>

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use tauri::Manager;
@@ -69,16 +70,21 @@ pub fn init_default_configs(app: &tauri::AppHandle) {
 
 #[derive(serde::Deserialize)]
 struct TestsConfig {
+    #[serde(default)]
+    stages: Vec<String>,
     tests: Vec<TestGroup>,
 }
 
 pub fn read_config(app: &tauri::AppHandle) -> CommandResult<TestConfig> {
     let base_config = read_base_config(app)?;
-    let tests = read_tests_config(app)?;
+    let tests_config = read_tests_config_file(app)?;
+    let stages = resolve_stage_order(&tests_config);
+    let tests = tests_config.tests;
 
     Ok(TestConfig {
         connection: base_config.connection,
         read_timeout_ms: base_config.read_timeout_ms,
+        stages,
         tests,
     })
 }
@@ -91,20 +97,54 @@ pub fn read_base_config(app: &tauri::AppHandle) -> CommandResult<BaseConfig> {
     toml::from_str(&base_data).map_err(|err| AppError::toml_de("配置文件解析失败", err))
 }
 
-pub fn read_tests_config(app: &tauri::AppHandle) -> CommandResult<Vec<TestGroup>> {
+pub fn read_test_stages(app: &tauri::AppHandle) -> CommandResult<Vec<String>> {
+    let tests_config = read_tests_config_file(app)?;
+    Ok(resolve_stage_order(&tests_config))
+}
+
+fn read_tests_config_file(app: &tauri::AppHandle) -> CommandResult<TestsConfig> {
     let tests_path = resolve_readable_config_path(app, "config/tests.toml", "测试项配置文件")?;
     info!("Using tests at {}", tests_path.display());
     let tests_data = std::fs::read_to_string(&tests_path)
         .map_err(|err| AppError::io("无法读取测试项配置文件", err))?;
-    let tests_config: TestsConfig =
-        toml::from_str(&tests_data).map_err(|err| AppError::toml_de("测试项配置解析失败", err))?;
-    Ok(tests_config.tests)
+    toml::from_str(&tests_data).map_err(|err| AppError::toml_de("测试项配置解析失败", err))
+}
+
+fn resolve_stage_order(tests_config: &TestsConfig) -> Vec<String> {
+    let mut seen = HashSet::<String>::new();
+    let mut resolved = Vec::<String>::new();
+
+    for stage in &tests_config.stages {
+        if let Some(normalized) = normalize_stage(stage) {
+            if seen.insert(normalized.clone()) {
+                resolved.push(normalized);
+            }
+        }
+    }
+
+    for test in &tests_config.tests {
+        if let Some(normalized) = normalize_stage(&test.stage) {
+            if seen.insert(normalized.clone()) {
+                resolved.push(normalized);
+            }
+        }
+    }
+
+    resolved
+}
+
+fn normalize_stage(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(trimmed.to_string())
 }
 
 pub fn write_base_config(app: &tauri::AppHandle, config: &BaseConfig) -> CommandResult<()> {
     let path = resolve_writable_config_path(app, "config/threshold.toml", "配置文件")?;
-    let data =
-        toml::to_string_pretty(config).map_err(|err| AppError::toml_ser("配置文件序列化失败", err))?;
+    let data = toml::to_string_pretty(config)
+        .map_err(|err| AppError::toml_ser("配置文件序列化失败", err))?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|err| AppError::io("无法创建配置目录", err))?;
     }

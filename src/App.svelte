@@ -13,6 +13,7 @@
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
+    loadTestStages,
     retestGroup,
     saveBaseConfig,
     showMainWindow,
@@ -33,6 +34,8 @@
     log_level: LogLevel;
   };
 
+  const ALL_STAGES_VALUE = "__all__";
+
   // Svelte 5 Runes state management
   let results = $state<TestResult[]>([]);
   let language = $state<Language>("zh");
@@ -51,6 +54,8 @@
   let appVersion = $state<string | null>(null);
   let tauriVersion = $state<string | null>(null);
   let aboutError = $state<string | null>(null);
+  let availableStages = $state<string[]>([]);
+  let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let pendingLightConfirm = $state<TestResult | null>(null);
   let showLightConfirmDialog = $state(false);
 
@@ -172,6 +177,20 @@
         aboutError = message;
       });
 
+    loadTestStages()
+      .then((stages) => {
+        availableStages = stages;
+        if (
+          selectedStage !== ALL_STAGES_VALUE &&
+          !stages.includes(selectedStage)
+        ) {
+          selectedStage = ALL_STAGES_VALUE;
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load test stages", err);
+      });
+
     return () => {
       if (unlisten) {
         unlisten();
@@ -198,7 +217,9 @@
     summaryState = "pending";
 
     try {
-      const summary = await startTest();
+      const stagesToRun =
+        selectedStage === ALL_STAGES_VALUE ? [...availableStages] : [selectedStage];
+      const summary = await startTest(stagesToRun);
       statusKey = "done";
 
       for (const result of summary.results) {
@@ -243,6 +264,10 @@
     } finally {
       retesting = null;
     }
+  };
+
+  const handleSelectStage = (stage: string) => {
+    selectedStage = stage;
   };
 
   const handleSettingsSave = async () => {
@@ -323,8 +348,11 @@
         {summaryState}
         {summaryLabel}
         {retesting}
+        stageOptions={availableStages}
+        {selectedStage}
         onStart={handleStart}
         onRetest={handleRetest}
+        onSelectStage={handleSelectStage}
         onToggleLanguage={toggleLanguage}
       />
     {:else}

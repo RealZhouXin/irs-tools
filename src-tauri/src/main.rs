@@ -40,7 +40,8 @@ fn main() {
             commands::retest_group,
             commands::show_main_window,
             commands::get_base_config,
-            commands::save_base_config
+            commands::save_base_config,
+            commands::get_test_stages
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -19,8 +19,12 @@ export function saveBaseConfig(config: BaseConfig) {
   return invoke<BaseConfig>("save_base_config", { config });
 }
 
-export function startTest() {
-  return invoke<TestSummary>("start_test");
+export function loadTestStages() {
+  return invoke<string[]>("get_test_stages");
+}
+
+export function startTest(stages: string[]) {
+  return invoke<TestSummary>("start_test", { stages });
 }
 
 export function retestGroup(groupName: string) {

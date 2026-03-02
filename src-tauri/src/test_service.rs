@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+
 use tauri::Emitter;
 use tracing::{error, info, warn};
 
 use crate::config::read_config;
 use crate::device_gateway::{DeviceGatewayFactory, DllDeviceGatewayFactory};
 use crate::events::TEST_GROUP_COMPLETE;
-use crate::models::{ConnectionConfig, TestConfig, TestResult, TestSummary};
+use crate::models::{ConnectionConfig, TestConfig, TestGroup, TestResult, TestSummary};
 use crate::test_runner::run_group;
 use crate::types::{AppError, CommandResult};
 
@@ -37,14 +39,21 @@ where
         }
     }
 
-    pub fn start_test(&self) -> CommandResult<TestSummary> {
-        info!("Starting full test run");
+    pub fn start_test(&self, requested_stages: Vec<String>) -> CommandResult<TestSummary> {
+        let normalized_stages = normalize_requested_stages(&requested_stages);
+        if normalized_stages.is_empty() {
+            info!("Starting full test run");
+        } else {
+            info!("Starting stage-based test run: {:?}", normalized_stages);
+        }
         let config = read_config(&self.app)?;
         let TestConfig {
             connection,
             read_timeout_ms,
+            stages: _,
             tests,
         } = config;
+        let tests = select_tests_by_stages(tests, &normalized_stages)?;
         info!(
             "Loaded test config: total_groups={}, read_timeout_ms={}",
             tests.len(),
@@ -82,7 +91,10 @@ where
         let exit_mode_result = gateway.param_id374(0);
         if let Some(err) = run_error {
             if let Err(exit_err) = exit_mode_result {
-                error!("Failed to leave test mode after group failure: {}", exit_err);
+                error!(
+                    "Failed to leave test mode after group failure: {}",
+                    exit_err
+                );
                 return Err(AppError::msg(format!(
                     "{err}; 且退出测试模式失败: {exit_err}"
                 )));
@@ -110,6 +122,7 @@ where
         let TestConfig {
             connection,
             read_timeout_ms,
+            stages: _,
             tests,
         } = config;
         let group = tests
@@ -152,4 +165,51 @@ where
         self.gateway_factory
             .create(&self.app, connection, read_timeout_ms)
     }
+}
+
+fn normalize_requested_stages(stages: &[String]) -> Vec<String> {
+    let mut seen = HashSet::<String>::new();
+    let mut normalized = Vec::<String>::new();
+
+    for stage in stages {
+        let trimmed = stage.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let key = trimmed.to_string();
+        if seen.insert(key.clone()) {
+            normalized.push(key);
+        }
+    }
+
+    normalized
+}
+
+fn select_tests_by_stages(
+    tests: Vec<TestGroup>,
+    requested_stages: &[String],
+) -> CommandResult<Vec<TestGroup>> {
+    if requested_stages.is_empty() {
+        return Ok(tests);
+    }
+
+    let mut selected = Vec::<TestGroup>::new();
+
+    for stage in requested_stages {
+        selected.extend(
+            tests
+                .iter()
+                .filter(|group| group.stage.trim() == stage)
+                .cloned(),
+        );
+    }
+
+    if selected.is_empty() {
+        return Err(AppError::msg(format!(
+            "未找到匹配的测试阶段: {}",
+            requested_stages.join(", ")
+        )));
+    }
+
+    Ok(selected)
 }

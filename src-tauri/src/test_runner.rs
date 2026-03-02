@@ -37,6 +37,7 @@ where
 
 fn build_checked_result<TConfig, TResult>(
     group_name: String,
+    stage: String,
     command: String,
     checks: &[TConfig],
     response: &TResult,
@@ -49,6 +50,7 @@ where
     let passed = check_results.iter().all(|item| item.passed);
     TestResult {
         name: group_name,
+        stage,
         command,
         passed,
         raw_response: response.to_string(),
@@ -56,9 +58,15 @@ where
     }
 }
 
-fn build_action_result(group_name: String, command: String, raw_response: String) -> TestResult {
+fn build_action_result(
+    group_name: String,
+    stage: String,
+    command: String,
+    raw_response: String,
+) -> TestResult {
     TestResult {
         name: group_name,
+        stage,
         command,
         passed: true,
         raw_response,
@@ -74,6 +82,7 @@ fn build_action_result(group_name: String, command: String, raw_response: String
 
 fn build_checked_result_with_retry<TConfig, TResult, F>(
     group_name: String,
+    stage: String,
     command: String,
     checks: &[TConfig],
     mut fetch_result: F,
@@ -119,6 +128,7 @@ where
 
     Ok(TestResult {
         name: group_name,
+        stage,
         command,
         passed,
         raw_response,
@@ -127,12 +137,17 @@ where
 }
 
 pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult<TestResult> {
-    let TestGroup { name, command } = group;
+    let TestGroup {
+        name,
+        stage,
+        command,
+    } = group;
     match command {
         CommandGroupSpec::ParamId068 { checks } => {
             let response = gateway.param_id068()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId068".to_string(),
                 &checks,
                 &response,
@@ -142,6 +157,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id588()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId588".to_string(),
                 &checks,
                 &response,
@@ -151,6 +167,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id654()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId654".to_string(),
                 &checks,
                 &response,
@@ -160,6 +177,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id272()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId272".to_string(),
                 &checks,
                 &response,
@@ -169,6 +187,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id080()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId080".to_string(),
                 &checks,
                 &response,
@@ -178,6 +197,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id120()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId120".to_string(),
                 &checks,
                 &response,
@@ -187,6 +207,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             let response = gateway.param_id122()?;
             Ok(build_checked_result(
                 name,
+                stage,
                 "ParamId122".to_string(),
                 &checks,
                 &response,
@@ -194,6 +215,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
         }
         CommandGroupSpec::ParamId470 { checks } => build_checked_result_with_retry(
             name,
+            stage,
             "ParamId470".to_string(),
             &checks,
             || gateway.param_id470(),
@@ -204,6 +226,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             gateway.param_id468(cutting_height_mm)?;
             Ok(build_action_result(
                 name,
+                stage,
                 "ParamId468".to_string(),
                 format!("CuttingHeightMm={}, ReturnCode=0", cutting_height_mm),
             ))
@@ -217,6 +240,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             thread::sleep(Duration::from_millis(wait_ms));
             build_checked_result_with_retry(
                 name,
+                stage,
                 "CuttingHeightSetAndVerify".to_string(),
                 &checks,
                 || gateway.param_id470(),
@@ -231,6 +255,7 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             gateway.param_id606(front_light_mode, power)?;
             Ok(build_action_result(
                 name,
+                stage,
                 "ParamId606".to_string(),
                 format!(
                     "FrontLightMode={}, Power={}, ReturnCode=0",
@@ -339,6 +364,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![ParamId068Check {
                     name: "maj".to_string(),
@@ -375,6 +401,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![ParamId068Check {
                     name: "maj".to_string(),
@@ -410,6 +437,7 @@ mod tests {
 
         let group = TestGroup {
             name: "606 test".to_string(),
+            stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId606 {
                 front_light_mode: 1,
                 power: 80,
@@ -441,6 +469,7 @@ mod tests {
 
         let group = TestGroup {
             name: "468-470 test".to_string(),
+            stage: "unit".to_string(),
             command: CommandGroupSpec::CuttingHeightSetAndVerify {
                 cutting_height_mm: 30,
                 wait_ms: 0,
@@ -478,6 +507,7 @@ mod tests {
 
         let group = TestGroup {
             name: "470 retry test".to_string(),
+            stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId470 {
                 checks: vec![crate::models::ParamId470Check {
                     name: "height".to_string(),
