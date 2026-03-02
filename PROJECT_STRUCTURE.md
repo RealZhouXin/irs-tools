@@ -15,15 +15,17 @@
 - `src/App.svelte`
   - 全局页面状态与核心交互控制器。
   - 管理测试状态、结果列表、语言切换、设置页切换、错误信息等。
+  - 启动时读取可用 `stage` 列表，并在开始测试时按所选场景传参调用后端。
 
 ### 2.2 页面与组件分层
 
 - `src/views/MainView.svelte`
-  - 主测试页面，包含“开始测试”、状态展示、结果表格。
+  - 主测试页面，包含“开始测试”、测试场景（stage）下拉选择、状态展示、结果表格。
 - `src/views/SettingsView.svelte`
   - 设置页面，包含连接参数配置和 About 信息。
 - `src/components/`
   - 细分 UI 组件（如 `Sidebar`、`ResultsTable`、`SettingsForm`、`StatusCard`、`AboutCard`）。
+  - `ResultsTable` 现支持按 `stage` 分卡片展示，同一 `stage` 的测试项归为一组。
 
 ### 2.3 类型与服务
 
@@ -33,6 +35,7 @@
   - 前后端桥接层，封装 Tauri API：
     - `invoke(...)` 调后端命令
     - `listen(...)` 监听后端事件（如 `test-group-complete`）
+  - 提供 `loadTestStages()` 获取场景列表；`startTest(stages)` 支持按场景执行。
 
 ## 3. 后端结构（`src-tauri/src/`）
 
@@ -46,17 +49,20 @@
     - `show_main_window`
     - `get_base_config`
     - `save_base_config`
+    - `get_test_stages`
 
 ### 3.2 命令层（业务编排）
 
 - `src-tauri/src/commands.rs`
   - 实现所有 `#[tauri::command]`。
   - 当前是“薄命令层”：主要负责命令入口转发到 `TestService`，不再承载测试编排细节。
+  - `start_test` 支持接收可选参数 `stages: Vec<String>`，用于按场景筛选执行。
 
 ### 3.3 应用服务层（测试编排）
 
 - `src-tauri/src/test_service.rs`
   - 负责测试流程编排（读取配置、创建网关、循环执行、汇总结果）。
+  - 根据前端传入的 `stages` 顺序筛选测试项并执行；未传时执行全部测试项。
   - 在每组测试完成后发送 `test-group-complete` 事件。
   - 通过 `DeviceGatewayFactory` 注入具体设备实现，降低对底层的直接依赖。
 
@@ -64,13 +70,15 @@
 
 - `src-tauri/src/test_runner.rs`
   - 负责单个测试组执行与结果构造（含阈值检查）。
+  - `TestResult` 结果中包含 `stage` 字段，供前端按场景分组展示。
   - 包含不依赖硬件的单元测试（使用 fake gateway）。
 
 ### 3.5 数据模型层
 
 - `src-tauri/src/models.rs`
   - 定义配置模型、测试组模型、检查项模型、测试结果模型。
-  - 包含 `ConnectionConfig`、`BaseConfig`、`TestGroup`、`TestResult`、`TestSummary` 等。
+  - 包含 `ConnectionConfig`、`BaseConfig`、`TestConfig`、`TestGroup`、`TestResult`、`TestSummary` 等。
+  - `TestConfig` 增加 `stages`，`TestGroup` 增加 `stage`，`TestResult` 增加 `stage`。
   - 提供不同命令返回结果的结构体与格式化显示。
 
 ### 3.6 配置层
@@ -78,8 +86,9 @@
 - `src-tauri/src/config.rs`
   - 配置读取与写入逻辑：
     - `threshold.toml`：基础连接参数和超时设置
-    - `tests.toml`：测试项及阈值规则
+    - `tests.toml`：测试项、场景顺序（`stages`）及阈值规则
   - 启动时将“基础配置 + 测试配置”组合成完整测试配置。
+  - 提供 `read_test_stages`，用于前端拉取场景列表。
 
 ### 3.7 设备网关抽象层
 
@@ -116,29 +125,30 @@
   - 连接方式（serial/network）和读取超时。
 - `config/tests.toml`
   - 测试组与阈值规则，属于“配置驱动测试”核心。
+  - 顶层 `stages = [...]` 定义场景执行顺序；每个 `[[tests]]` 可通过 `stage = "..."` 归属到具体场景。
 - `src-tauri/tauri.conf.json`
   - Tauri 构建配置：
     - 开发前置命令：`bun run dev`
     - 打包前置命令：`bun run build`
     - 资源打包包括：配置文件、`CommDllv2.dll`、`libcrypto-3-x64.dll`
 - **日志目录**
-  - 默认通过 `app.path().app_log_dir()` 获取日志目录（Windows 下通常位于 `%LOCALAPPDATA%\irs-tools\logs\`）。
+  - 默认通过 `app.path().app_log_dir()` 获取日志目录（Windows 下通常位于 `%LOCALAPPDATA%\\logs\`）。
   - 记录应用运行时的各类信息、警告和错误，按天滚动保存。
 
 ## 5. 前后端调用链
 
 1. 前端在 `App.svelte` 中触发动作（开始测试/重测/保存设置）。
-2. `src/services/tauri.ts` 使用 `invoke` 调用 Rust 命令。
+2. `src/services/tauri.ts` 使用 `invoke` 调用 Rust 命令（先可拉取 `get_test_stages`，开始测试时调用 `start_test` 并传 `stages`）。
 3. `commands.rs` 将请求转发给 `test_service.rs`。
 4. `test_service.rs` 通过 `device_gateway.rs` 创建设备网关，并调用 `test_runner.rs` 执行测试组。
 5. `comm_dll.rs` 作为底层 DLL 适配实现，完成实际通信。
-6. Rust 将测试结果返回前端，并通过事件推送分组进度。
-7. 前端更新状态与表格，完成 UI 展示。
+6. Rust 将测试结果返回前端，并通过事件推送分组进度（结果携带 `stage`）。
+7. 前端更新状态与表格，按 `stage` 卡片分组展示测试结果。
 
 ## 6. 项目特征总结
 
 - 结构清晰：前端展示与后端设备逻辑边界明确。
-- 强配置驱动：测试项和阈值放在 JSON，便于非代码调整。
+- 强配置驱动：测试项和阈值放在 TOML，便于非代码调整。
 - 实时反馈：后端事件推送让前端可逐项刷新结果。
 - 工程组合稳定：Bun + Vite（前端开发效率）与 Tauri + Rust（本地能力与性能）结合。
 - 可测试性提升：核心测试执行逻辑可通过 fake gateway 做单测，无需真实硬件。

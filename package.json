@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-dialog": "^2.4.1",
+    "flatpickr": "^4.6.13",
     "svelte": "^5.49.0"
   },
   "devDependencies": {

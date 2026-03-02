@@ -4,6 +4,10 @@ export type Translation = {
   title: string;
   subtitle: string;
   start: string;
+  stop: string;
+  stopping: string;
+  export: string;
+  exporting: string;
   statusTitle: string;
   status: {
     idle: string;
@@ -25,6 +29,9 @@ export type Translation = {
     result: string;
     empty: string;
   };
+  stageLabel: string;
+  stageAll: string;
+  stageUnassigned: string;
   pass: string;
   fail: string;
   retest: string;
@@ -67,4 +74,14 @@ export type Translation = {
   confirmLightQuestion: string;
   confirmYes: string;
   confirmNo: string;
+  exportDialogTitle: string;
+  exportStartDate: string;
+  exportEndDate: string;
+  exportCancel: string;
+  exportConfirm: string;
+  exportInvalidRange: string;
+  exportSuccess: string;
+  exportFailed: string;
+  exportNoData: string;
+  exportDateLoadFailed: string;
 };

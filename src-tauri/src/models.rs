@@ -5,6 +5,8 @@ use std::fmt;
 pub struct TestConfig {
     pub connection: ConnectionConfig,
     pub read_timeout_ms: u32,
+    #[serde(default)]
+    pub stages: Vec<String>,
     pub tests: Vec<TestGroup>,
 }
 
@@ -42,6 +44,8 @@ impl Default for LogLevel {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TestGroup {
     pub name: String,
+    #[serde(default)]
+    pub stage: String,
     #[serde(flatten)]
     pub command: CommandGroupSpec,
 }
@@ -401,6 +405,7 @@ pub struct CheckResult {
 #[derive(Debug, Serialize)]
 pub struct TestResult {
     pub name: String,
+    pub stage: String,
     pub command: String,
     pub passed: bool,
     pub raw_response: String,

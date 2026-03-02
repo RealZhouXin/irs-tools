@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { save } from "@tauri-apps/plugin-dialog";
   import type {
     BaseConfig,
     LogLevel,
@@ -13,14 +14,18 @@
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
+    loadTestStages,
+    exportTestResultsCsv,
     retestGroup,
     saveBaseConfig,
     showMainWindow,
     startTest,
+    stopTest,
     subscribeTestGroupComplete,
   } from "./services/tauri";
   import Sidebar from "./components/Sidebar.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
+  import ExportDialog from "./components/ExportDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -32,6 +37,8 @@
     read_timeout_ms: number;
     log_level: LogLevel;
   };
+
+  const ALL_STAGES_VALUE = "__all__";
 
   // Svelte 5 Runes state management
   let results = $state<TestResult[]>([]);
@@ -51,8 +58,17 @@
   let appVersion = $state<string | null>(null);
   let tauriVersion = $state<string | null>(null);
   let aboutError = $state<string | null>(null);
+  let availableStages = $state<string[]>([]);
+  let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let pendingLightConfirm = $state<TestResult | null>(null);
   let showLightConfirmDialog = $state(false);
+  let showExportDialog = $state(false);
+  let exportStartDate = $state<string | null>(null);
+  let exportEndDate = $state<string | null>(null);
+  let exporting = $state(false);
+  let stopping = $state(false);
+  let exportError = $state<string | null>(null);
+  let exportSuccess = $state<string | null>(null);
 
   // Derived state
   const text = $derived(getTranslation(language));
@@ -172,6 +188,20 @@
         aboutError = message;
       });
 
+    loadTestStages()
+      .then((stages) => {
+        availableStages = stages;
+        if (
+          selectedStage !== ALL_STAGES_VALUE &&
+          !stages.includes(selectedStage)
+        ) {
+          selectedStage = ALL_STAGES_VALUE;
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load test stages", err);
+      });
+
     return () => {
       if (unlisten) {
         unlisten();
@@ -189,8 +219,11 @@
 
   const handleStart = async () => {
     running = true;
+    stopping = false;
     retesting = null;
     error = null;
+    exportError = null;
+    exportSuccess = null;
     results = [];
     pendingLightConfirm = null;
     showLightConfirmDialog = false;
@@ -198,7 +231,9 @@
     summaryState = "pending";
 
     try {
-      const summary = await startTest();
+      const stagesToRun =
+        selectedStage === ALL_STAGES_VALUE ? [...availableStages] : [selectedStage];
+      const summary = await startTest(stagesToRun);
       statusKey = "done";
 
       for (const result of summary.results) {
@@ -212,11 +247,37 @@
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      error = message;
-      statusKey = "failed";
-      summaryState = "fail";
+      if (message.includes("测试已手动停止")) {
+        error = message;
+        statusKey = "idle";
+        summaryState =
+          results.length === 0
+            ? "idle"
+            : results.every((item) => item.passed)
+              ? "pass"
+              : "fail";
+      } else {
+        error = message;
+        statusKey = "failed";
+        summaryState = "fail";
+      }
     } finally {
       running = false;
+      stopping = false;
+    }
+  };
+
+  const handleStop = async () => {
+    if (!running || stopping) {
+      return;
+    }
+    stopping = true;
+    try {
+      await stopTest();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
+      stopping = false;
     }
   };
 
@@ -242,6 +303,57 @@
       error = message;
     } finally {
       retesting = null;
+    }
+  };
+
+  const handleSelectStage = (stage: string) => {
+    selectedStage = stage;
+  };
+
+  const handleOpenExport = () => {
+    showExportDialog = true;
+    exportError = null;
+  };
+
+  const handleConfirmExport = async (startDate: string, endDate: string) => {
+    if (exporting) {
+      return;
+    }
+    if (startDate > endDate) {
+      throw new Error(text.exportInvalidRange);
+    }
+
+    exportError = null;
+    exportSuccess = null;
+    exporting = true;
+    exportStartDate = startDate;
+    exportEndDate = endDate;
+
+    try {
+      const defaultName = `test-results-${startDate}_to_${endDate}.csv`;
+      const filePath = await save({
+        title: text.exportDialogTitle,
+        defaultPath: defaultName,
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+      });
+
+      if (!filePath) {
+        return;
+      }
+
+      const count = await exportTestResultsCsv(
+        startDate,
+        endDate,
+        String(filePath),
+      );
+      exportSuccess = `${text.exportSuccess} (${count} rows)`;
+      showExportDialog = false;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      exportError = `${text.exportFailed}: ${message}`;
+      throw new Error(exportError);
+    } finally {
+      exporting = false;
     }
   };
 
@@ -323,8 +435,17 @@
         {summaryState}
         {summaryLabel}
         {retesting}
+        {exportError}
+        {exportSuccess}
+        {exporting}
+        {stopping}
+        stageOptions={availableStages}
+        {selectedStage}
         onStart={handleStart}
+        onStop={handleStop}
+        onOpenExport={handleOpenExport}
         onRetest={handleRetest}
+        onSelectStage={handleSelectStage}
         onToggleLanguage={toggleLanguage}
       />
     {:else}
@@ -352,5 +473,15 @@
     noLabel={text.confirmNo}
     onYes={() => confirmLightResult(true)}
     onNo={() => confirmLightResult(false)}
+  />
+
+  <ExportDialog
+    open={showExportDialog}
+    {exporting}
+    {text}
+    initialStartDate={exportStartDate}
+    initialEndDate={exportEndDate}
+    onClose={() => (showExportDialog = false)}
+    onConfirm={handleConfirmExport}
   />
 </div>

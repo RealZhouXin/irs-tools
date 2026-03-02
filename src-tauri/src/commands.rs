@@ -1,20 +1,26 @@
 use tauri::Manager;
 use tracing::error;
 
-use crate::config::{read_base_config, write_base_config};
+use crate::config::{read_base_config, read_test_stages, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
-use crate::test_service::TestService;
+use crate::test_service::{request_stop_test, TestService};
 use crate::types::CommandResult;
 
 #[tauri::command]
-pub async fn start_test(app: tauri::AppHandle) -> CommandResult<TestSummary> {
+pub async fn start_test(
+    app: tauri::AppHandle,
+    stages: Option<Vec<String>>,
+) -> CommandResult<TestSummary> {
+    let requested_stages = stages.unwrap_or_default();
     let app_handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || TestService::new(app_handle).start_test())
-        .await
-        .map_err(|err| {
-            error!("start_test worker failed: {}", err);
-            format!("测试任务线程执行失败: {err}")
-        })?
+    tauri::async_runtime::spawn_blocking(move || {
+        TestService::new(app_handle).start_test(requested_stages)
+    })
+    .await
+    .map_err(|err| {
+        error!("start_test worker failed: {}", err);
+        format!("测试任务线程执行失败: {err}")
+    })?
 }
 
 #[tauri::command]
@@ -49,4 +55,44 @@ pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandRes
     let saved = read_base_config(&app)?;
     crate::apply_log_level(saved.log_level);
     Ok(saved)
+}
+
+#[tauri::command]
+pub fn get_test_stages(app: tauri::AppHandle) -> CommandResult<Vec<String>> {
+    read_test_stages(&app)
+}
+
+#[tauri::command]
+pub async fn export_test_results_csv(
+    app: tauri::AppHandle,
+    start_date: String,
+    end_date: String,
+    output_path: String,
+) -> CommandResult<usize> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::db::export_test_results_csv(&app_handle, &start_date, &end_date, &output_path)
+    })
+    .await
+    .map_err(|err| {
+        error!("export_test_results_csv worker failed: {}", err);
+        format!("导出任务线程执行失败: {err}")
+    })?
+}
+
+#[tauri::command]
+pub async fn get_available_export_dates(app: tauri::AppHandle) -> CommandResult<Vec<String>> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || crate::db::get_available_export_dates(&app_handle))
+        .await
+        .map_err(|err| {
+            error!("get_available_export_dates worker failed: {}", err);
+            format!("导出日期查询线程执行失败: {err}")
+        })?
+}
+
+#[tauri::command]
+pub fn stop_test() -> CommandResult<()> {
+    request_stop_test();
+    Ok(())
 }

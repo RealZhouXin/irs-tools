@@ -8,6 +8,7 @@ export type CheckResult = {
 
 export type TestResult = {
   name: string;
+  stage: string;
   command: string;
   raw_response: string;
   passed: boolean;

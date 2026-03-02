@@ -19,12 +19,36 @@ export function saveBaseConfig(config: BaseConfig) {
   return invoke<BaseConfig>("save_base_config", { config });
 }
 
-export function startTest() {
-  return invoke<TestSummary>("start_test");
+export function loadTestStages() {
+  return invoke<string[]>("get_test_stages");
+}
+
+export function startTest(stages: string[]) {
+  return invoke<TestSummary>("start_test", { stages });
+}
+
+export function stopTest() {
+  return invoke("stop_test");
 }
 
 export function retestGroup(groupName: string) {
   return invoke<TestResult>("retest_group", { groupName });
+}
+
+export function exportTestResultsCsv(
+  startDate: string,
+  endDate: string,
+  outputPath: string,
+) {
+  return invoke<number>("export_test_results_csv", {
+    startDate,
+    endDate,
+    outputPath,
+  });
+}
+
+export function loadAvailableExportDates() {
+  return invoke<string[]>("get_available_export_dates");
 }
 
 export async function subscribeTestGroupComplete(

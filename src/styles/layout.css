@@ -77,6 +77,22 @@ header {
   gap: 12px;
 }
 
+.stage-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-filter label {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.stage-filter select {
+  min-width: 160px;
+}
+
 .settings {
   max-width: 880px;
   margin: 0 auto;
@@ -97,6 +113,11 @@ header {
   .container,
   .settings {
     padding: 24px 20px 36px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .sidebar {
