@@ -4,6 +4,8 @@ export type Translation = {
   title: string;
   subtitle: string;
   start: string;
+  export: string;
+  exporting: string;
   statusTitle: string;
   status: {
     idle: string;
@@ -70,4 +72,14 @@ export type Translation = {
   confirmLightQuestion: string;
   confirmYes: string;
   confirmNo: string;
+  exportDialogTitle: string;
+  exportStartDate: string;
+  exportEndDate: string;
+  exportCancel: string;
+  exportConfirm: string;
+  exportInvalidRange: string;
+  exportSuccess: string;
+  exportFailed: string;
+  exportNoData: string;
+  exportDateLoadFailed: string;
 };

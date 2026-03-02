@@ -6,6 +6,7 @@
 mod comm_dll;
 mod commands;
 mod config;
+mod db;
 mod device_gateway;
 mod events;
 mod models;
@@ -30,9 +31,13 @@ use crate::models::LogLevel;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             init_logging(app.handle());
             crate::config::init_default_configs(app.handle());
+            if let Err(err) = crate::db::init_database(app.handle()) {
+                warn!("Failed to initialize database: {}", err);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -41,7 +46,9 @@ fn main() {
             commands::show_main_window,
             commands::get_base_config,
             commands::save_base_config,
-            commands::get_test_stages
+            commands::get_test_stages,
+            commands::export_test_results_csv,
+            commands::get_available_export_dates
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

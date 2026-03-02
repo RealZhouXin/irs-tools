@@ -61,3 +61,32 @@ pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandRes
 pub fn get_test_stages(app: tauri::AppHandle) -> CommandResult<Vec<String>> {
     read_test_stages(&app)
 }
+
+#[tauri::command]
+pub async fn export_test_results_csv(
+    app: tauri::AppHandle,
+    start_date: String,
+    end_date: String,
+    output_path: String,
+) -> CommandResult<usize> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::db::export_test_results_csv(&app_handle, &start_date, &end_date, &output_path)
+    })
+    .await
+    .map_err(|err| {
+        error!("export_test_results_csv worker failed: {}", err);
+        format!("导出任务线程执行失败: {err}")
+    })?
+}
+
+#[tauri::command]
+pub async fn get_available_export_dates(app: tauri::AppHandle) -> CommandResult<Vec<String>> {
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || crate::db::get_available_export_dates(&app_handle))
+        .await
+        .map_err(|err| {
+            error!("get_available_export_dates worker failed: {}", err);
+            format!("导出日期查询线程执行失败: {err}")
+        })?
+}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { save } from "@tauri-apps/plugin-dialog";
   import type {
     BaseConfig,
     LogLevel,
@@ -14,6 +15,7 @@
     loadAppInfo,
     loadBaseConfig,
     loadTestStages,
+    exportTestResultsCsv,
     retestGroup,
     saveBaseConfig,
     showMainWindow,
@@ -22,6 +24,7 @@
   } from "./services/tauri";
   import Sidebar from "./components/Sidebar.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
+  import ExportDialog from "./components/ExportDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -58,6 +61,12 @@
   let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let pendingLightConfirm = $state<TestResult | null>(null);
   let showLightConfirmDialog = $state(false);
+  let showExportDialog = $state(false);
+  let exportStartDate = $state<string | null>(null);
+  let exportEndDate = $state<string | null>(null);
+  let exporting = $state(false);
+  let exportError = $state<string | null>(null);
+  let exportSuccess = $state<string | null>(null);
 
   // Derived state
   const text = $derived(getTranslation(language));
@@ -210,6 +219,8 @@
     running = true;
     retesting = null;
     error = null;
+    exportError = null;
+    exportSuccess = null;
     results = [];
     pendingLightConfirm = null;
     showLightConfirmDialog = false;
@@ -268,6 +279,53 @@
 
   const handleSelectStage = (stage: string) => {
     selectedStage = stage;
+  };
+
+  const handleOpenExport = () => {
+    showExportDialog = true;
+    exportError = null;
+  };
+
+  const handleConfirmExport = async (startDate: string, endDate: string) => {
+    if (exporting) {
+      return;
+    }
+    if (startDate > endDate) {
+      throw new Error(text.exportInvalidRange);
+    }
+
+    exportError = null;
+    exportSuccess = null;
+    exporting = true;
+    exportStartDate = startDate;
+    exportEndDate = endDate;
+
+    try {
+      const defaultName = `test-results-${startDate}_to_${endDate}.csv`;
+      const filePath = await save({
+        title: text.exportDialogTitle,
+        defaultPath: defaultName,
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+      });
+
+      if (!filePath) {
+        return;
+      }
+
+      const count = await exportTestResultsCsv(
+        startDate,
+        endDate,
+        String(filePath),
+      );
+      exportSuccess = `${text.exportSuccess} (${count} rows)`;
+      showExportDialog = false;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      exportError = `${text.exportFailed}: ${message}`;
+      throw new Error(exportError);
+    } finally {
+      exporting = false;
+    }
   };
 
   const handleSettingsSave = async () => {
@@ -348,9 +406,13 @@
         {summaryState}
         {summaryLabel}
         {retesting}
+        {exportError}
+        {exportSuccess}
+        {exporting}
         stageOptions={availableStages}
         {selectedStage}
         onStart={handleStart}
+        onOpenExport={handleOpenExport}
         onRetest={handleRetest}
         onSelectStage={handleSelectStage}
         onToggleLanguage={toggleLanguage}
@@ -380,5 +442,15 @@
     noLabel={text.confirmNo}
     onYes={() => confirmLightResult(true)}
     onNo={() => confirmLightResult(false)}
+  />
+
+  <ExportDialog
+    open={showExportDialog}
+    {exporting}
+    {text}
+    initialStartDate={exportStartDate}
+    initialEndDate={exportEndDate}
+    onClose={() => (showExportDialog = false)}
+    onConfirm={handleConfirmExport}
   />
 </div>

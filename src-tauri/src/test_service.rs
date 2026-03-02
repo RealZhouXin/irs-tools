@@ -1,5 +1,7 @@
 use std::collections::HashSet;
+use std::time::Instant;
 
+use chrono::Local;
 use tauri::Emitter;
 use tracing::{error, info, warn};
 
@@ -40,7 +42,10 @@ where
     }
 
     pub fn start_test(&self, requested_stages: Vec<String>) -> CommandResult<TestSummary> {
+        let started_at = Local::now();
+        let run_timer = Instant::now();
         let normalized_stages = normalize_requested_stages(&requested_stages);
+        let session_stage = summarize_session_stage(&normalized_stages);
         if normalized_stages.is_empty() {
             info!("Starting full test run");
         } else {
@@ -99,6 +104,17 @@ where
                     "{err}; 且退出测试模式失败: {exit_err}"
                 )));
             }
+            if let Err(db_err) = crate::db::persist_test_results(
+                &self.app,
+                &session_stage,
+                "Error",
+                started_at,
+                run_timer.elapsed().as_millis() as i64,
+                &results,
+            ) {
+                error!("Failed to persist errored test run: {}", db_err);
+                return Err(AppError::msg(format!("{err}; 且保存测试记录失败: {db_err}")));
+            }
             warn!("Test run ended with error: {}", err);
             return Err(err);
         }
@@ -110,6 +126,15 @@ where
             overall_passed,
             results.len()
         );
+        let status = if overall_passed { "Pass" } else { "Fail" };
+        crate::db::persist_test_results(
+            &self.app,
+            &session_stage,
+            status,
+            started_at,
+            run_timer.elapsed().as_millis() as i64,
+            &results,
+        )?;
         Ok(TestSummary {
             results,
             overall_passed,
@@ -165,6 +190,13 @@ where
         self.gateway_factory
             .create(&self.app, connection, read_timeout_ms)
     }
+}
+
+fn summarize_session_stage(stages: &[String]) -> String {
+    if stages.is_empty() {
+        return "ALL".to_string();
+    }
+    stages.join(", ")
 }
 
 fn normalize_requested_stages(stages: &[String]) -> Vec<String> {
