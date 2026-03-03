@@ -112,8 +112,7 @@ pub fn export_test_results_csv(
 
     let output = PathBuf::from(output_path);
     if let Some(parent) = output.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|err| AppError::io("创建导出目录失败", err))?;
+        std::fs::create_dir_all(parent).map_err(|err| AppError::io("创建导出目录失败", err))?;
     }
 
     let mut writer = Writer::from_path(&output)

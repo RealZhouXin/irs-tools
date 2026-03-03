@@ -12,6 +12,7 @@
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
+    confirmFrontLight,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
@@ -22,6 +23,7 @@
     showMainWindow,
     startTest,
     stopTest,
+    subscribeFrontLightConfirmRequest,
     subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
   } from "./services/tauri";
@@ -64,7 +66,6 @@
   let aboutError = $state<string | null>(null);
   let availableStages = $state<string[]>([]);
   let selectedStage = $state<string>(ALL_STAGES_VALUE);
-  let pendingLightConfirm = $state<TestResult | null>(null);
   let showLightConfirmDialog = $state(false);
   let showKeyTestDialog = $state(false);
   let keyState = $state<KeyStatePayload>({
@@ -112,11 +113,6 @@
   }
 
   function handleIncomingResult(incoming: TestResult) {
-    if (incoming.command === "ParamId606" && incoming.passed) {
-      pendingLightConfirm = incoming;
-      showLightConfirmDialog = true;
-      return;
-    }
     if (incoming.command === "ParamId776") {
       showKeyTestDialog = false;
     }
@@ -140,39 +136,20 @@
     summaryState = results.every((item) => item.passed) ? "pass" : "fail";
   }
 
-  function confirmLightResult(isLit: boolean) {
-    if (!pendingLightConfirm) {
+  async function confirmLightResult(isLit: boolean) {
+    try {
+      await confirmFrontLight(isLit);
       showLightConfirmDialog = false;
-      return;
-    }
-
-    const confirmed: TestResult = {
-      ...pendingLightConfirm,
-      passed: isLit,
-      raw_response: `${pendingLightConfirm.raw_response}, LightOn=${isLit ? 1 : 0}`,
-      checks: [
-        {
-          name: "light_confirmed",
-          min: null,
-          max: null,
-          value: isLit ? 1 : 0,
-          passed: isLit,
-        },
-      ],
-    };
-
-    upsertResult(confirmed);
-    pendingLightConfirm = null;
-    showLightConfirmDialog = false;
-
-    if (!running) {
-      recalcSummaryState();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
     }
   }
 
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
+    let unlistenFrontLightConfirm: (() => void) | null = null;
 
     showMainWindow().catch((err) => {
       console.error("Failed to show main window", err);
@@ -201,6 +178,20 @@
       })
       .catch((err) => {
         console.error(`Failed to listen ${TAURI_EVENTS.keyStateUpdate}`, err);
+      });
+
+    subscribeFrontLightConfirmRequest(() => {
+      showLightConfirmDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenFrontLightConfirm = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.frontLightConfirmRequest}`,
+          err,
+        );
       });
 
     loadAppInfo()
@@ -235,6 +226,9 @@
       if (unlistenKeyState) {
         unlistenKeyState();
       }
+      if (unlistenFrontLightConfirm) {
+        unlistenFrontLightConfirm();
+      }
     };
   });
 
@@ -254,7 +248,6 @@
     exportError = null;
     exportSuccess = null;
     results = [];
-    pendingLightConfirm = null;
     showLightConfirmDialog = false;
     showKeyTestDialog = false;
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
@@ -270,12 +263,7 @@
       for (const result of summary.results) {
         handleIncomingResult(result);
       }
-
-      if (showLightConfirmDialog) {
-        summaryState = "pending";
-      } else {
-        recalcSummaryState();
-      }
+      recalcSummaryState();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes("测试已手动停止")) {
@@ -321,14 +309,8 @@
 
     try {
       const updated = await retestGroup(groupName);
-      if (updated.command === "ParamId606" && updated.passed) {
-        pendingLightConfirm = updated;
-        showLightConfirmDialog = true;
-        summaryState = "pending";
-      } else {
-        upsertResult(updated);
-        recalcSummaryState();
-      }
+      upsertResult(updated);
+      recalcSummaryState();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error = message;

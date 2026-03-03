@@ -82,8 +82,7 @@ type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 type ParamId794Fn =
     unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
-type ParamId776Fn =
-    unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
+type ParamId776Fn = unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
 
 pub struct CommDll {
     _lib: Library,

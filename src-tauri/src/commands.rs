@@ -3,7 +3,8 @@ use tracing::error;
 
 use crate::config::{read_base_config, read_test_stages, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
-use crate::test_service::{request_stop_test, TestService};
+use crate::test_runner::submit_front_light_confirmation;
+use crate::test_service::{TestService, request_stop_test};
 use crate::types::CommandResult;
 
 #[tauri::command]
@@ -95,4 +96,9 @@ pub async fn get_available_export_dates(app: tauri::AppHandle) -> CommandResult<
 pub fn stop_test() -> CommandResult<()> {
     request_stop_test();
     Ok(())
+}
+
+#[tauri::command]
+pub fn confirm_front_light(is_lit: bool) -> CommandResult<()> {
+    submit_front_light_confirmation(is_lit)
 }

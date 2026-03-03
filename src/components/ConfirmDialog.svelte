@@ -62,23 +62,4 @@
     justify-content: flex-end;
     gap: 10px;
   }
-
-  button {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-
-  .no {
-    background: #e2e8f0;
-    color: #0f172a;
-  }
-
-  .yes {
-    background: #0284c7;
-    color: #ffffff;
-  }
 </style>
-

@@ -1,19 +1,43 @@
 use crate::device_gateway::DeviceGateway;
+use crate::events::{FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE};
 use crate::models::{
-    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, KeyStatePayload, TestGroup,
-    TestResult,
+    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, FrontLightConfirmRequestPayload,
+    KeyStatePayload, TestGroup, TestResult,
 };
-use crate::types::CommandResult;
+use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
+use std::sync::{Condvar, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
-use tracing::{info, warn};
+use tauri::{AppHandle, Emitter};
+use tracing::{error, info, warn};
 
 const PARAM_ID470_MAX_RETRIES: u32 = 5;
 #[cfg(test)]
 const PARAM_ID470_RETRY_DELAY_MS: u64 = 0;
 #[cfg(not(test))]
 const PARAM_ID470_RETRY_DELAY_MS: u64 = 1000;
+
+#[derive(Debug)]
+struct FrontLightConfirmState {
+    waiting: bool,
+    response: Option<bool>,
+}
+
+static FRONT_LIGHT_CONFIRM_SYNC: OnceLock<(Mutex<FrontLightConfirmState>, Condvar)> =
+    OnceLock::new();
+
+fn front_light_confirm_sync() -> &'static (Mutex<FrontLightConfirmState>, Condvar) {
+    FRONT_LIGHT_CONFIRM_SYNC.get_or_init(|| {
+        (
+            Mutex::new(FrontLightConfirmState {
+                waiting: false,
+                response: None,
+            }),
+            Condvar::new(),
+        )
+    })
+}
 
 fn process_checks<TConfig, TResult>(checks: &[TConfig], result: &TResult) -> Vec<CheckResult>
 where
@@ -81,6 +105,34 @@ fn build_action_result(
     }
 }
 
+fn build_front_light_result(
+    group_name: String,
+    stage: String,
+    front_light_mode: u8,
+    power: u8,
+    is_lit: bool,
+) -> TestResult {
+    TestResult {
+        name: group_name,
+        stage,
+        command: "ParamId606".to_string(),
+        passed: is_lit,
+        raw_response: format!(
+            "FrontLightMode={}, Power={}, ReturnCode=0, LightOn={}",
+            front_light_mode,
+            power,
+            if is_lit { 1 } else { 0 }
+        ),
+        checks: vec![CheckResult {
+            name: "light_confirmed".to_string(),
+            min: None,
+            max: None,
+            value: Some(if is_lit { 1.0 } else { 0.0 }),
+            passed: is_lit,
+        }],
+    }
+}
+
 fn build_checked_result_with_retry<TConfig, TResult, F>(
     group_name: String,
     stage: String,
@@ -137,7 +189,71 @@ where
     })
 }
 
-pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult<TestResult> {
+pub fn run_group(
+    gateway: &dyn DeviceGateway,
+    group: TestGroup,
+    app: &AppHandle,
+) -> CommandResult<TestResult> {
+    run_group_with_emitters(
+        gateway,
+        group,
+        &|state| {
+            if let Err(err) = app.emit(KEY_STATE_UPDATE, &state) {
+                error!("Failed to emit key state update: {}", err);
+            }
+        },
+        &|request| wait_for_front_light_confirmation(app, request),
+    )
+}
+
+pub fn submit_front_light_confirmation(is_lit: bool) -> CommandResult<()> {
+    let (lock, cvar) = front_light_confirm_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("前灯确认状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有待确认的前灯测试"));
+    }
+    state.response = Some(is_lit);
+    cvar.notify_one();
+    Ok(())
+}
+
+fn wait_for_front_light_confirmation(
+    app: &AppHandle,
+    request: FrontLightConfirmRequestPayload,
+) -> CommandResult<bool> {
+    let (lock, cvar) = front_light_confirm_sync();
+    {
+        let mut state = lock
+            .lock()
+            .map_err(|_| AppError::msg("前灯确认状态锁定失败"))?;
+        state.waiting = true;
+        state.response = None;
+    }
+
+    app.emit(FRONT_LIGHT_CONFIRM_REQUEST, &request)
+        .map_err(|err| AppError::msg(format!("发送前灯确认事件失败: {err}")))?;
+
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("前灯确认状态锁定失败"))?;
+    while state.response.is_none() {
+        state = cvar
+            .wait(state)
+            .map_err(|_| AppError::msg("前灯确认等待失败"))?;
+    }
+    let result = state.response.take().unwrap_or(false);
+    state.waiting = false;
+    Ok(result)
+}
+
+fn run_group_with_emitters(
+    gateway: &dyn DeviceGateway,
+    group: TestGroup,
+    on_key_state_update: &dyn Fn(KeyStatePayload),
+    on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
+) -> CommandResult<TestResult> {
     let TestGroup {
         name,
         stage,
@@ -254,14 +370,18 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
             power,
         } => {
             gateway.param_id606(front_light_mode, power)?;
-            Ok(build_action_result(
+            let is_lit = on_front_light_confirm(FrontLightConfirmRequestPayload {
+                name: name.clone(),
+                stage: stage.clone(),
+                front_light_mode,
+                power,
+            })?;
+            Ok(build_front_light_result(
                 name,
                 stage,
-                "ParamId606".to_string(),
-                format!(
-                    "FrontLightMode={}, Power={}, ReturnCode=0",
-                    front_light_mode, power
-                ),
+                front_light_mode,
+                power,
+                is_lit,
             ))
         }
         CommandGroupSpec::ParamId794 { checks } => {
@@ -274,9 +394,9 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
                 &response,
             ))
         }
-        CommandGroupSpec::ParamId776 { .. } => Err(crate::types::AppError::msg(
-            "ParamId776 must be executed via run_key_test_group",
-        )),
+        CommandGroupSpec::ParamId776 { timeout_ms } => {
+            run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
+        }
     }
 }
 
@@ -286,16 +406,13 @@ const KEY_TEST_POLL_INTERVAL_MS: u64 = 0;
 #[cfg(not(test))]
 const KEY_TEST_POLL_INTERVAL_MS: u64 = 1000;
 
-pub fn run_key_test_group<F>(
+fn run_key_test_group(
     gateway: &dyn DeviceGateway,
     name: String,
     stage: String,
     timeout_ms: u64,
-    on_state_update: F,
-) -> CommandResult<TestResult>
-where
-    F: Fn(KeyStatePayload),
-{
+    on_state_update: &dyn Fn(KeyStatePayload),
+) -> CommandResult<TestResult> {
     info!("Starting key test: {}", name);
     gateway.param_id776(0)?;
 
@@ -382,14 +499,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
+    use std::cell::{Cell, RefCell};
 
-    use super::run_group;
+    use super::run_group_with_emitters;
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
-        CommandGroupSpec, ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result,
-        ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result,
-        ParamId654Result, ParamId776Result, ParamId794Result, TestGroup,
+        CommandGroupSpec, KeyStatePayload, ParamId068Check, ParamId068Output, ParamId068Result,
+        ParamId080Result, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
+        ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -497,7 +614,8 @@ mod tests {
             },
         };
 
-        let result = run_group(&gateway, group).expect("group should run");
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
+            .expect("group should run");
         assert!(result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(result.checks[0].passed);
@@ -534,7 +652,8 @@ mod tests {
             },
         };
 
-        let result = run_group(&gateway, group).expect("group should run");
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
+            .expect("group should run");
         assert!(!result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(!result.checks[0].passed);
@@ -566,10 +685,46 @@ mod tests {
             },
         };
 
-        let result = run_group(&gateway, group).expect("group should run");
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
+            .expect("group should run");
         assert!(result.passed);
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
+        assert!(result.raw_response.contains("LightOn=1"));
+    }
+
+    #[test]
+    fn run_group_param_id606_fails_when_not_confirmed() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+        };
+
+        let group = TestGroup {
+            name: "606 test fail".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId606 {
+                front_light_mode: 1,
+                power: 80,
+            },
+        };
+
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(false))
+            .expect("group should run");
+        assert!(!result.passed);
+        assert!(gateway.called_606.get());
+        assert_eq!(result.command, "ParamId606");
+        assert!(result.raw_response.contains("LightOn=0"));
     }
 
     #[test]
@@ -604,7 +759,8 @@ mod tests {
             },
         };
 
-        let result = run_group(&gateway, group).expect("group should run");
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
+            .expect("group should run");
         assert!(gateway.called_468.get());
         assert!(result.passed);
         assert_eq!(result.command, "CuttingHeightSetAndVerify");
@@ -640,8 +796,177 @@ mod tests {
             },
         };
 
-        let result = run_group(&gateway, group).expect("group should run");
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
+            .expect("group should run");
         assert!(result.passed);
         assert_eq!(gateway.called_470.get(), 3);
+    }
+
+    struct FakeKeyGateway {
+        responses: Vec<ParamId776Result>,
+        called_start: Cell<bool>,
+        called_poll: Cell<usize>,
+    }
+
+    impl DeviceGateway for FakeKeyGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id068(&self) -> CommandResult<ParamId068Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id588(&self) -> CommandResult<ParamId588Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id654(&self) -> CommandResult<ParamId654Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id272(&self) -> CommandResult<ParamId272Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
+            match cmd {
+                0 => {
+                    self.called_start.set(true);
+                    Ok(ParamId776Result {
+                        up_key: 0,
+                        down_key: 0,
+                        back_key: 0,
+                        confirm_key: 0,
+                    })
+                }
+                1 => {
+                    let idx = self.called_poll.get();
+                    let value = self
+                        .responses
+                        .get(idx)
+                        .copied()
+                        .or_else(|| self.responses.last().copied())
+                        .unwrap_or(ParamId776Result {
+                            up_key: 0,
+                            down_key: 0,
+                            back_key: 0,
+                            confirm_key: 0,
+                        });
+                    self.called_poll.set(idx + 1);
+                    Ok(value)
+                }
+                _ => panic!("unexpected cmd"),
+            }
+        }
+    }
+
+    #[test]
+    fn run_group_param_id776_passes_and_emits_updates() {
+        let gateway = FakeKeyGateway {
+            responses: vec![
+                ParamId776Result {
+                    up_key: 2,
+                    down_key: 0,
+                    back_key: 0,
+                    confirm_key: 0,
+                },
+                ParamId776Result {
+                    up_key: 2,
+                    down_key: 2,
+                    back_key: 2,
+                    confirm_key: 2,
+                },
+            ],
+            called_start: Cell::new(false),
+            called_poll: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "776 pass".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
+        };
+
+        let updates = RefCell::new(Vec::<KeyStatePayload>::new());
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|state| {
+                updates.borrow_mut().push(state);
+            },
+            &|_| Ok(true),
+        )
+        .expect("group should run");
+
+        assert!(gateway.called_start.get());
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId776");
+        assert_eq!(updates.borrow().len(), 2);
+        assert!(updates.borrow().last().expect("has update").confirm_pressed);
+    }
+
+    #[test]
+    fn run_group_param_id776_times_out() {
+        let gateway = FakeKeyGateway {
+            responses: vec![ParamId776Result {
+                up_key: 0,
+                down_key: 0,
+                back_key: 0,
+                confirm_key: 0,
+            }],
+            called_start: Cell::new(false),
+            called_poll: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "776 timeout".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId776 { timeout_ms: 1 },
+        };
+
+        let update_count = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {
+                update_count.set(update_count.get() + 1);
+            },
+            &|_| Ok(true),
+        )
+        .expect("group should run");
+
+        assert!(gateway.called_start.get());
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId776");
+        assert_eq!(update_count.get(), 1);
     }
 }

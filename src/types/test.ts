@@ -26,3 +26,10 @@ export type KeyStatePayload = {
   back_pressed: boolean;
   confirm_pressed: boolean;
 };
+
+export type FrontLightConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  front_light_mode: number;
+  power: number;
+};

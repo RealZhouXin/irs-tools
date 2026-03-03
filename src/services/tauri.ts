@@ -1,11 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import type { BaseConfig, KeyStatePayload, TestResult, TestSummary } from "../types";
+import type {
+  BaseConfig,
+  FrontLightConfirmRequestPayload,
+  KeyStatePayload,
+  TestResult,
+  TestSummary,
+} from "../types";
 
 export const TAURI_EVENTS = {
   testGroupComplete: "test-group-complete",
   keyStateUpdate: "key-state-update",
+  frontLightConfirmRequest: "front-light-confirm-request",
 } as const;
 
 export function showMainWindow() {
@@ -30,6 +37,10 @@ export function startTest(stages: string[]) {
 
 export function stopTest() {
   return invoke("stop_test");
+}
+
+export function confirmFrontLight(isLit: boolean) {
+  return invoke("confirm_front_light", { isLit });
 }
 
 export function retestGroup(groupName: string) {
@@ -66,6 +77,18 @@ export async function subscribeKeyStateUpdate(
 ) {
   const stop = await listen<KeyStatePayload>(
     TAURI_EVENTS.keyStateUpdate,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeFrontLightConfirmRequest(
+  handler: (payload: FrontLightConfirmRequestPayload) => void,
+) {
+  const stop = await listen<FrontLightConfirmRequestPayload>(
+    TAURI_EVENTS.frontLightConfirmRequest,
     (event) => {
       handler(event.payload);
     },

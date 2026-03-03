@@ -724,6 +724,14 @@ pub struct KeyStatePayload {
     pub confirm_pressed: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct FrontLightConfirmRequestPayload {
+    pub name: String,
+    pub stage: String,
+    pub front_light_mode: u8,
+    pub power: u8,
+}
+
 impl fmt::Display for ParamId588Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
