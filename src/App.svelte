@@ -3,6 +3,7 @@
   import { save } from "@tauri-apps/plugin-dialog";
   import type {
     BaseConfig,
+    KeyStatePayload,
     LogLevel,
     Language,
     StatusKey,
@@ -21,12 +22,14 @@
     showMainWindow,
     startTest,
     stopTest,
+    subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
   } from "./services/tauri";
   import AppSidebar from "./components/Sidebar.svelte";
   import * as SidebarUI from "$lib/components/ui/sidebar/index.js";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import ExportDialog from "./components/ExportDialog.svelte";
+  import KeyTestDialog from "./components/KeyTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -63,6 +66,13 @@
   let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let pendingLightConfirm = $state<TestResult | null>(null);
   let showLightConfirmDialog = $state(false);
+  let showKeyTestDialog = $state(false);
+  let keyState = $state<KeyStatePayload>({
+    up_pressed: false,
+    down_pressed: false,
+    back_pressed: false,
+    confirm_pressed: false,
+  });
   let showExportDialog = $state(false);
   let exportStartDate = $state<string | null>(null);
   let exportEndDate = $state<string | null>(null);
@@ -106,6 +116,9 @@
       pendingLightConfirm = incoming;
       showLightConfirmDialog = true;
       return;
+    }
+    if (incoming.command === "ParamId776") {
+      showKeyTestDialog = false;
     }
     upsertResult(incoming);
   }
@@ -159,6 +172,7 @@
 
   onMount(() => {
     let unlisten: (() => void) | null = null;
+    let unlistenKeyState: (() => void) | null = null;
 
     showMainWindow().catch((err) => {
       console.error("Failed to show main window", err);
@@ -176,6 +190,17 @@
       })
       .catch((err) => {
         console.error(`Failed to listen ${TAURI_EVENTS.testGroupComplete}`, err);
+      });
+
+    subscribeKeyStateUpdate((payload) => {
+      keyState = payload;
+      showKeyTestDialog = true;
+    })
+      .then((stop) => {
+        unlistenKeyState = stop;
+      })
+      .catch((err) => {
+        console.error(`Failed to listen ${TAURI_EVENTS.keyStateUpdate}`, err);
       });
 
     loadAppInfo()
@@ -207,6 +232,9 @@
       if (unlisten) {
         unlisten();
       }
+      if (unlistenKeyState) {
+        unlistenKeyState();
+      }
     };
   });
 
@@ -228,6 +256,8 @@
     results = [];
     pendingLightConfirm = null;
     showLightConfirmDialog = false;
+    showKeyTestDialog = false;
+    keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
     statusKey = "running";
     summaryState = "pending";
 
@@ -474,6 +504,12 @@
     noLabel={text.confirmNo}
     onYes={() => confirmLightResult(true)}
     onNo={() => confirmLightResult(false)}
+  />
+
+  <KeyTestDialog
+    open={showKeyTestDialog}
+    {text}
+    {keyState}
   />
 
   <ExportDialog

@@ -8,9 +8,11 @@ use tracing::{error, info, warn};
 
 use crate::config::read_config;
 use crate::device_gateway::{DeviceGatewayFactory, DllDeviceGatewayFactory};
-use crate::events::TEST_GROUP_COMPLETE;
-use crate::models::{ConnectionConfig, TestConfig, TestGroup, TestResult, TestSummary};
-use crate::test_runner::run_group;
+use crate::events::{KEY_STATE_UPDATE, TEST_GROUP_COMPLETE};
+use crate::models::{
+    CommandGroupSpec, ConnectionConfig, TestConfig, TestGroup, TestResult, TestSummary,
+};
+use crate::test_runner::{run_group, run_key_test_group};
 use crate::types::{AppError, CommandResult};
 
 static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -98,7 +100,28 @@ where
             }
             let name = group.name.clone();
             info!("Starting group {}", name);
-            match run_group(gateway.as_ref(), group) {
+            let key_timeout = if let CommandGroupSpec::ParamId776 { timeout_ms } = &group.command {
+                Some(*timeout_ms)
+            } else {
+                None
+            };
+            let run_result = if let Some(timeout) = key_timeout {
+                let app = self.app.clone();
+                run_key_test_group(
+                    gateway.as_ref(),
+                    group.name,
+                    group.stage,
+                    timeout,
+                    move |state| {
+                        if let Err(err) = app.emit(KEY_STATE_UPDATE, &state) {
+                            error!("Failed to emit key state update: {}", err);
+                        }
+                    },
+                )
+            } else {
+                run_group(gateway.as_ref(), group)
+            };
+            match run_result {
                 Ok(result) => {
                     info!("Completed group {} with passed={}", name, result.passed);
                     if let Err(err) = self.app.emit(TEST_GROUP_COMPLETE, &result) {
@@ -203,7 +226,27 @@ where
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
         info!("Retest entering test mode via ParamId374(TestMode=2)");
         gateway.param_id374(2)?;
-        let result = run_group(gateway.as_ref(), group);
+        let key_timeout = if let CommandGroupSpec::ParamId776 { timeout_ms } = &group.command {
+            Some(*timeout_ms)
+        } else {
+            None
+        };
+        let result = if let Some(timeout) = key_timeout {
+            let app = self.app.clone();
+            run_key_test_group(
+                gateway.as_ref(),
+                group.name,
+                group.stage,
+                timeout,
+                move |state| {
+                    if let Err(err) = app.emit(KEY_STATE_UPDATE, &state) {
+                        error!("Failed to emit key state update: {}", err);
+                    }
+                },
+            )
+        } else {
+            run_group(gateway.as_ref(), group)
+        };
         info!("Retest leaving test mode via ParamId374(TestMode=0)");
         let exit_mode_result = gateway.param_id374(0);
         match (result, exit_mode_result) {

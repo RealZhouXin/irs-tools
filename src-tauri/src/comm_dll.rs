@@ -6,7 +6,8 @@ use tracing::{error, info};
 
 use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId794Result,
+    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId776Result,
+    ParamId794Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -81,6 +82,8 @@ type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 type ParamId794Fn =
     unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId776Fn =
+    unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
 
 pub struct CommDll {
     _lib: Library,
@@ -100,6 +103,7 @@ pub struct CommDll {
     param_id468: ParamId468Fn,
     param_id606: ParamId606Fn,
     param_id794: ParamId794Fn,
+    param_id776: ParamId776Fn,
 }
 
 pub struct CommSession {
@@ -548,6 +552,42 @@ impl CommSession {
         Ok(ParamId470Result { cutting_height_mm })
     }
 
+    pub fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
+        info!("Running ParamId776 Cmd={}", cmd);
+        let mut return_code: u8 = 9;
+        let mut up_key: u8 = 0;
+        let mut down_key: u8 = 0;
+        let mut back_key: u8 = 0;
+        let mut confirm_key: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id776)(
+                &mut return_code,
+                cmd,
+                &mut up_key,
+                &mut down_key,
+                &mut back_key,
+                &mut confirm_key,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId776 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId776 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId776Result {
+            up_key,
+            down_key,
+            back_key,
+            confirm_key,
+        })
+    }
+
     pub fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()> {
         info!("Running ParamId468 CuttingHeightMm={}", cutting_height_mm);
         let mut return_code: u8 = 9;
@@ -710,6 +750,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId794\0", b"ParamId794@28\0", b"_ParamId794@28\0"],
             )?;
+            let param_id776 = load_symbol::<ParamId776Fn>(
+                &lib,
+                &[b"ParamId776\0", b"ParamId776@24\0", b"_ParamId776@24\0"],
+            )?;
 
             Ok(Self {
                 _lib: lib,
@@ -729,6 +773,7 @@ impl CommDll {
                 param_id468,
                 param_id606,
                 param_id794,
+                param_id776,
             })
         }
     }

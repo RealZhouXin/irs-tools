@@ -6,7 +6,8 @@ use tracing::info;
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId794Result,
+    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId776Result,
+    ParamId794Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -23,6 +24,7 @@ pub trait DeviceGateway {
     fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()>;
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()>;
     fn param_id794(&self) -> CommandResult<ParamId794Result>;
+    fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result>;
 }
 
 pub trait DeviceGatewayFactory {
@@ -101,6 +103,10 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id794(&self) -> CommandResult<ParamId794Result> {
         self.session.param_id794()
+    }
+
+    fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
+        self.session.param_id776(cmd)
     }
 }
 

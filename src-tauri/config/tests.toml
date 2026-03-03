@@ -1,4 +1,4 @@
-stages = ["software", "status", "battery", "sensor", "cutting_height", "actuator"]
+stages = ["software", "status", "battery", "sensor", "cutting_height", "actuator", "key_test"]
 
 [[tests]]
 name = "068 主板应用软件"
@@ -357,4 +357,11 @@ command = "param_id606"
 stage = "actuator"
 front_light_mode = 1
 power = 80
+
+[[tests]]
+name = "776 按键测试"
+command = "param_id776"
+stage = "key_test"
+# 超时时间（毫秒），用户需在此时间内按下所有按键
+timeout_ms = 30000
 

@@ -84,4 +84,11 @@ export type Translation = {
   exportFailed: string;
   exportNoData: string;
   exportDateLoadFailed: string;
+  keyTestTitle: string;
+  keyTestInstruction: string;
+  keyTestBack: string;
+  keyTestDown: string;
+  keyTestUp: string;
+  keyTestConfirm: string;
+  keyTestTimeout: string;
 };

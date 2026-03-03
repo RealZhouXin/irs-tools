@@ -19,3 +19,10 @@ export type TestSummary = {
   results: TestResult[];
   overall_passed: boolean;
 };
+
+export type KeyStatePayload = {
+  up_pressed: boolean;
+  down_pressed: boolean;
+  back_pressed: boolean;
+  confirm_pressed: boolean;
+};

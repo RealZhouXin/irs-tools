@@ -85,6 +85,13 @@ export const textMap: Record<Language, Translation> = {
         exportFailed: "导出失败",
         exportNoData: "暂无可导出数据。",
         exportDateLoadFailed: "可导出日期加载失败。",
+        keyTestTitle: "按键测试",
+        keyTestInstruction: "请依次按下返回键、下键、上键、确认键",
+        keyTestBack: "返回键",
+        keyTestDown: "下键",
+        keyTestUp: "上键",
+        keyTestConfirm: "确认键",
+        keyTestTimeout: "超时",
     },
     en: {
         title: "Test Console",
@@ -170,6 +177,13 @@ export const textMap: Record<Language, Translation> = {
         exportFailed: "Export failed",
         exportNoData: "No exportable data is available.",
         exportDateLoadFailed: "Failed to load exportable dates.",
+        keyTestTitle: "Key Test",
+        keyTestInstruction: "Please press: Back, Down, Up, Confirm keys in sequence",
+        keyTestBack: "Back",
+        keyTestDown: "Down",
+        keyTestUp: "Up",
+        keyTestConfirm: "Confirm",
+        keyTestTimeout: "Timeout",
     },
 };
 

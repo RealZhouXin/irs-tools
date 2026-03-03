@@ -92,6 +92,9 @@ pub enum CommandGroupSpec {
     ParamId794 {
         checks: Vec<ParamId794Check>,
     },
+    ParamId776 {
+        timeout_ms: u64,
+    },
 }
 
 pub trait CheckConfig {
@@ -703,6 +706,22 @@ pub struct ParamId794Result {
     pub maj_par_sw_ver: u8,
     pub min_par_sw_ver: u8,
     pub build_no: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId776Result {
+    pub up_key: u8,
+    pub down_key: u8,
+    pub back_key: u8,
+    pub confirm_key: u8,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct KeyStatePayload {
+    pub up_pressed: bool,
+    pub down_pressed: bool,
+    pub back_pressed: bool,
+    pub confirm_pressed: bool,
 }
 
 impl fmt::Display for ParamId588Result {

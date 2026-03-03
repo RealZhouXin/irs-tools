@@ -1,8 +1,10 @@
 use crate::device_gateway::DeviceGateway;
 use crate::models::{
-    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, TestGroup, TestResult,
+    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, KeyStatePayload, TestGroup,
+    TestResult,
 };
-use crate::types::CommandResult;use std::fmt::Display;
+use crate::types::CommandResult;
+use std::fmt::Display;
 use std::thread;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -272,6 +274,109 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
                 &response,
             ))
         }
+        CommandGroupSpec::ParamId776 { .. } => Err(crate::types::AppError::msg(
+            "ParamId776 must be executed via run_key_test_group",
+        )),
+    }
+}
+
+const KEY_PRESSED_THRESHOLD: u8 = 2;
+#[cfg(test)]
+const KEY_TEST_POLL_INTERVAL_MS: u64 = 0;
+#[cfg(not(test))]
+const KEY_TEST_POLL_INTERVAL_MS: u64 = 1000;
+
+pub fn run_key_test_group<F>(
+    gateway: &dyn DeviceGateway,
+    name: String,
+    stage: String,
+    timeout_ms: u64,
+    on_state_update: F,
+) -> CommandResult<TestResult>
+where
+    F: Fn(KeyStatePayload),
+{
+    info!("Starting key test: {}", name);
+    gateway.param_id776(0)?;
+
+    let mut up = false;
+    let mut down = false;
+    let mut back = false;
+    let mut confirm = false;
+
+    let elapsed_limit = if timeout_ms == 0 {
+        u64::MAX
+    } else {
+        timeout_ms
+    };
+    let mut elapsed_ms: u64 = 0;
+
+    loop {
+        thread::sleep(Duration::from_millis(KEY_TEST_POLL_INTERVAL_MS));
+        elapsed_ms = elapsed_ms.saturating_add(KEY_TEST_POLL_INTERVAL_MS.max(1));
+
+        let result = gateway.param_id776(1)?;
+        if result.up_key >= KEY_PRESSED_THRESHOLD {
+            up = true;
+        }
+        if result.down_key >= KEY_PRESSED_THRESHOLD {
+            down = true;
+        }
+        if result.back_key >= KEY_PRESSED_THRESHOLD {
+            back = true;
+        }
+        if result.confirm_key >= KEY_PRESSED_THRESHOLD {
+            confirm = true;
+        }
+
+        on_state_update(KeyStatePayload {
+            up_pressed: up,
+            down_pressed: down,
+            back_pressed: back,
+            confirm_pressed: confirm,
+        });
+
+        if up && down && back && confirm {
+            info!("Key test passed: all keys pressed");
+            return Ok(TestResult {
+                name,
+                stage,
+                command: "ParamId776".to_string(),
+                passed: true,
+                raw_response: format!(
+                    "UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
+                    result.up_key, result.down_key, result.back_key, result.confirm_key
+                ),
+                checks: vec![CheckResult {
+                    name: "all_keys_pressed".to_string(),
+                    min: None,
+                    max: None,
+                    value: None,
+                    passed: true,
+                }],
+            });
+        }
+
+        if elapsed_ms >= elapsed_limit {
+            warn!("Key test timed out after {}ms", elapsed_ms);
+            return Ok(TestResult {
+                name,
+                stage,
+                command: "ParamId776".to_string(),
+                passed: false,
+                raw_response: format!(
+                    "Timeout={}ms, UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
+                    elapsed_ms, result.up_key, result.down_key, result.back_key, result.confirm_key
+                ),
+                checks: vec![CheckResult {
+                    name: "all_keys_pressed".to_string(),
+                    min: None,
+                    max: None,
+                    value: None,
+                    passed: false,
+                }],
+            });
+        }
     }
 }
 
@@ -284,7 +389,7 @@ mod tests {
     use crate::models::{
         CommandGroupSpec, ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result,
         ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result,
-        ParamId654Result, ParamId794Result, TestGroup,
+        ParamId654Result, ParamId776Result, ParamId794Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -354,6 +459,10 @@ mod tests {
         }
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
             panic!("not used in this test")
         }
     }

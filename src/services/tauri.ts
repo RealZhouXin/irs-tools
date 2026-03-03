@@ -1,10 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import type { BaseConfig, TestResult, TestSummary } from "../types";
+import type { BaseConfig, KeyStatePayload, TestResult, TestSummary } from "../types";
 
 export const TAURI_EVENTS = {
   testGroupComplete: "test-group-complete",
+  keyStateUpdate: "key-state-update",
 } as const;
 
 export function showMainWindow() {
@@ -57,6 +58,18 @@ export async function subscribeTestGroupComplete(
   const stop = await listen<TestResult>(TAURI_EVENTS.testGroupComplete, (event) => {
     handler(event.payload);
   });
+  return stop;
+}
+
+export async function subscribeKeyStateUpdate(
+  handler: (payload: KeyStatePayload) => void,
+) {
+  const stop = await listen<KeyStatePayload>(
+    TAURI_EVENTS.keyStateUpdate,
+    (event) => {
+      handler(event.payload);
+    },
+  );
   return stop;
 }
 
