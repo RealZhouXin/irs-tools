@@ -6,7 +6,7 @@ use tracing::{error, info};
 
 use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId794Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -79,6 +79,8 @@ type ParamId122Fn = unsafe extern "system" fn(
 type ParamId470Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
+type ParamId794Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
 
 pub struct CommDll {
     _lib: Library,
@@ -97,6 +99,7 @@ pub struct CommDll {
     param_id470: ParamId470Fn,
     param_id468: ParamId468Fn,
     param_id606: ParamId606Fn,
+    param_id794: ParamId794Fn,
 }
 
 pub struct CommSession {
@@ -199,6 +202,22 @@ impl CommSession {
             .map(
                 |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
                     ParamId654Result {
+                        dev_gr_no,
+                        sub_dev_gr_no,
+                        var_no,
+                        maj_par_sw_ver,
+                        min_par_sw_ver,
+                        build_no,
+                    }
+                },
+            )
+    }
+
+    pub fn param_id794(&self) -> CommandResult<ParamId794Result> {
+        self.run_common_param_command("ParamId794", self.dll.param_id794)
+            .map(
+                |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
+                    ParamId794Result {
                         dev_gr_no,
                         sub_dev_gr_no,
                         var_no,
@@ -687,6 +706,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId468\0", b"ParamId468@8\0", b"_ParamId468@8\0"],
             )?;
+            let param_id794 = load_symbol::<ParamId794Fn>(
+                &lib,
+                &[b"ParamId794\0", b"ParamId794@28\0", b"_ParamId794@28\0"],
+            )?;
 
             Ok(Self {
                 _lib: lib,
@@ -705,6 +728,7 @@ impl CommDll {
                 param_id470,
                 param_id468,
                 param_id606,
+                param_id794,
             })
         }
     }

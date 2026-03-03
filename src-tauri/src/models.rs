@@ -89,6 +89,9 @@ pub enum CommandGroupSpec {
         front_light_mode: u8,
         power: u8,
     },
+    ParamId794 {
+        checks: Vec<ParamId794Check>,
+    },
 }
 
 pub trait CheckConfig {
@@ -213,6 +216,22 @@ impl CheckConfig for ParamId122Check {
 
 impl CheckConfig for ParamId470Check {
     type OutputEnum = ParamId470Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId794Check {
+    type OutputEnum = ParamId794Output;
     fn name(&self) -> &str {
         &self.name
     }
@@ -393,6 +412,25 @@ pub enum ParamId470Output {
     CuttingHeightMm,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId794Check {
+    pub name: String,
+    pub output: ParamId794Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId794Output {
+    DevGrNo,
+    SubDevGrNo,
+    VarNo,
+    MajParSwVer,
+    MinParSwVer,
+    BuildNo,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CheckResult {
     pub name: String,
@@ -549,6 +587,20 @@ impl CheckableResult for ParamId470Result {
     }
 }
 
+impl CheckableResult for ParamId794Result {
+    type OutputEnum = ParamId794Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId794Output::DevGrNo => self.dev_gr_no as f64,
+            ParamId794Output::SubDevGrNo => self.sub_dev_gr_no as f64,
+            ParamId794Output::VarNo => self.var_no as f64,
+            ParamId794Output::MajParSwVer => self.maj_par_sw_ver as f64,
+            ParamId794Output::MinParSwVer => self.min_par_sw_ver as f64,
+            ParamId794Output::BuildNo => self.build_no as f64,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ParamId588Result {
     pub dev_gr_no: u16,
@@ -641,6 +693,16 @@ pub struct ParamId122Result {
 #[derive(Debug, Clone, Copy)]
 pub struct ParamId470Result {
     pub cutting_height_mm: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId794Result {
+    pub dev_gr_no: u16,
+    pub sub_dev_gr_no: u8,
+    pub var_no: u8,
+    pub maj_par_sw_ver: u8,
+    pub min_par_sw_ver: u8,
+    pub build_no: u32,
 }
 
 impl fmt::Display for ParamId588Result {
@@ -770,5 +832,20 @@ impl fmt::Display for ParamId122Result {
 impl fmt::Display for ParamId470Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CuttingHeightMm={}", self.cutting_height_mm)
+    }
+}
+
+impl fmt::Display for ParamId794Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "DevGrNo={}, SubDevGrNo={}, VarNo={}, MajParSwVer={}, MinParSwVer={}, BuildNo={}",
+            self.dev_gr_no,
+            self.sub_dev_gr_no,
+            self.var_no,
+            self.maj_par_sw_ver,
+            self.min_par_sw_ver,
+            self.build_no
+        )
     }
 }

@@ -2,8 +2,7 @@ use crate::device_gateway::DeviceGateway;
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, TestGroup, TestResult,
 };
-use crate::types::CommandResult;
-use std::fmt::Display;
+use crate::types::CommandResult;use std::fmt::Display;
 use std::thread;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -263,6 +262,16 @@ pub fn run_group(gateway: &dyn DeviceGateway, group: TestGroup) -> CommandResult
                 ),
             ))
         }
+        CommandGroupSpec::ParamId794 { checks } => {
+            let response = gateway.param_id794()?;
+            Ok(build_checked_result(
+                name,
+                stage,
+                "ParamId794".to_string(),
+                &checks,
+                &response,
+            ))
+        }
     }
 }
 
@@ -275,7 +284,7 @@ mod tests {
     use crate::models::{
         CommandGroupSpec, ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result,
         ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result,
-        ParamId654Result, TestGroup,
+        ParamId654Result, ParamId794Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -342,6 +351,10 @@ mod tests {
         fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
             self.called_606.set(true);
             Ok(())
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
         }
     }
 

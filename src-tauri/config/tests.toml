@@ -191,6 +191,26 @@ min = 0
 max = 999999
 
 [[tests]]
+name = "794 HMI板软件版本"
+command = "param_id794"
+stage = "software"
+[[tests.checks]]
+name = "maj_par_sw_ver"
+output = "maj_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "min_par_sw_ver"
+output = "min_par_sw_ver"
+min = 0
+max = 255
+[[tests.checks]]
+name = "build_no"
+output = "build_no"
+min = 0
+max = 999999
+
+[[tests]]
 name = "120 加速度计数据"
 command = "param_id120"
 stage = "sensor"
