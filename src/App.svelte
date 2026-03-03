@@ -480,6 +480,7 @@
     open={showExportDialog}
     {exporting}
     {text}
+    {language}
     initialStartDate={exportStartDate}
     initialEndDate={exportEndDate}
     onClose={() => (showExportDialog = false)}
