@@ -23,7 +23,8 @@
     stopTest,
     subscribeTestGroupComplete,
   } from "./services/tauri";
-  import Sidebar from "./components/Sidebar.svelte";
+  import AppSidebar from "./components/Sidebar.svelte";
+  import * as SidebarUI from "$lib/components/ui/sidebar/index.js";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import ExportDialog from "./components/ExportDialog.svelte";
   import MainView from "./views/MainView.svelte";
@@ -416,15 +417,15 @@
   };
 </script>
 
-<div class="app-shell">
-  <Sidebar
+<SidebarUI.Provider open={false}>
+  <AppSidebar
     {view}
     {text}
     onOpenTests={handleOpenTests}
     onOpenSettings={handleOpenSettings}
   />
 
-  <div class="content">
+  <SidebarUI.Inset class="overflow-auto">
     {#if view === "main"}
       <MainView
         {text}
@@ -463,7 +464,7 @@
         onSave={handleSettingsSave}
       />
     {/if}
-  </div>
+  </SidebarUI.Inset>
 
   <ConfirmDialog
     open={showLightConfirmDialog}
@@ -479,9 +480,10 @@
     open={showExportDialog}
     {exporting}
     {text}
+    {language}
     initialStartDate={exportStartDate}
     initialEndDate={exportEndDate}
     onClose={() => (showExportDialog = false)}
     onConfirm={handleConfirmExport}
   />
-</div>
+</SidebarUI.Provider>

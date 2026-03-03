@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { onDestroy, tick } from "svelte";
-  import flatpickr from "flatpickr";
-  import type { Instance as FlatpickrInstance } from "flatpickr/dist/types/instance";
-  import "flatpickr/dist/flatpickr.css";
-
+  import { parseDate, type DateValue } from "@internationalized/date";
   import { loadAvailableExportDates } from "../services/tauri";
-  import type { Translation } from "../types";
+  import type { Language, Translation } from "../types";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import * as Dialog from "$lib/components/ui/dialog/index.js";
+  import * as Popover from "$lib/components/ui/popover/index.js";
+  import { Calendar } from "$lib/components/ui/calendar/index.js";
 
   let {
     open,
     exporting,
     text,
+    language,
     initialStartDate,
     initialEndDate,
     onClose,
@@ -19,32 +20,35 @@
     open: boolean;
     exporting: boolean;
     text: Translation;
+    language: Language;
     initialStartDate: string | null;
     initialEndDate: string | null;
     onClose: () => void;
     onConfirm: (startDate: string, endDate: string) => Promise<void> | void;
   }>();
 
-  let startInput = $state<HTMLInputElement | null>(null);
-  let endInput = $state<HTMLInputElement | null>(null);
-  let startPicker = $state<FlatpickrInstance | null>(null);
-  let endPicker = $state<FlatpickrInstance | null>(null);
+  const locale = $derived(language === "zh" ? "zh-CN" : "en-US");
 
   let availableDates = $state<string[]>([]);
   let loadingDates = $state(false);
   let localError = $state<string | null>(null);
-  let startDate = $state("");
-  let endDate = $state("");
+  let startValue = $state<DateValue | undefined>(undefined);
+  let endValue = $state<DateValue | undefined>(undefined);
+  let startPopoverOpen = $state(false);
+  let endPopoverOpen = $state(false);
   let wasOpen = $state(false);
 
+  const availableDateSet = $derived(new Set(availableDates));
   const hasAvailableDates = $derived(availableDates.length > 0);
-  const disableInputs = $derived(exporting || loadingDates || !hasAvailableDates);
+  const startDate = $derived(startValue?.toString() ?? "");
+  const endDate = $derived(endValue?.toString() ?? "");
+
   const disableConfirm = $derived(
     exporting ||
       loadingDates ||
       !hasAvailableDates ||
-      startDate.trim().length === 0 ||
-      endDate.trim().length === 0,
+      startDate.length === 0 ||
+      endDate.length === 0,
   );
 
   $effect(() => {
@@ -57,10 +61,6 @@
     wasOpen = open;
   });
 
-  onDestroy(() => {
-    destroyPickers();
-  });
-
   async function loadDates() {
     loadingDates = true;
     localError = null;
@@ -71,87 +71,54 @@
       availableDates = dates;
 
       if (dates.length === 0) {
-        startDate = "";
-        endDate = "";
-        destroyPickers();
+        startValue = undefined;
+        endValue = undefined;
         return;
       }
 
       const defaultStart = dates[0];
       const defaultEnd = dates[dates.length - 1];
-      startDate = initialStartDate && dates.includes(initialStartDate) ? initialStartDate : defaultStart;
-      endDate = initialEndDate && dates.includes(initialEndDate) ? initialEndDate : defaultEnd;
+      const resolvedStart =
+        initialStartDate && dates.includes(initialStartDate)
+          ? initialStartDate
+          : defaultStart;
+      const resolvedEnd =
+        initialEndDate && dates.includes(initialEndDate)
+          ? initialEndDate
+          : defaultEnd;
 
-      await tick();
-      initPickers();
+      startValue = parseDate(resolvedStart);
+      endValue = parseDate(resolvedEnd);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       localError = `${text.exportDateLoadFailed}: ${message}`;
-      startDate = "";
-      endDate = "";
-      destroyPickers();
+      startValue = undefined;
+      endValue = undefined;
     } finally {
       loadingDates = false;
     }
   }
 
-  function initPickers() {
-    if (!startInput || !endInput) {
-      return;
-    }
-
-    destroyPickers();
-
-    startPicker = flatpickr(startInput, {
-      dateFormat: "Y-m-d",
-      allowInput: false,
-      enable: availableDates,
-      defaultDate: startDate,
-      onChange: (_selectedDates, dateStr) => {
-        startDate = dateStr;
-      },
-    });
-
-    endPicker = flatpickr(endInput, {
-      dateFormat: "Y-m-d",
-      allowInput: false,
-      enable: availableDates,
-      defaultDate: endDate,
-      onChange: (_selectedDates, dateStr) => {
-        endDate = dateStr;
-      },
-    });
-  }
-
-  function destroyPickers() {
-    if (startPicker) {
-      startPicker.destroy();
-      startPicker = null;
-    }
-    if (endPicker) {
-      endPicker.destroy();
-      endPicker = null;
-    }
-  }
-
   function resetDialogState() {
-    destroyPickers();
     availableDates = [];
     loadingDates = false;
     localError = null;
-    startDate = "";
-    endDate = "";
+    startValue = undefined;
+    endValue = undefined;
+    startPopoverOpen = false;
+    endPopoverOpen = false;
+  }
+
+  function isDateDisabled(date: DateValue) {
+    return !availableDateSet.has(date.toString());
   }
 
   async function handleConfirm() {
-    if (disableConfirm) {
-      return;
-    }
+    if (disableConfirm) return;
     if (startDate > endDate) {
       localError = text.exportInvalidRange;
       return;
     }
-
     localError = null;
     try {
       await onConfirm(startDate, endDate);
@@ -162,92 +129,76 @@
   }
 </script>
 
-{#if open}
-  <div class="overlay" role="presentation">
-    <div class="dialog" role="dialog" aria-modal="true" aria-label={text.exportDialogTitle}>
-      <h3>{text.exportDialogTitle}</h3>
+<Dialog.Root
+  {open}
+  onOpenChange={(v) => {
+    if (!v) onClose();
+  }}
+>
+  <Dialog.Content class="sm:max-w-[400px]">
+    <Dialog.Header>
+      <Dialog.Title>{text.exportDialogTitle}</Dialog.Title>
+    </Dialog.Header>
 
-      <label>
-        {text.exportStartDate}
-        <input bind:this={startInput} type="text" value={startDate} disabled={disableInputs} />
-      </label>
+    <div class="flex flex-col gap-4 py-2">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-sm font-medium">{text.exportStartDate}</span>
+        <Popover.Root bind:open={startPopoverOpen}>
+          <Popover.Trigger
+            disabled={exporting || loadingDates || !hasAvailableDates}
+            class="border-input bg-background flex h-9 w-full items-center justify-start rounded-md border px-3 py-1 text-sm shadow-xs disabled:opacity-50"
+          >
+            {startDate || "—"}
+          </Popover.Trigger>
+          <Popover.Content class="w-auto p-0" align="start">
+            <Calendar
+              bind:value={startValue}
+              {locale}
+              {isDateDisabled}
+              onValueChange={() => {
+                startPopoverOpen = false;
+              }}
+            />
+          </Popover.Content>
+        </Popover.Root>
+      </div>
 
-      <label>
-        {text.exportEndDate}
-        <input bind:this={endInput} type="text" value={endDate} disabled={disableInputs} />
-      </label>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-sm font-medium">{text.exportEndDate}</span>
+        <Popover.Root bind:open={endPopoverOpen}>
+          <Popover.Trigger
+            disabled={exporting || loadingDates || !hasAvailableDates}
+            class="border-input bg-background flex h-9 w-full items-center justify-start rounded-md border px-3 py-1 text-sm shadow-xs disabled:opacity-50"
+          >
+            {endDate || "—"}
+          </Popover.Trigger>
+          <Popover.Content class="w-auto p-0" align="start">
+            <Calendar
+              bind:value={endValue}
+              {locale}
+              {isDateDisabled}
+              onValueChange={() => {
+                endPopoverOpen = false;
+              }}
+            />
+          </Popover.Content>
+        </Popover.Root>
+      </div>
 
       {#if localError}
-        <p class="dialog-error">{localError}</p>
+        <p class="text-destructive text-sm">{localError}</p>
       {:else if !loadingDates && !hasAvailableDates}
-        <p class="dialog-note">{text.exportNoData}</p>
+        <p class="text-muted-foreground text-sm">{text.exportNoData}</p>
       {/if}
-
-      <div class="actions">
-        <button class="secondary" onclick={onClose} disabled={exporting}>
-          {text.exportCancel}
-        </button>
-        <button class="primary" onclick={handleConfirm} disabled={disableConfirm}>
-          {exporting ? text.exporting : text.exportConfirm}
-        </button>
-      </div>
     </div>
-  </div>
-{/if}
 
-<style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .dialog {
-    width: min(420px, calc(100vw - 2rem));
-    background: #fff;
-    border-radius: 10px;
-    padding: 1rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .dialog label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.92rem;
-  }
-
-  .dialog input[type="text"] {
-    padding: 0.45rem 0.55rem;
-  }
-
-  .dialog-error {
-    margin: 0;
-    color: #b42318;
-    font-size: 0.9rem;
-  }
-
-  .dialog-note {
-    margin: 0;
-    color: #475569;
-    font-size: 0.9rem;
-  }
-
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-  }
-
-  .actions :global(button) {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-</style>
+    <Dialog.Footer>
+      <Button variant="secondary" onclick={onClose} disabled={exporting}>
+        {text.exportCancel}
+      </Button>
+      <Button variant="default" onclick={handleConfirm} disabled={disableConfirm}>
+        {exporting ? text.exporting : text.exportConfirm}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
