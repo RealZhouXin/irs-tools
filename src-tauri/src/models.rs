@@ -68,6 +68,9 @@ pub enum CommandGroupSpec {
     ParamId080 {
         checks: Vec<ParamId080Check>,
     },
+    ParamId080EmergencyStop {
+        timeout_ms: u64,
+    },
     ParamId120 {
         checks: Vec<ParamId120Check>,
     },
@@ -749,6 +752,23 @@ pub struct RearLightConfirmRequestPayload {
     pub expected_color: RearLightColor,
     pub step_index: u8,
     pub total_steps: u8,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EmergencyStopPhase {
+    PressEmergencyStop,
+    UnlockByBackAndConfirm,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EmergencyStopTestPayload {
+    pub name: String,
+    pub stage: String,
+    pub phase: EmergencyStopPhase,
+    pub mower_main_p: u8,
+    pub elapsed_ms: u64,
+    pub timeout_ms: u64,
 }
 
 impl fmt::Display for ParamId588Result {

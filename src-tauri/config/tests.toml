@@ -364,6 +364,13 @@ command = "param_id610"
 stage = "actuator"
 
 [[tests]]
+name = "080 急停键测试"
+command = "param_id080_emergency_stop"
+stage = "actuator"
+# 超时时间（毫秒）
+timeout_ms = 30000
+
+[[tests]]
 name = "776 按键测试"
 command = "param_id776"
 stage = "key_test"

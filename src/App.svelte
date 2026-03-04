@@ -3,6 +3,7 @@
   import { save } from "@tauri-apps/plugin-dialog";
   import type {
     BaseConfig,
+    EmergencyStopTestPayload,
     KeyStatePayload,
     LogLevel,
     Language,
@@ -14,6 +15,8 @@
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
+    cancelEmergencyStopTest,
+    cancelKeyTest,
     confirmFrontLight,
     confirmRearLight,
     TAURI_EVENTS,
@@ -27,6 +30,7 @@
     startTest,
     stopTest,
     subscribeFrontLightConfirmRequest,
+    subscribeEmergencyStopTestUpdate,
     subscribeRearLightConfirmRequest,
     subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
@@ -35,6 +39,7 @@
   import * as SidebarUI from "$lib/components/ui/sidebar/index.js";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import ExportDialog from "./components/ExportDialog.svelte";
+  import EmergencyStopDialog from "./components/EmergencyStopDialog.svelte";
   import KeyTestDialog from "./components/KeyTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
@@ -76,6 +81,9 @@
   let lightConfirmTarget = $state<LightConfirmTarget>("front");
   let rearLightConfirmRequest = $state<RearLightConfirmRequestPayload | null>(null);
   let showKeyTestDialog = $state(false);
+  let keyTestDialogDismissed = $state(false);
+  let showEmergencyStopDialog = $state(false);
+  let emergencyStopPayload = $state<EmergencyStopTestPayload | null>(null);
   let keyState = $state<KeyStatePayload>({
     up_pressed: false,
     down_pressed: false,
@@ -123,6 +131,11 @@
   function handleIncomingResult(incoming: TestResult) {
     if (incoming.command === "ParamId776") {
       showKeyTestDialog = false;
+      keyTestDialogDismissed = false;
+    }
+    if (incoming.command === "ParamId080EmergencyStop") {
+      showEmergencyStopDialog = false;
+      emergencyStopPayload = null;
     }
     upsertResult(incoming);
   }
@@ -186,9 +199,53 @@
       : `Please confirm the rear light is ${colorLabel} (${progress})`;
   }
 
+  function getEmergencyStopInstruction(): string {
+    if (!emergencyStopPayload) {
+      return "";
+    }
+    if (emergencyStopPayload.phase === "unlock_by_back_and_confirm") {
+      return language === "zh"
+        ? "请按返回键 + 确认键解锁急停键"
+        : "Please unlock using Back + Confirm keys";
+    }
+    return language === "zh" ? "请按下急停键" : "Please press the emergency stop key";
+  }
+
+  function getEmergencyStopStatus(): string {
+    if (!emergencyStopPayload) {
+      return "";
+    }
+    const elapsedSeconds = Math.floor(emergencyStopPayload.elapsed_ms / 1000);
+    const timeoutSeconds = Math.floor(emergencyStopPayload.timeout_ms / 1000);
+    return language === "zh"
+      ? `MowerMainP=${emergencyStopPayload.mower_main_p}，已耗时 ${elapsedSeconds}s / 超时 ${timeoutSeconds}s`
+      : `MowerMainP=${emergencyStopPayload.mower_main_p}, elapsed ${elapsedSeconds}s / timeout ${timeoutSeconds}s`;
+  }
+
+  async function handleEmergencyStopDialogClose() {
+    showEmergencyStopDialog = false;
+    emergencyStopPayload = null;
+    try {
+      await cancelEmergencyStopTest();
+    } catch (err) {
+      console.error("Failed to cancel emergency stop test", err);
+    }
+  }
+
+  async function handleKeyTestDialogClose() {
+    showKeyTestDialog = false;
+    keyTestDialogDismissed = true;
+    try {
+      await cancelKeyTest();
+    } catch (err) {
+      console.error("Failed to cancel key test", err);
+    }
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
+    let unlistenEmergencyStopUpdate: (() => void) | null = null;
     let unlistenFrontLightConfirm: (() => void) | null = null;
     let unlistenRearLightConfirm: (() => void) | null = null;
 
@@ -212,13 +269,30 @@
 
     subscribeKeyStateUpdate((payload) => {
       keyState = payload;
-      showKeyTestDialog = true;
+      if (!keyTestDialogDismissed) {
+        showKeyTestDialog = true;
+      }
     })
       .then((stop) => {
         unlistenKeyState = stop;
       })
       .catch((err) => {
         console.error(`Failed to listen ${TAURI_EVENTS.keyStateUpdate}`, err);
+      });
+
+    subscribeEmergencyStopTestUpdate((payload) => {
+      emergencyStopPayload = payload;
+      showEmergencyStopDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenEmergencyStopUpdate = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.emergencyStopTestUpdate}`,
+          err,
+        );
       });
 
     subscribeFrontLightConfirmRequest(() => {
@@ -285,6 +359,9 @@
       if (unlistenKeyState) {
         unlistenKeyState();
       }
+      if (unlistenEmergencyStopUpdate) {
+        unlistenEmergencyStopUpdate();
+      }
       if (unlistenFrontLightConfirm) {
         unlistenFrontLightConfirm();
       }
@@ -313,7 +390,10 @@
     showLightConfirmDialog = false;
     lightConfirmTarget = "front";
     rearLightConfirmRequest = null;
+    showEmergencyStopDialog = false;
+    emergencyStopPayload = null;
     showKeyTestDialog = false;
+    keyTestDialogDismissed = false;
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
     statusKey = "running";
     summaryState = "pending";
@@ -560,6 +640,18 @@
     open={showKeyTestDialog}
     {text}
     {keyState}
+    onRequestClose={handleKeyTestDialogClose}
+  />
+
+  <EmergencyStopDialog
+    open={showEmergencyStopDialog}
+    title={language === "zh" ? "急停键测试" : "Emergency Stop Test"}
+    instruction={getEmergencyStopInstruction()}
+    status={getEmergencyStopStatus()}
+    showUnlockKeys={emergencyStopPayload?.phase === "unlock_by_back_and_confirm"}
+    backLabel={text.keyTestBack}
+    confirmLabel={text.keyTestConfirm}
+    onRequestClose={handleEmergencyStopDialogClose}
   />
 
   <ExportDialog

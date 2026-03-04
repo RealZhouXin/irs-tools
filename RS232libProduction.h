@@ -232,11 +232,7 @@ void ParamId078(uint8_t* ReturnCode, uint16_t* DevGrNo, uint8_t* SubDevGrNo, uin
 #endif
 
 /*Get mower status*/
-#if (PLATFORM_VERSION == 1)
-void ParamId080(uint8_t* ReturnCode, uint8_t* MowerMainP, uint8_t* MowerSubState, uint32_t* TimeStpNxtStart, uint8_t* BattStat, uint16_t* StatFlags, uint8_t* WrlessConStat, uint8_t* SignQual, uint8_t* SourceNextStart, uint16_t* Notify, uint8_t* ConfigurationHash);
-#else
 void ParamId080(uint8_t* ReturnCode, uint8_t* MowerMainP, uint8_t* MowerSubState, uint32_t* TimeStpNxtStart, uint8_t* BattStat, uint16_t* StatFlags, uint8_t* WrlessConStat, uint8_t* SignQuality, uint8_t* SourceForNextStartStop, uint16_t* Notify, uint8_t* ConfigurationHash);
-#endif
 
 /*Get GNSS position*/
 void ParamId094(uint8_t* ReturnCode, int32_t* latDeg, int32_t* longDeg, uint8_t* HDOP);

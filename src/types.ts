@@ -1,6 +1,8 @@
 export type { BaseConfig, ConnectionConfig, LogLevel } from "./types/config";
 export type {
   CheckResult,
+  EmergencyStopPhase,
+  EmergencyStopTestPayload,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
   RearLightColor,

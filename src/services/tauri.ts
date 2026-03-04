@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import type {
   BaseConfig,
+  EmergencyStopTestPayload,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
   RearLightConfirmRequestPayload,
@@ -15,6 +16,7 @@ export const TAURI_EVENTS = {
   keyStateUpdate: "key-state-update",
   frontLightConfirmRequest: "front-light-confirm-request",
   rearLightConfirmRequest: "rear-light-confirm-request",
+  emergencyStopTestUpdate: "emergency-stop-test-update",
 } as const;
 
 export function showMainWindow() {
@@ -47,6 +49,14 @@ export function confirmFrontLight(isLit: boolean) {
 
 export function confirmRearLight(isLit: boolean) {
   return invoke("confirm_rear_light", { isLit });
+}
+
+export function cancelEmergencyStopTest() {
+  return invoke("cancel_emergency_stop_test");
+}
+
+export function cancelKeyTest() {
+  return invoke("cancel_key_test");
 }
 
 export function retestGroup(groupName: string) {
@@ -107,6 +117,18 @@ export async function subscribeRearLightConfirmRequest(
 ) {
   const stop = await listen<RearLightConfirmRequestPayload>(
     TAURI_EVENTS.rearLightConfirmRequest,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeEmergencyStopTestUpdate(
+  handler: (payload: EmergencyStopTestPayload) => void,
+) {
+  const stop = await listen<EmergencyStopTestPayload>(
+    TAURI_EVENTS.emergencyStopTestUpdate,
     (event) => {
       handler(event.payload);
     },

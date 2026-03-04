@@ -1,8 +1,12 @@
 use crate::device_gateway::DeviceGateway;
-use crate::events::{FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST};
+use crate::events::{
+    EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE,
+    REAR_LIGHT_CONFIRM_REQUEST,
+};
 use crate::models::{
-    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, FrontLightConfirmRequestPayload,
-    KeyStatePayload, RearLightColor, RearLightConfirmRequestPayload, TestGroup, TestResult,
+    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, EmergencyStopPhase,
+    EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload, RearLightColor,
+    RearLightConfirmRequestPayload, TestGroup, TestResult,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -35,12 +39,32 @@ struct RearLightConfirmState {
 
 static REAR_LIGHT_CONFIRM_SYNC: OnceLock<(Mutex<RearLightConfirmState>, Condvar)> = OnceLock::new();
 
+#[derive(Debug)]
+struct KeyTestState {
+    waiting: bool,
+    canceled: bool,
+}
+
+static KEY_TEST_SYNC: OnceLock<(Mutex<KeyTestState>, Condvar)> = OnceLock::new();
+
+#[derive(Debug)]
+struct EmergencyStopTestState {
+    waiting: bool,
+    canceled: bool,
+}
+
+static EMERGENCY_STOP_TEST_SYNC: OnceLock<Mutex<EmergencyStopTestState>> = OnceLock::new();
+
 const REAR_LIGHT_NORMAL_MODE: u8 = 3;
 const REAR_LIGHT_CONFIRM_STEPS: [(u8, RearLightColor); 3] = [
     (4, RearLightColor::Red),
     (5, RearLightColor::Green),
     (6, RearLightColor::Blue),
 ];
+#[cfg(test)]
+const EMERGENCY_STOP_POLL_INTERVAL_MS: u64 = 0;
+#[cfg(not(test))]
+const EMERGENCY_STOP_POLL_INTERVAL_MS: u64 = 1000;
 
 fn front_light_confirm_sync() -> &'static (Mutex<FrontLightConfirmState>, Condvar) {
     FRONT_LIGHT_CONFIRM_SYNC.get_or_init(|| {
@@ -64,6 +88,90 @@ fn rear_light_confirm_sync() -> &'static (Mutex<RearLightConfirmState>, Condvar)
             Condvar::new(),
         )
     })
+}
+
+fn key_test_sync() -> &'static (Mutex<KeyTestState>, Condvar) {
+    KEY_TEST_SYNC.get_or_init(|| {
+        (
+            Mutex::new(KeyTestState {
+                waiting: false,
+                canceled: false,
+            }),
+            Condvar::new(),
+        )
+    })
+}
+
+fn start_key_test_session() -> CommandResult<()> {
+    let (lock, _) = key_test_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("按键测试状态锁定失败"))?;
+    state.waiting = true;
+    state.canceled = false;
+    Ok(())
+}
+
+fn finish_key_test_session() {
+    if let Ok(mut state) = key_test_sync().0.lock() {
+        state.waiting = false;
+        state.canceled = false;
+    }
+}
+
+fn is_key_test_canceled() -> CommandResult<bool> {
+    let state = key_test_sync()
+        .0
+        .lock()
+        .map_err(|_| AppError::msg("按键测试状态锁定失败"))?;
+    Ok(state.canceled)
+}
+
+fn wait_key_test_or_cancel(wait_ms: u64) -> CommandResult<bool> {
+    let (lock, cvar) = key_test_sync();
+    let state = lock
+        .lock()
+        .map_err(|_| AppError::msg("按键测试状态锁定失败"))?;
+    if wait_ms == 0 {
+        return Ok(state.canceled);
+    }
+    let (state, _) = cvar
+        .wait_timeout(state, Duration::from_millis(wait_ms))
+        .map_err(|_| AppError::msg("按键测试等待失败"))?;
+    Ok(state.canceled)
+}
+
+fn emergency_stop_test_sync() -> &'static Mutex<EmergencyStopTestState> {
+    EMERGENCY_STOP_TEST_SYNC.get_or_init(|| {
+        Mutex::new(EmergencyStopTestState {
+            waiting: false,
+            canceled: false,
+        })
+    })
+}
+
+fn start_emergency_stop_test_session() -> CommandResult<()> {
+    let lock = emergency_stop_test_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("急停测试状态锁定失败"))?;
+    state.waiting = true;
+    state.canceled = false;
+    Ok(())
+}
+
+fn finish_emergency_stop_test_session() {
+    if let Ok(mut state) = emergency_stop_test_sync().lock() {
+        state.waiting = false;
+        state.canceled = false;
+    }
+}
+
+fn is_emergency_stop_test_canceled() -> CommandResult<bool> {
+    let state = emergency_stop_test_sync()
+        .lock()
+        .map_err(|_| AppError::msg("急停测试状态锁定失败"))?;
+    Ok(state.canceled)
 }
 
 fn process_checks<TConfig, TResult>(checks: &[TConfig], result: &TResult) -> Vec<CheckResult>
@@ -209,6 +317,33 @@ fn build_rear_light_result(
     }
 }
 
+fn build_emergency_stop_result(
+    group_name: String,
+    stage: String,
+    passed: bool,
+    reason: &str,
+    elapsed_ms: u64,
+    timeout_ms: u64,
+    mower_main_p: u8,
+) -> TestResult {
+    TestResult {
+        name: group_name,
+        stage,
+        command: "ParamId080EmergencyStop".to_string(),
+        passed,
+        raw_response: format!(
+            "MowerMainP={mower_main_p}, ElapsedMs={elapsed_ms}, TimeoutMs={timeout_ms}, Reason={reason}"
+        ),
+        checks: vec![CheckResult {
+            name: "mower_main_p_reached_2".to_string(),
+            min: Some(2.0),
+            max: Some(2.0),
+            value: Some(mower_main_p as f64),
+            passed,
+        }],
+    }
+}
+
 fn build_checked_result_with_retry<TConfig, TResult, F>(
     group_name: String,
     stage: String,
@@ -280,6 +415,11 @@ pub fn run_group(
         },
         &|request| wait_for_front_light_confirmation(app, request),
         &|request| wait_for_rear_light_confirmation(app, request),
+        &|payload| {
+            if let Err(err) = app.emit(EMERGENCY_STOP_TEST_UPDATE, &payload) {
+                error!("Failed to emit emergency stop update: {}", err);
+            }
+        },
     )
 }
 
@@ -305,6 +445,31 @@ pub fn submit_rear_light_confirmation(is_lit: bool) -> CommandResult<()> {
         return Err(AppError::msg("当前没有待确认的尾灯测试"));
     }
     state.response = Some(is_lit);
+    cvar.notify_one();
+    Ok(())
+}
+
+pub fn submit_emergency_stop_cancel() -> CommandResult<()> {
+    let lock = emergency_stop_test_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("急停测试状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有进行中的急停测试"));
+    }
+    state.canceled = true;
+    Ok(())
+}
+
+pub fn submit_key_test_cancel() -> CommandResult<()> {
+    let (lock, cvar) = key_test_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("按键测试状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有进行中的按键测试"));
+    }
+    state.canceled = true;
     cvar.notify_one();
     Ok(())
 }
@@ -373,6 +538,7 @@ fn run_group_with_emitters(
     on_key_state_update: &dyn Fn(KeyStatePayload),
     on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
     on_rear_light_confirm: &dyn Fn(RearLightConfirmRequestPayload) -> CommandResult<bool>,
+    on_emergency_stop_update: &dyn Fn(EmergencyStopTestPayload),
 ) -> CommandResult<TestResult> {
     let TestGroup {
         name,
@@ -430,6 +596,13 @@ fn run_group_with_emitters(
                 &response,
             ))
         }
+        CommandGroupSpec::ParamId080EmergencyStop { timeout_ms } => run_emergency_stop_test_group(
+            gateway,
+            name,
+            stage,
+            timeout_ms,
+            on_emergency_stop_update,
+        ),
         CommandGroupSpec::ParamId120 { checks } => {
             let response = gateway.param_id120()?;
             Ok(build_checked_result(
@@ -496,6 +669,7 @@ fn run_group_with_emitters(
                 front_light_mode,
                 power,
             })?;
+            gateway.param_id606(front_light_mode, 0)?;
             Ok(build_front_light_result(
                 name,
                 stage,
@@ -555,6 +729,108 @@ fn run_group_with_emitters(
     }
 }
 
+fn run_emergency_stop_test_group(
+    gateway: &dyn DeviceGateway,
+    name: String,
+    stage: String,
+    timeout_ms: u64,
+    on_state_update: &dyn Fn(EmergencyStopTestPayload),
+) -> CommandResult<TestResult> {
+    info!("Starting emergency stop test: {}", name);
+    start_emergency_stop_test_session()?;
+
+    let result = (|| -> CommandResult<TestResult> {
+        let elapsed_limit = if timeout_ms == 0 {
+            u64::MAX
+        } else {
+            timeout_ms
+        };
+        let mut elapsed_ms: u64 = 0;
+        let mut phase = EmergencyStopPhase::PressEmergencyStop;
+        let mut mower_main_p: u8 = 0;
+
+        on_state_update(EmergencyStopTestPayload {
+            name: name.clone(),
+            stage: stage.clone(),
+            phase,
+            mower_main_p,
+            elapsed_ms,
+            timeout_ms,
+        });
+
+        loop {
+            if is_emergency_stop_test_canceled()? {
+                return Ok(build_emergency_stop_result(
+                    name,
+                    stage,
+                    false,
+                    "dialog_closed",
+                    elapsed_ms,
+                    timeout_ms,
+                    mower_main_p,
+                ));
+            }
+
+            if elapsed_ms >= elapsed_limit {
+                return Ok(build_emergency_stop_result(
+                    name,
+                    stage,
+                    false,
+                    "timeout",
+                    elapsed_ms,
+                    timeout_ms,
+                    mower_main_p,
+                ));
+            }
+
+            thread::sleep(Duration::from_millis(EMERGENCY_STOP_POLL_INTERVAL_MS));
+            elapsed_ms = elapsed_ms.saturating_add(EMERGENCY_STOP_POLL_INTERVAL_MS.max(1));
+
+            if is_emergency_stop_test_canceled()? {
+                return Ok(build_emergency_stop_result(
+                    name,
+                    stage,
+                    false,
+                    "dialog_closed",
+                    elapsed_ms,
+                    timeout_ms,
+                    mower_main_p,
+                ));
+            }
+
+            let response = gateway.param_id080()?;
+            mower_main_p = response.mower_main_p;
+
+            if mower_main_p == 1 && matches!(phase, EmergencyStopPhase::PressEmergencyStop) {
+                phase = EmergencyStopPhase::UnlockByBackAndConfirm;
+                on_state_update(EmergencyStopTestPayload {
+                    name: name.clone(),
+                    stage: stage.clone(),
+                    phase,
+                    mower_main_p,
+                    elapsed_ms,
+                    timeout_ms,
+                });
+            }
+
+            if mower_main_p == 2 && matches!(phase, EmergencyStopPhase::UnlockByBackAndConfirm) {
+                return Ok(build_emergency_stop_result(
+                    name,
+                    stage,
+                    true,
+                    "completed",
+                    elapsed_ms,
+                    timeout_ms,
+                    mower_main_p,
+                ));
+            }
+        }
+    })();
+
+    finish_emergency_stop_test_session();
+    result
+}
+
 const KEY_PRESSED_THRESHOLD: u8 = 2;
 #[cfg(test)]
 const KEY_TEST_POLL_INTERVAL_MS: u64 = 0;
@@ -569,99 +845,141 @@ fn run_key_test_group(
     on_state_update: &dyn Fn(KeyStatePayload),
 ) -> CommandResult<TestResult> {
     info!("Starting key test: {}", name);
-    gateway.param_id776(0)?;
+    start_key_test_session()?;
+    let run_result = (|| -> CommandResult<TestResult> {
+        gateway.param_id776(0)?;
 
-    let mut up = false;
-    let mut down = false;
-    let mut back = false;
-    let mut confirm = false;
+        let mut up = false;
+        let mut down = false;
+        let mut back = false;
+        let mut confirm = false;
 
-    let elapsed_limit = if timeout_ms == 0 {
-        u64::MAX
-    } else {
-        timeout_ms
-    };
-    let mut elapsed_ms: u64 = 0;
+        let elapsed_limit = if timeout_ms == 0 {
+            u64::MAX
+        } else {
+            timeout_ms
+        };
+        let mut elapsed_ms: u64 = 0;
 
-    loop {
-        thread::sleep(Duration::from_millis(KEY_TEST_POLL_INTERVAL_MS));
-        elapsed_ms = elapsed_ms.saturating_add(KEY_TEST_POLL_INTERVAL_MS.max(1));
-
-        let result = gateway.param_id776(1)?;
-        if result.up_key >= KEY_PRESSED_THRESHOLD {
-            up = true;
-        }
-        if result.down_key >= KEY_PRESSED_THRESHOLD {
-            down = true;
-        }
-        if result.back_key >= KEY_PRESSED_THRESHOLD {
-            back = true;
-        }
-        if result.confirm_key >= KEY_PRESSED_THRESHOLD {
-            confirm = true;
-        }
-
-        on_state_update(KeyStatePayload {
-            up_pressed: up,
-            down_pressed: down,
-            back_pressed: back,
-            confirm_pressed: confirm,
-        });
-
-        if up && down && back && confirm {
-            info!("Key test passed: all keys pressed");
-            return Ok(TestResult {
-                name,
-                stage,
-                command: "ParamId776".to_string(),
-                passed: true,
-                raw_response: format!(
-                    "UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
-                    result.up_key, result.down_key, result.back_key, result.confirm_key
-                ),
-                checks: vec![CheckResult {
-                    name: "all_keys_pressed".to_string(),
-                    min: None,
-                    max: None,
-                    value: None,
-                    passed: true,
-                }],
-            });
-        }
-
-        if elapsed_ms >= elapsed_limit {
-            warn!("Key test timed out after {}ms", elapsed_ms);
-            return Ok(TestResult {
-                name,
-                stage,
-                command: "ParamId776".to_string(),
-                passed: false,
-                raw_response: format!(
-                    "Timeout={}ms, UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
-                    elapsed_ms, result.up_key, result.down_key, result.back_key, result.confirm_key
-                ),
-                checks: vec![CheckResult {
-                    name: "all_keys_pressed".to_string(),
-                    min: None,
-                    max: None,
-                    value: None,
+        loop {
+            if is_key_test_canceled()? {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId776".to_string(),
                     passed: false,
-                }],
+                    raw_response: format!("CanceledByUser, Elapsed={}ms", elapsed_ms),
+                    checks: vec![CheckResult {
+                        name: "all_keys_pressed".to_string(),
+                        min: None,
+                        max: None,
+                        value: None,
+                        passed: false,
+                    }],
+                });
+            }
+
+            if wait_key_test_or_cancel(KEY_TEST_POLL_INTERVAL_MS)? {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId776".to_string(),
+                    passed: false,
+                    raw_response: format!("CanceledByUser, Elapsed={}ms", elapsed_ms),
+                    checks: vec![CheckResult {
+                        name: "all_keys_pressed".to_string(),
+                        min: None,
+                        max: None,
+                        value: None,
+                        passed: false,
+                    }],
+                });
+            }
+            elapsed_ms = elapsed_ms.saturating_add(KEY_TEST_POLL_INTERVAL_MS.max(1));
+
+            let result = gateway.param_id776(1)?;
+            if result.up_key >= KEY_PRESSED_THRESHOLD {
+                up = true;
+            }
+            if result.down_key >= KEY_PRESSED_THRESHOLD {
+                down = true;
+            }
+            if result.back_key >= KEY_PRESSED_THRESHOLD {
+                back = true;
+            }
+            if result.confirm_key >= KEY_PRESSED_THRESHOLD {
+                confirm = true;
+            }
+
+            on_state_update(KeyStatePayload {
+                up_pressed: up,
+                down_pressed: down,
+                back_pressed: back,
+                confirm_pressed: confirm,
             });
+
+            if up && down && back && confirm {
+                info!("Key test passed: all keys pressed");
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId776".to_string(),
+                    passed: true,
+                    raw_response: format!(
+                        "UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
+                        result.up_key, result.down_key, result.back_key, result.confirm_key
+                    ),
+                    checks: vec![CheckResult {
+                        name: "all_keys_pressed".to_string(),
+                        min: None,
+                        max: None,
+                        value: None,
+                        passed: true,
+                    }],
+                });
+            }
+
+            if elapsed_ms >= elapsed_limit {
+                warn!("Key test timed out after {}ms", elapsed_ms);
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId776".to_string(),
+                    passed: false,
+                    raw_response: format!(
+                        "Timeout={}ms, UpKey={}, DownKey={}, BackKey={}, ConfirmKey={}",
+                        elapsed_ms,
+                        result.up_key,
+                        result.down_key,
+                        result.back_key,
+                        result.confirm_key
+                    ),
+                    checks: vec![CheckResult {
+                        name: "all_keys_pressed".to_string(),
+                        min: None,
+                        max: None,
+                        value: None,
+                        passed: false,
+                    }],
+                });
+            }
         }
-    }
+    })();
+    finish_key_test_session();
+    run_result
 }
 
 #[cfg(test)]
 mod tests {
     use std::cell::{Cell, RefCell};
 
-    use super::run_group_with_emitters;
+    use super::{run_group_with_emitters, submit_emergency_stop_cancel, submit_key_test_cancel};
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
-        CommandGroupSpec, KeyStatePayload, ParamId068Check, ParamId068Output, ParamId068Result,
-        ParamId080Result, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
-        ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, TestGroup,
+        CommandGroupSpec, EmergencyStopPhase, EmergencyStopTestPayload, KeyStatePayload,
+        ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId120Result,
+        ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+        ParamId776Result, ParamId794Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -776,9 +1094,15 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(result.checks[0].passed);
@@ -816,9 +1140,15 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(!result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(!result.checks[0].passed);
@@ -851,9 +1181,15 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(result.passed);
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
@@ -887,9 +1223,15 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(false), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(false),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(!result.passed);
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
@@ -920,9 +1262,15 @@ mod tests {
             command: CommandGroupSpec::ParamId610,
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(result.passed);
         assert_eq!(result.command, "ParamId610");
         assert_eq!(result.checks.len(), 3);
@@ -954,11 +1302,18 @@ mod tests {
         };
 
         let confirm_index = Cell::new(0usize);
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| {
-            let index = confirm_index.get();
-            confirm_index.set(index + 1);
-            Ok(index == 0)
-        })
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| {
+                let index = confirm_index.get();
+                confirm_index.set(index + 1);
+                Ok(index == 0)
+            },
+            &|_| {},
+        )
         .expect("group should run");
 
         assert!(!result.passed);
@@ -1000,9 +1355,15 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(gateway.called_468.get());
         assert!(result.passed);
         assert_eq!(result.command, "CuttingHeightSetAndVerify");
@@ -1039,11 +1400,234 @@ mod tests {
             },
         };
 
-        let result =
-            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
-                .expect("group should run");
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
         assert!(result.passed);
         assert_eq!(gateway.called_470.get(), 3);
+    }
+
+    struct FakeEmergencyStopGateway {
+        mower_main_p_sequence: Vec<u8>,
+        called_080: Cell<usize>,
+    }
+
+    impl DeviceGateway for FakeEmergencyStopGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id068(&self) -> CommandResult<ParamId068Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id588(&self) -> CommandResult<ParamId588Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id654(&self) -> CommandResult<ParamId654Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id272(&self) -> CommandResult<ParamId272Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            let idx = self.called_080.get();
+            let mower_main_p = self
+                .mower_main_p_sequence
+                .get(idx)
+                .copied()
+                .or_else(|| self.mower_main_p_sequence.last().copied())
+                .unwrap_or(0);
+            self.called_080.set(idx + 1);
+            Ok(ParamId080Result {
+                mower_main_p,
+                mower_sub_state: 0,
+                time_stp_nxt_start: 0,
+                batt_stat: 0,
+                stat_flags: 0,
+                wrless_con_stat: 0,
+                sign_quality: 0,
+                source_for_next_start_stop: 0,
+                notify: 0,
+                configuration_hash: 0,
+            })
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
+            panic!("not used in this test")
+        }
+    }
+
+    #[test]
+    fn run_group_param_id080_emergency_stop_passes() {
+        let gateway = FakeEmergencyStopGateway {
+            mower_main_p_sequence: vec![0, 1, 2],
+            called_080: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "080 emergency stop".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
+        };
+
+        let updates = RefCell::new(Vec::<EmergencyStopTestPayload>::new());
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|payload| {
+                updates.borrow_mut().push(payload);
+            },
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId080EmergencyStop");
+        assert_eq!(result.checks[0].value, Some(2.0));
+        assert_eq!(updates.borrow().len(), 2);
+        assert!(matches!(
+            updates.borrow()[0].phase,
+            EmergencyStopPhase::PressEmergencyStop
+        ));
+        assert!(matches!(
+            updates.borrow()[1].phase,
+            EmergencyStopPhase::UnlockByBackAndConfirm
+        ));
+    }
+
+    #[test]
+    fn run_group_param_id080_emergency_stop_does_not_pass_before_seen_one() {
+        let gateway = FakeEmergencyStopGateway {
+            mower_main_p_sequence: vec![2, 1, 2],
+            called_080: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "080 emergency stop starts at 2".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
+        };
+
+        let updates = RefCell::new(Vec::<EmergencyStopTestPayload>::new());
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|payload| {
+                updates.borrow_mut().push(payload);
+            },
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId080EmergencyStop");
+        assert!(updates.borrow().len() >= 2);
+        assert!(matches!(
+            updates.borrow()[1].phase,
+            EmergencyStopPhase::UnlockByBackAndConfirm
+        ));
+    }
+
+    #[test]
+    fn run_group_param_id080_emergency_stop_times_out() {
+        let gateway = FakeEmergencyStopGateway {
+            mower_main_p_sequence: vec![0, 1, 1],
+            called_080: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "080 emergency stop timeout".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 2 },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId080EmergencyStop");
+        assert!(result.raw_response.contains("Reason=timeout"));
+    }
+
+    #[test]
+    fn run_group_param_id080_emergency_stop_fails_when_dialog_closed() {
+        let gateway = FakeEmergencyStopGateway {
+            mower_main_p_sequence: vec![0, 1, 2],
+            called_080: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "080 emergency stop cancel".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|payload| {
+                if matches!(payload.phase, EmergencyStopPhase::PressEmergencyStop) {
+                    let _ = submit_emergency_stop_cancel();
+                }
+            },
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId080EmergencyStop");
+        assert!(result.raw_response.contains("Reason=dialog_closed"));
     }
 
     struct FakeKeyGateway {
@@ -1173,6 +1757,7 @@ mod tests {
             },
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| {},
         )
         .expect("group should run");
 
@@ -1211,12 +1796,63 @@ mod tests {
             },
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| {},
         )
         .expect("group should run");
 
         assert!(gateway.called_start.get());
         assert!(!result.passed);
         assert_eq!(result.command, "ParamId776");
+        assert_eq!(update_count.get(), 1);
+    }
+
+    #[test]
+    fn run_group_param_id776_fails_when_dialog_closed() {
+        let gateway = FakeKeyGateway {
+            responses: vec![
+                ParamId776Result {
+                    up_key: 2,
+                    down_key: 0,
+                    back_key: 0,
+                    confirm_key: 0,
+                },
+                ParamId776Result {
+                    up_key: 2,
+                    down_key: 2,
+                    back_key: 0,
+                    confirm_key: 0,
+                },
+            ],
+            called_start: Cell::new(false),
+            called_poll: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "776 cancel".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
+        };
+
+        let update_count = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {
+                if update_count.get() == 0 {
+                    let _ = submit_key_test_cancel();
+                }
+                update_count.set(update_count.get() + 1);
+            },
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(gateway.called_start.get());
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId776");
+        assert!(result.raw_response.contains("CanceledByUser"));
         assert_eq!(update_count.get(), 1);
     }
 }

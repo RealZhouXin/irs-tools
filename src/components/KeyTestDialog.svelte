@@ -5,10 +5,12 @@
     open,
     text,
     keyState,
+    onRequestClose,
   } = $props<{
     open: boolean;
     text: Translation;
     keyState: KeyStatePayload;
+    onRequestClose: () => void;
   }>();
 
   type KeyInfo = {
@@ -23,11 +25,23 @@
     { label: text.keyTestUp, pressed: keyState.up_pressed, icon: "up" },
     { label: text.keyTestConfirm, pressed: keyState.confirm_pressed, icon: "confirm" },
   ]);
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      onRequestClose();
+    }
+  }
 </script>
 
 {#if open}
-  <div class="overlay" role="presentation">
-    <div class="dialog" role="dialog" aria-modal="true" aria-label={text.keyTestTitle}>
+  <div class="overlay" role="presentation" onclick={handleOverlayClick}>
+    <div
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label={text.keyTestTitle}
+      tabindex="-1"
+    >
       <h3 class="dialog-title">{text.keyTestTitle}</h3>
       <p class="dialog-desc">{text.keyTestInstruction}</p>
 

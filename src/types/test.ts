@@ -44,3 +44,16 @@ export type RearLightConfirmRequestPayload = {
   step_index: number;
   total_steps: number;
 };
+
+export type EmergencyStopPhase =
+  | "press_emergency_stop"
+  | "unlock_by_back_and_confirm";
+
+export type EmergencyStopTestPayload = {
+  name: string;
+  stage: string;
+  phase: EmergencyStopPhase;
+  mower_main_p: number;
+  elapsed_ms: number;
+  timeout_ms: number;
+};
