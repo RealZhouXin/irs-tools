@@ -52,6 +52,7 @@ fn main() {
             commands::get_available_export_dates,
             commands::confirm_front_light,
             commands::confirm_rear_light,
+            commands::confirm_speaker,
             commands::cancel_emergency_stop_test,
             commands::cancel_key_test
         ])

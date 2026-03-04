@@ -7,6 +7,7 @@ import type {
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
   RearLightConfirmRequestPayload,
+  SpeakerConfirmRequestPayload,
   TestResult,
   TestSummary,
 } from "../types";
@@ -16,6 +17,7 @@ export const TAURI_EVENTS = {
   keyStateUpdate: "key-state-update",
   frontLightConfirmRequest: "front-light-confirm-request",
   rearLightConfirmRequest: "rear-light-confirm-request",
+  speakerConfirmRequest: "speaker-confirm-request",
   emergencyStopTestUpdate: "emergency-stop-test-update",
 } as const;
 
@@ -49,6 +51,10 @@ export function confirmFrontLight(isLit: boolean) {
 
 export function confirmRearLight(isLit: boolean) {
   return invoke("confirm_rear_light", { isLit });
+}
+
+export function confirmSpeaker(heardSound: boolean) {
+  return invoke("confirm_speaker", { heardSound });
 }
 
 export function cancelEmergencyStopTest() {
@@ -117,6 +123,18 @@ export async function subscribeRearLightConfirmRequest(
 ) {
   const stop = await listen<RearLightConfirmRequestPayload>(
     TAURI_EVENTS.rearLightConfirmRequest,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeSpeakerConfirmRequest(
+  handler: (payload: SpeakerConfirmRequestPayload) => void,
+) {
+  const stop = await listen<SpeakerConfirmRequestPayload>(
+    TAURI_EVENTS.speakerConfirmRequest,
     (event) => {
       handler(event.payload);
     },

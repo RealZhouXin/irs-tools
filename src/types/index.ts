@@ -7,6 +7,7 @@ export type {
   KeyStatePayload,
   RearLightColor,
   RearLightConfirmRequestPayload,
+  SpeakerConfirmRequestPayload,
   TestResult,
   TestSummary,
 } from "./test";

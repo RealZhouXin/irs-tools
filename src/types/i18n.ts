@@ -91,4 +91,6 @@ export type Translation = {
   keyTestUp: string;
   keyTestConfirm: string;
   keyTestTimeout: string;
+  speakerTestTitle: string;
+  speakerTestQuestion: string;
 };

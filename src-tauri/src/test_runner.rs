@@ -1,12 +1,12 @@
 use crate::device_gateway::DeviceGateway;
 use crate::events::{
     EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE,
-    REAR_LIGHT_CONFIRM_REQUEST,
+    REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST,
 };
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, EmergencyStopPhase,
     EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload, RearLightColor,
-    RearLightConfirmRequestPayload, TestGroup, TestResult,
+    RearLightConfirmRequestPayload, SpeakerConfirmRequestPayload, TestGroup, TestResult,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -38,6 +38,14 @@ struct RearLightConfirmState {
 }
 
 static REAR_LIGHT_CONFIRM_SYNC: OnceLock<(Mutex<RearLightConfirmState>, Condvar)> = OnceLock::new();
+
+#[derive(Debug)]
+struct SpeakerConfirmState {
+    waiting: bool,
+    response: Option<bool>,
+}
+
+static SPEAKER_CONFIRM_SYNC: OnceLock<(Mutex<SpeakerConfirmState>, Condvar)> = OnceLock::new();
 
 #[derive(Debug)]
 struct KeyTestState {
@@ -82,6 +90,18 @@ fn rear_light_confirm_sync() -> &'static (Mutex<RearLightConfirmState>, Condvar)
     REAR_LIGHT_CONFIRM_SYNC.get_or_init(|| {
         (
             Mutex::new(RearLightConfirmState {
+                waiting: false,
+                response: None,
+            }),
+            Condvar::new(),
+        )
+    })
+}
+
+fn speaker_confirm_sync() -> &'static (Mutex<SpeakerConfirmState>, Condvar) {
+    SPEAKER_CONFIRM_SYNC.get_or_init(|| {
+        (
+            Mutex::new(SpeakerConfirmState {
                 waiting: false,
                 response: None,
             }),
@@ -268,6 +288,32 @@ fn build_front_light_result(
     }
 }
 
+fn build_speaker_result(
+    group_name: String,
+    stage: String,
+    on: u8,
+    heard_sound: bool,
+) -> TestResult {
+    TestResult {
+        name: group_name,
+        stage,
+        command: "ParamId568".to_string(),
+        passed: heard_sound,
+        raw_response: format!(
+            "On={}, ReturnCode=0, HeardSound={}",
+            on,
+            if heard_sound { 1 } else { 0 }
+        ),
+        checks: vec![CheckResult {
+            name: "speaker_confirmed".to_string(),
+            min: None,
+            max: None,
+            value: Some(if heard_sound { 1.0 } else { 0.0 }),
+            passed: heard_sound,
+        }],
+    }
+}
+
 fn rear_light_color_name(color: RearLightColor) -> &'static str {
     match color {
         RearLightColor::Red => "red",
@@ -415,6 +461,7 @@ pub fn run_group(
         },
         &|request| wait_for_front_light_confirmation(app, request),
         &|request| wait_for_rear_light_confirmation(app, request),
+        &|request| wait_for_speaker_confirmation(app, request),
         &|payload| {
             if let Err(err) = app.emit(EMERGENCY_STOP_TEST_UPDATE, &payload) {
                 error!("Failed to emit emergency stop update: {}", err);
@@ -445,6 +492,19 @@ pub fn submit_rear_light_confirmation(is_lit: bool) -> CommandResult<()> {
         return Err(AppError::msg("当前没有待确认的尾灯测试"));
     }
     state.response = Some(is_lit);
+    cvar.notify_one();
+    Ok(())
+}
+
+pub fn submit_speaker_confirmation(heard_sound: bool) -> CommandResult<()> {
+    let (lock, cvar) = speaker_confirm_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("扬声器确认状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有待确认的扬声器测试"));
+    }
+    state.response = Some(heard_sound);
     cvar.notify_one();
     Ok(())
 }
@@ -532,12 +592,42 @@ fn wait_for_rear_light_confirmation(
     Ok(result)
 }
 
+fn wait_for_speaker_confirmation(
+    app: &AppHandle,
+    request: SpeakerConfirmRequestPayload,
+) -> CommandResult<bool> {
+    let (lock, cvar) = speaker_confirm_sync();
+    {
+        let mut state = lock
+            .lock()
+            .map_err(|_| AppError::msg("扬声器确认状态锁定失败"))?;
+        state.waiting = true;
+        state.response = None;
+    }
+
+    app.emit(SPEAKER_CONFIRM_REQUEST, &request)
+        .map_err(|err| AppError::msg(format!("发送扬声器确认事件失败: {err}")))?;
+
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("扬声器确认状态锁定失败"))?;
+    while state.response.is_none() {
+        state = cvar
+            .wait(state)
+            .map_err(|_| AppError::msg("扬声器确认等待失败"))?;
+    }
+    let result = state.response.take().unwrap_or(false);
+    state.waiting = false;
+    Ok(result)
+}
+
 fn run_group_with_emitters(
     gateway: &dyn DeviceGateway,
     group: TestGroup,
     on_key_state_update: &dyn Fn(KeyStatePayload),
     on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
     on_rear_light_confirm: &dyn Fn(RearLightConfirmRequestPayload) -> CommandResult<bool>,
+    on_speaker_confirm: &dyn Fn(SpeakerConfirmRequestPayload) -> CommandResult<bool>,
     on_emergency_stop_update: &dyn Fn(EmergencyStopTestPayload),
 ) -> CommandResult<TestResult> {
     let TestGroup {
@@ -669,6 +759,7 @@ fn run_group_with_emitters(
                 front_light_mode,
                 power,
             })?;
+            info!("close front light");
             gateway.param_id606(front_light_mode, 0)?;
             Ok(build_front_light_result(
                 name,
@@ -677,6 +768,16 @@ fn run_group_with_emitters(
                 power,
                 is_lit,
             ))
+        }
+        CommandGroupSpec::ParamId568 => {
+            let on = 1;
+            gateway.param_id568(on)?;
+            let heard_sound = on_speaker_confirm(SpeakerConfirmRequestPayload {
+                name: name.clone(),
+                stage: stage.clone(),
+                on,
+            })?;
+            Ok(build_speaker_result(name, stage, on, heard_sound))
         }
         CommandGroupSpec::ParamId610 => {
             let mut confirmations: Vec<(u8, RearLightColor, bool)> =
@@ -989,6 +1090,7 @@ mod tests {
         called_470: Cell<usize>,
         called_468: Cell<bool>,
         called_606: Cell<bool>,
+        called_568: Cell<bool>,
         called_610_modes: RefCell<Vec<u8>>,
     }
 
@@ -1049,6 +1151,11 @@ mod tests {
             Ok(())
         }
 
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
+            self.called_568.set(true);
+            Ok(())
+        }
+
         fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {
             self.called_610_modes.borrow_mut().push(rear_light_mode);
             Ok(())
@@ -1078,6 +1185,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1098,6 +1206,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1124,6 +1233,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1144,6 +1254,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1169,6 +1280,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1185,6 +1297,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1211,6 +1324,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1228,6 +1342,7 @@ mod tests {
             group,
             &|_| {},
             &|_| Ok(false),
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
         )
@@ -1253,6 +1368,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1266,6 +1382,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1292,6 +1409,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1312,6 +1430,7 @@ mod tests {
                 confirm_index.set(index + 1);
                 Ok(index == 0)
             },
+            &|_| Ok(true),
             &|_| {},
         )
         .expect("group should run");
@@ -1337,6 +1456,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1359,6 +1479,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1384,6 +1505,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_568: Cell::new(false),
             called_610_modes: RefCell::new(Vec::new()),
         };
 
@@ -1404,6 +1526,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1482,6 +1605,10 @@ mod tests {
             panic!("not used in this test")
         }
 
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
         fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
             panic!("not used in this test")
         }
@@ -1513,6 +1640,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|payload| {
@@ -1555,6 +1683,7 @@ mod tests {
             &|_| {},
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(true),
             &|payload| {
                 updates.borrow_mut().push(payload);
             },
@@ -1589,6 +1718,7 @@ mod tests {
             &|_| {},
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(true),
             &|_| {},
         )
         .expect("group should run");
@@ -1615,6 +1745,7 @@ mod tests {
             &gateway,
             group,
             &|_| {},
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|payload| {
@@ -1678,6 +1809,10 @@ mod tests {
         }
 
         fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
             panic!("not used in this test")
         }
 
@@ -1757,6 +1892,7 @@ mod tests {
             },
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(true),
             &|_| {},
         )
         .expect("group should run");
@@ -1794,6 +1930,7 @@ mod tests {
             &|_| {
                 update_count.set(update_count.get() + 1);
             },
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},
@@ -1843,6 +1980,7 @@ mod tests {
                 }
                 update_count.set(update_count.get() + 1);
             },
+            &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| {},

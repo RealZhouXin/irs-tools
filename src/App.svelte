@@ -19,6 +19,7 @@
     cancelKeyTest,
     confirmFrontLight,
     confirmRearLight,
+    confirmSpeaker,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
@@ -32,6 +33,7 @@
     subscribeFrontLightConfirmRequest,
     subscribeEmergencyStopTestUpdate,
     subscribeRearLightConfirmRequest,
+    subscribeSpeakerConfirmRequest,
     subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
   } from "./services/tauri";
@@ -41,6 +43,7 @@
   import ExportDialog from "./components/ExportDialog.svelte";
   import EmergencyStopDialog from "./components/EmergencyStopDialog.svelte";
   import KeyTestDialog from "./components/KeyTestDialog.svelte";
+  import SpeakerTestDialog from "./components/SpeakerTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -82,6 +85,7 @@
   let rearLightConfirmRequest = $state<RearLightConfirmRequestPayload | null>(null);
   let showKeyTestDialog = $state(false);
   let keyTestDialogDismissed = $state(false);
+  let showSpeakerTestDialog = $state(false);
   let showEmergencyStopDialog = $state(false);
   let emergencyStopPayload = $state<EmergencyStopTestPayload | null>(null);
   let keyState = $state<KeyStatePayload>({
@@ -137,6 +141,9 @@
       showEmergencyStopDialog = false;
       emergencyStopPayload = null;
     }
+    if (incoming.command === "ParamId568") {
+      showSpeakerTestDialog = false;
+    }
     upsertResult(incoming);
   }
 
@@ -168,6 +175,16 @@
       if (lightConfirmTarget === "rear") {
         rearLightConfirmRequest = null;
       }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
+    }
+  }
+
+  async function confirmSpeakerResult(heardSound: boolean) {
+    try {
+      await confirmSpeaker(heardSound);
+      showSpeakerTestDialog = false;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error = message;
@@ -242,12 +259,17 @@
     }
   }
 
+  async function handleSpeakerTestDialogClose() {
+    await confirmSpeakerResult(false);
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
     let unlistenEmergencyStopUpdate: (() => void) | null = null;
     let unlistenFrontLightConfirm: (() => void) | null = null;
     let unlistenRearLightConfirm: (() => void) | null = null;
+    let unlistenSpeakerConfirm: (() => void) | null = null;
 
     showMainWindow().catch((err) => {
       console.error("Failed to show main window", err);
@@ -327,6 +349,20 @@
         );
       });
 
+    subscribeSpeakerConfirmRequest(() => {
+      showSpeakerTestDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenSpeakerConfirm = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.speakerConfirmRequest}`,
+          err,
+        );
+      });
+
     loadAppInfo()
       .then(({ name, version, tauriVersion: tauri }) => {
         appName = name;
@@ -368,6 +404,9 @@
       if (unlistenRearLightConfirm) {
         unlistenRearLightConfirm();
       }
+      if (unlistenSpeakerConfirm) {
+        unlistenSpeakerConfirm();
+      }
     };
   });
 
@@ -392,6 +431,7 @@
     rearLightConfirmRequest = null;
     showEmergencyStopDialog = false;
     emergencyStopPayload = null;
+    showSpeakerTestDialog = false;
     showKeyTestDialog = false;
     keyTestDialogDismissed = false;
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
@@ -641,6 +681,17 @@
     {text}
     {keyState}
     onRequestClose={handleKeyTestDialogClose}
+  />
+
+  <SpeakerTestDialog
+    open={showSpeakerTestDialog}
+    title={text.speakerTestTitle}
+    message={text.speakerTestQuestion}
+    yesLabel={text.confirmYes}
+    noLabel={text.confirmNo}
+    onYes={() => confirmSpeakerResult(true)}
+    onNo={() => confirmSpeakerResult(false)}
+    onRequestClose={handleSpeakerTestDialogClose}
   />
 
   <EmergencyStopDialog

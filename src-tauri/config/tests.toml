@@ -359,6 +359,11 @@ front_light_mode = 1
 power = 80
 
 [[tests]]
+name = "568 扬声器测试"
+command = "param_id568"
+stage = "actuator"
+
+[[tests]]
 name = "610 尾灯三色确认"
 command = "param_id610"
 stage = "actuator"
@@ -366,7 +371,7 @@ stage = "actuator"
 [[tests]]
 name = "080 急停键测试"
 command = "param_id080_emergency_stop"
-stage = "actuator"
+stage = "key_test"
 # 超时时间（毫秒）
 timeout_ms = 30000
 

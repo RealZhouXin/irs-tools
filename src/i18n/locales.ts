@@ -92,6 +92,8 @@ export const textMap: Record<Language, Translation> = {
         keyTestUp: "上键",
         keyTestConfirm: "确认键",
         keyTestTimeout: "超时",
+        speakerTestTitle: "扬声器测试",
+        speakerTestQuestion: "请确认扬声器是否有响声？",
     },
     en: {
         title: "Test Console",
@@ -184,6 +186,8 @@ export const textMap: Record<Language, Translation> = {
         keyTestUp: "Up",
         keyTestConfirm: "Confirm",
         keyTestTimeout: "Timeout",
+        speakerTestTitle: "Speaker Test",
+        speakerTestQuestion: "Please confirm whether the speaker produced sound.",
     },
 };
 

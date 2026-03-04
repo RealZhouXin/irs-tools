@@ -23,6 +23,7 @@ pub trait DeviceGateway {
     fn param_id470(&self) -> CommandResult<ParamId470Result>;
     fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()>;
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()>;
+    fn param_id568(&self, on: u8) -> CommandResult<()>;
     fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()>;
     fn param_id794(&self) -> CommandResult<ParamId794Result>;
     fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result>;
@@ -100,6 +101,10 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()> {
         self.session.param_id606(front_light_mode, power)
+    }
+
+    fn param_id568(&self, on: u8) -> CommandResult<()> {
+        self.session.param_id568(on)
     }
 
     fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {

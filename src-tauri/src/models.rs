@@ -92,6 +92,7 @@ pub enum CommandGroupSpec {
         front_light_mode: u8,
         power: u8,
     },
+    ParamId568,
     ParamId610,
     ParamId794 {
         checks: Vec<ParamId794Check>,
@@ -734,6 +735,13 @@ pub struct FrontLightConfirmRequestPayload {
     pub stage: String,
     pub front_light_mode: u8,
     pub power: u8,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SpeakerConfirmRequestPayload {
+    pub name: String,
+    pub stage: String,
+    pub on: u8,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]

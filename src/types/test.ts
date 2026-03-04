@@ -45,6 +45,12 @@ export type RearLightConfirmRequestPayload = {
   total_steps: number;
 };
 
+export type SpeakerConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  on: number;
+};
+
 export type EmergencyStopPhase =
   | "press_emergency_stop"
   | "unlock_by_back_and_confirm";
