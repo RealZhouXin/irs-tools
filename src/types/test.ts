@@ -33,3 +33,14 @@ export type FrontLightConfirmRequestPayload = {
   front_light_mode: number;
   power: number;
 };
+
+export type RearLightColor = "red" | "green" | "blue";
+
+export type RearLightConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  rear_light_mode: number;
+  expected_color: RearLightColor;
+  step_index: number;
+  total_steps: number;
+};

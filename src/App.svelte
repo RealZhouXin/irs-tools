@@ -6,6 +6,8 @@
     KeyStatePayload,
     LogLevel,
     Language,
+    RearLightColor,
+    RearLightConfirmRequestPayload,
     StatusKey,
     SummaryState,
     TestResult,
@@ -13,6 +15,7 @@
   import { getTranslation } from "./i18n/locales";
   import {
     confirmFrontLight,
+    confirmRearLight,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
@@ -24,6 +27,7 @@
     startTest,
     stopTest,
     subscribeFrontLightConfirmRequest,
+    subscribeRearLightConfirmRequest,
     subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
   } from "./services/tauri";
@@ -43,6 +47,8 @@
     read_timeout_ms: number;
     log_level: LogLevel;
   };
+
+  type LightConfirmTarget = "front" | "rear";
 
   const ALL_STAGES_VALUE = "__all__";
 
@@ -67,6 +73,8 @@
   let availableStages = $state<string[]>([]);
   let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let showLightConfirmDialog = $state(false);
+  let lightConfirmTarget = $state<LightConfirmTarget>("front");
+  let rearLightConfirmRequest = $state<RearLightConfirmRequestPayload | null>(null);
   let showKeyTestDialog = $state(false);
   let keyState = $state<KeyStatePayload>({
     up_pressed: false,
@@ -138,18 +146,51 @@
 
   async function confirmLightResult(isLit: boolean) {
     try {
-      await confirmFrontLight(isLit);
+      if (lightConfirmTarget === "rear") {
+        await confirmRearLight(isLit);
+      } else {
+        await confirmFrontLight(isLit);
+      }
       showLightConfirmDialog = false;
+      if (lightConfirmTarget === "rear") {
+        rearLightConfirmRequest = null;
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error = message;
     }
   }
 
+  function getRearLightColorLabel(color: RearLightColor): string {
+    if (language === "zh") {
+      switch (color) {
+        case "red":
+          return "红色";
+        case "green":
+          return "绿色";
+        case "blue":
+          return "蓝色";
+      }
+    }
+    return color;
+  }
+
+  function getLightConfirmMessage(): string {
+    if (lightConfirmTarget !== "rear" || !rearLightConfirmRequest) {
+      return text.confirmLightQuestion;
+    }
+    const colorLabel = getRearLightColorLabel(rearLightConfirmRequest.expected_color);
+    const progress = `${rearLightConfirmRequest.step_index}/${rearLightConfirmRequest.total_steps}`;
+    return language === "zh"
+      ? `请确认当前尾灯为${colorLabel}（${progress}）`
+      : `Please confirm the rear light is ${colorLabel} (${progress})`;
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
     let unlistenFrontLightConfirm: (() => void) | null = null;
+    let unlistenRearLightConfirm: (() => void) | null = null;
 
     showMainWindow().catch((err) => {
       console.error("Failed to show main window", err);
@@ -181,6 +222,8 @@
       });
 
     subscribeFrontLightConfirmRequest(() => {
+      lightConfirmTarget = "front";
+      rearLightConfirmRequest = null;
       showLightConfirmDialog = true;
       summaryState = "pending";
     })
@@ -190,6 +233,22 @@
       .catch((err) => {
         console.error(
           `Failed to listen ${TAURI_EVENTS.frontLightConfirmRequest}`,
+          err,
+        );
+      });
+
+    subscribeRearLightConfirmRequest((payload) => {
+      lightConfirmTarget = "rear";
+      rearLightConfirmRequest = payload;
+      showLightConfirmDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenRearLightConfirm = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.rearLightConfirmRequest}`,
           err,
         );
       });
@@ -229,6 +288,9 @@
       if (unlistenFrontLightConfirm) {
         unlistenFrontLightConfirm();
       }
+      if (unlistenRearLightConfirm) {
+        unlistenRearLightConfirm();
+      }
     };
   });
 
@@ -249,6 +311,8 @@
     exportSuccess = null;
     results = [];
     showLightConfirmDialog = false;
+    lightConfirmTarget = "front";
+    rearLightConfirmRequest = null;
     showKeyTestDialog = false;
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
     statusKey = "running";
@@ -481,9 +545,13 @@
   <ConfirmDialog
     open={showLightConfirmDialog}
     title={text.confirmTitle}
-    message={text.confirmLightQuestion}
+    message={getLightConfirmMessage()}
     yesLabel={text.confirmYes}
     noLabel={text.confirmNo}
+    showLightAnimation={lightConfirmTarget === "rear"}
+    lightColor={
+      lightConfirmTarget === "rear" ? rearLightConfirmRequest?.expected_color ?? null : null
+    }
     onYes={() => confirmLightResult(true)}
     onNo={() => confirmLightResult(false)}
   />

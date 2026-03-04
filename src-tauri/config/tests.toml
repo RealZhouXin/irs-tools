@@ -359,6 +359,11 @@ front_light_mode = 1
 power = 80
 
 [[tests]]
+name = "610 尾灯三色确认"
+command = "param_id610"
+stage = "actuator"
+
+[[tests]]
 name = "776 按键测试"
 command = "param_id776"
 stage = "key_test"

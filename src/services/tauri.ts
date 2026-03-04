@@ -5,6 +5,7 @@ import type {
   BaseConfig,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
+  RearLightConfirmRequestPayload,
   TestResult,
   TestSummary,
 } from "../types";
@@ -13,6 +14,7 @@ export const TAURI_EVENTS = {
   testGroupComplete: "test-group-complete",
   keyStateUpdate: "key-state-update",
   frontLightConfirmRequest: "front-light-confirm-request",
+  rearLightConfirmRequest: "rear-light-confirm-request",
 } as const;
 
 export function showMainWindow() {
@@ -41,6 +43,10 @@ export function stopTest() {
 
 export function confirmFrontLight(isLit: boolean) {
   return invoke("confirm_front_light", { isLit });
+}
+
+export function confirmRearLight(isLit: boolean) {
+  return invoke("confirm_rear_light", { isLit });
 }
 
 export function retestGroup(groupName: string) {
@@ -89,6 +95,18 @@ export async function subscribeFrontLightConfirmRequest(
 ) {
   const stop = await listen<FrontLightConfirmRequestPayload>(
     TAURI_EVENTS.frontLightConfirmRequest,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeRearLightConfirmRequest(
+  handler: (payload: RearLightConfirmRequestPayload) => void,
+) {
+  const stop = await listen<RearLightConfirmRequestPayload>(
+    TAURI_EVENTS.rearLightConfirmRequest,
     (event) => {
       handler(event.payload);
     },

@@ -1,8 +1,8 @@
 use crate::device_gateway::DeviceGateway;
-use crate::events::{FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE};
+use crate::events::{FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST};
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, FrontLightConfirmRequestPayload,
-    KeyStatePayload, TestGroup, TestResult,
+    KeyStatePayload, RearLightColor, RearLightConfirmRequestPayload, TestGroup, TestResult,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -27,10 +27,37 @@ struct FrontLightConfirmState {
 static FRONT_LIGHT_CONFIRM_SYNC: OnceLock<(Mutex<FrontLightConfirmState>, Condvar)> =
     OnceLock::new();
 
+#[derive(Debug)]
+struct RearLightConfirmState {
+    waiting: bool,
+    response: Option<bool>,
+}
+
+static REAR_LIGHT_CONFIRM_SYNC: OnceLock<(Mutex<RearLightConfirmState>, Condvar)> = OnceLock::new();
+
+const REAR_LIGHT_NORMAL_MODE: u8 = 3;
+const REAR_LIGHT_CONFIRM_STEPS: [(u8, RearLightColor); 3] = [
+    (4, RearLightColor::Red),
+    (5, RearLightColor::Green),
+    (6, RearLightColor::Blue),
+];
+
 fn front_light_confirm_sync() -> &'static (Mutex<FrontLightConfirmState>, Condvar) {
     FRONT_LIGHT_CONFIRM_SYNC.get_or_init(|| {
         (
             Mutex::new(FrontLightConfirmState {
+                waiting: false,
+                response: None,
+            }),
+            Condvar::new(),
+        )
+    })
+}
+
+fn rear_light_confirm_sync() -> &'static (Mutex<RearLightConfirmState>, Condvar) {
+    REAR_LIGHT_CONFIRM_SYNC.get_or_init(|| {
+        (
+            Mutex::new(RearLightConfirmState {
                 waiting: false,
                 response: None,
             }),
@@ -133,6 +160,55 @@ fn build_front_light_result(
     }
 }
 
+fn rear_light_color_name(color: RearLightColor) -> &'static str {
+    match color {
+        RearLightColor::Red => "red",
+        RearLightColor::Green => "green",
+        RearLightColor::Blue => "blue",
+    }
+}
+
+fn build_rear_light_result(
+    group_name: String,
+    stage: String,
+    confirmations: &[(u8, RearLightColor, bool)],
+) -> TestResult {
+    let passed = confirmations.iter().all(|(_, _, confirmed)| *confirmed);
+    let sequence = confirmations
+        .iter()
+        .map(|(mode, color, confirmed)| {
+            format!(
+                "RearLightMode={mode}/Color={}/Confirmed={}",
+                rear_light_color_name(*color),
+                if *confirmed { 1 } else { 0 }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    let checks = confirmations
+        .iter()
+        .map(|(_, color, confirmed)| CheckResult {
+            name: format!("{}_light_confirmed", rear_light_color_name(*color)),
+            min: None,
+            max: None,
+            value: Some(if *confirmed { 1.0 } else { 0.0 }),
+            passed: *confirmed,
+        })
+        .collect();
+
+    TestResult {
+        name: group_name,
+        stage,
+        command: "ParamId610".to_string(),
+        passed,
+        raw_response: format!(
+            "{sequence}; RestoredToNormalMode={}",
+            REAR_LIGHT_NORMAL_MODE
+        ),
+        checks,
+    }
+}
+
 fn build_checked_result_with_retry<TConfig, TResult, F>(
     group_name: String,
     stage: String,
@@ -203,6 +279,7 @@ pub fn run_group(
             }
         },
         &|request| wait_for_front_light_confirmation(app, request),
+        &|request| wait_for_rear_light_confirmation(app, request),
     )
 }
 
@@ -213,6 +290,19 @@ pub fn submit_front_light_confirmation(is_lit: bool) -> CommandResult<()> {
         .map_err(|_| AppError::msg("前灯确认状态锁定失败"))?;
     if !state.waiting {
         return Err(AppError::msg("当前没有待确认的前灯测试"));
+    }
+    state.response = Some(is_lit);
+    cvar.notify_one();
+    Ok(())
+}
+
+pub fn submit_rear_light_confirmation(is_lit: bool) -> CommandResult<()> {
+    let (lock, cvar) = rear_light_confirm_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("尾灯确认状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有待确认的尾灯测试"));
     }
     state.response = Some(is_lit);
     cvar.notify_one();
@@ -248,11 +338,41 @@ fn wait_for_front_light_confirmation(
     Ok(result)
 }
 
+fn wait_for_rear_light_confirmation(
+    app: &AppHandle,
+    request: RearLightConfirmRequestPayload,
+) -> CommandResult<bool> {
+    let (lock, cvar) = rear_light_confirm_sync();
+    {
+        let mut state = lock
+            .lock()
+            .map_err(|_| AppError::msg("尾灯确认状态锁定失败"))?;
+        state.waiting = true;
+        state.response = None;
+    }
+
+    app.emit(REAR_LIGHT_CONFIRM_REQUEST, &request)
+        .map_err(|err| AppError::msg(format!("发送尾灯确认事件失败: {err}")))?;
+
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("尾灯确认状态锁定失败"))?;
+    while state.response.is_none() {
+        state = cvar
+            .wait(state)
+            .map_err(|_| AppError::msg("尾灯确认等待失败"))?;
+    }
+    let result = state.response.take().unwrap_or(false);
+    state.waiting = false;
+    Ok(result)
+}
+
 fn run_group_with_emitters(
     gateway: &dyn DeviceGateway,
     group: TestGroup,
     on_key_state_update: &dyn Fn(KeyStatePayload),
     on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
+    on_rear_light_confirm: &dyn Fn(RearLightConfirmRequestPayload) -> CommandResult<bool>,
 ) -> CommandResult<TestResult> {
     let TestGroup {
         name,
@@ -383,6 +503,41 @@ fn run_group_with_emitters(
                 power,
                 is_lit,
             ))
+        }
+        CommandGroupSpec::ParamId610 => {
+            let mut confirmations: Vec<(u8, RearLightColor, bool)> =
+                Vec::with_capacity(REAR_LIGHT_CONFIRM_STEPS.len());
+
+            let run_result = (|| -> CommandResult<()> {
+                for (index, (rear_light_mode, expected_color)) in
+                    REAR_LIGHT_CONFIRM_STEPS.iter().enumerate()
+                {
+                    gateway.param_id610(*rear_light_mode)?;
+                    let confirmed = on_rear_light_confirm(RearLightConfirmRequestPayload {
+                        name: name.clone(),
+                        stage: stage.clone(),
+                        rear_light_mode: *rear_light_mode,
+                        expected_color: *expected_color,
+                        step_index: (index + 1) as u8,
+                        total_steps: REAR_LIGHT_CONFIRM_STEPS.len() as u8,
+                    })?;
+                    confirmations.push((*rear_light_mode, *expected_color, confirmed));
+                    if !confirmed {
+                        break;
+                    }
+                }
+                Ok(())
+            })();
+
+            let restore_result = gateway.param_id610(REAR_LIGHT_NORMAL_MODE);
+            match (run_result, restore_result) {
+                (Ok(()), Ok(())) => Ok(build_rear_light_result(name, stage, &confirmations)),
+                (Err(run_err), Ok(())) => Err(run_err),
+                (Ok(()), Err(restore_err)) => Err(restore_err),
+                (Err(run_err), Err(restore_err)) => Err(AppError::msg(format!(
+                    "{run_err}; 且恢复尾灯模式失败: {restore_err}"
+                ))),
+            }
         }
         CommandGroupSpec::ParamId794 { checks } => {
             let response = gateway.param_id794()?;
@@ -516,6 +671,7 @@ mod tests {
         called_470: Cell<usize>,
         called_468: Cell<bool>,
         called_606: Cell<bool>,
+        called_610_modes: RefCell<Vec<u8>>,
     }
 
     impl DeviceGateway for FakeGateway {
@@ -575,6 +731,11 @@ mod tests {
             Ok(())
         }
 
+        fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {
+            self.called_610_modes.borrow_mut().push(rear_light_mode);
+            Ok(())
+        }
+
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
             panic!("not used in this test")
         }
@@ -599,6 +760,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -614,8 +776,9 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
         assert!(result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(result.checks[0].passed);
@@ -637,6 +800,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -652,8 +816,9 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
         assert!(!result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(!result.checks[0].passed);
@@ -674,6 +839,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -685,8 +851,9 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
         assert!(result.passed);
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
@@ -708,6 +875,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -719,12 +887,84 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(false))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(false), &|_| Ok(true))
+                .expect("group should run");
         assert!(!result.passed);
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
         assert!(result.raw_response.contains("LightOn=0"));
+    }
+
+    #[test]
+    fn run_group_param_id610_passes_and_restores_mode() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "610 test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId610,
+        };
+
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId610");
+        assert_eq!(result.checks.len(), 3);
+        assert_eq!(gateway.called_610_modes.borrow().as_slice(), &[4, 5, 6, 3]);
+    }
+
+    #[test]
+    fn run_group_param_id610_fails_on_second_step_and_restores_mode() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "610 test fail".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId610,
+        };
+
+        let confirm_index = Cell::new(0usize);
+        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| {
+            let index = confirm_index.get();
+            confirm_index.set(index + 1);
+            Ok(index == 0)
+        })
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId610");
+        assert_eq!(result.checks.len(), 2);
+        assert_eq!(gateway.called_610_modes.borrow().as_slice(), &[4, 5, 3]);
     }
 
     #[test]
@@ -742,6 +982,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -759,8 +1000,9 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
         assert!(gateway.called_468.get());
         assert!(result.passed);
         assert_eq!(result.command, "CuttingHeightSetAndVerify");
@@ -781,6 +1023,7 @@ mod tests {
             called_470: Cell::new(0),
             called_468: Cell::new(false),
             called_606: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
         };
 
         let group = TestGroup {
@@ -796,8 +1039,9 @@ mod tests {
             },
         };
 
-        let result = run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true))
-            .expect("group should run");
+        let result =
+            run_group_with_emitters(&gateway, group, &|_| {}, &|_| Ok(true), &|_| Ok(true))
+                .expect("group should run");
         assert!(result.passed);
         assert_eq!(gateway.called_470.get(), 3);
     }
@@ -850,6 +1094,10 @@ mod tests {
         }
 
         fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
             panic!("not used in this test")
         }
 
@@ -924,6 +1172,7 @@ mod tests {
                 updates.borrow_mut().push(state);
             },
             &|_| Ok(true),
+            &|_| Ok(true),
         )
         .expect("group should run");
 
@@ -960,6 +1209,7 @@ mod tests {
             &|_| {
                 update_count.set(update_count.get() + 1);
             },
+            &|_| Ok(true),
             &|_| Ok(true),
         )
         .expect("group should run");

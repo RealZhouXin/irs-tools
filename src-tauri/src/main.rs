@@ -50,7 +50,8 @@ fn main() {
             commands::get_test_stages,
             commands::export_test_results_csv,
             commands::get_available_export_dates,
-            commands::confirm_front_light
+            commands::confirm_front_light,
+            commands::confirm_rear_light
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

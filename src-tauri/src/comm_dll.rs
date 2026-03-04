@@ -80,6 +80,7 @@ type ParamId122Fn = unsafe extern "system" fn(
 type ParamId470Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
+type ParamId610Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId794Fn =
     unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
 type ParamId776Fn = unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
@@ -101,6 +102,7 @@ pub struct CommDll {
     param_id470: ParamId470Fn,
     param_id468: ParamId468Fn,
     param_id606: ParamId606Fn,
+    param_id610: ParamId610Fn,
     param_id794: ParamId794Fn,
     param_id776: ParamId776Fn,
 }
@@ -606,6 +608,26 @@ impl CommSession {
 
         Ok(())
     }
+
+    pub fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {
+        info!("Running ParamId610 RearLightMode={}", rear_light_mode);
+        let mut return_code: u8 = 9;
+
+        unsafe {
+            (self.dll.param_id610)(&mut return_code, rear_light_mode);
+        }
+
+        if return_code != 0 {
+            error!("ParamId610 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId610 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(())
+    }
 }
 
 impl Drop for CommSession {
@@ -717,6 +739,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
             )?;
+            let param_id610 = load_symbol::<ParamId610Fn>(
+                &lib,
+                &[b"ParamId610\0", b"ParamId610@8\0", b"_ParamId610@8\0"],
+            )?;
             let param_id654 = load_symbol::<ParamId654Fn>(
                 &lib,
                 &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
@@ -771,6 +797,7 @@ impl CommDll {
                 param_id470,
                 param_id468,
                 param_id606,
+                param_id610,
                 param_id794,
                 param_id776,
             })

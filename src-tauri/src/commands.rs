@@ -3,7 +3,7 @@ use tracing::error;
 
 use crate::config::{read_base_config, read_test_stages, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
-use crate::test_runner::submit_front_light_confirmation;
+use crate::test_runner::{submit_front_light_confirmation, submit_rear_light_confirmation};
 use crate::test_service::{TestService, request_stop_test};
 use crate::types::CommandResult;
 
@@ -101,4 +101,9 @@ pub fn stop_test() -> CommandResult<()> {
 #[tauri::command]
 pub fn confirm_front_light(is_lit: bool) -> CommandResult<()> {
     submit_front_light_confirmation(is_lit)
+}
+
+#[tauri::command]
+pub fn confirm_rear_light(is_lit: bool) -> CommandResult<()> {
+    submit_rear_light_confirmation(is_lit)
 }

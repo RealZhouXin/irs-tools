@@ -89,6 +89,7 @@ pub enum CommandGroupSpec {
         front_light_mode: u8,
         power: u8,
     },
+    ParamId610,
     ParamId794 {
         checks: Vec<ParamId794Check>,
     },
@@ -730,6 +731,24 @@ pub struct FrontLightConfirmRequestPayload {
     pub stage: String,
     pub front_light_mode: u8,
     pub power: u8,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RearLightColor {
+    Red,
+    Green,
+    Blue,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RearLightConfirmRequestPayload {
+    pub name: String,
+    pub stage: String,
+    pub rear_light_mode: u8,
+    pub expected_color: RearLightColor,
+    pub step_index: u8,
+    pub total_steps: u8,
 }
 
 impl fmt::Display for ParamId588Result {

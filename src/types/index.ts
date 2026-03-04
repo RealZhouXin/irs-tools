@@ -3,6 +3,8 @@ export type {
   CheckResult,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
+  RearLightColor,
+  RearLightConfirmRequestPayload,
   TestResult,
   TestSummary,
 } from "./test";
