@@ -65,6 +65,12 @@ pub enum CommandGroupSpec {
     ParamId272 {
         checks: Vec<ParamId272Check>,
     },
+    ParamId526 {
+        checks: Vec<ParamId526Check>,
+    },
+    ParamId096 {
+        checks: Vec<ParamId096Check>,
+    },
     ParamId080 {
         checks: Vec<ParamId080Check>,
     },
@@ -100,6 +106,7 @@ pub enum CommandGroupSpec {
     ParamId794 {
         checks: Vec<ParamId794Check>,
     },
+    ParamId798,
     ParamId776 {
         timeout_ms: u64,
     },
@@ -163,6 +170,38 @@ impl CheckConfig for ParamId654Check {
 
 impl CheckConfig for ParamId272Check {
     type OutputEnum = ParamId272Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId526Check {
+    type OutputEnum = ParamId526Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId096Check {
+    type OutputEnum = ParamId096Output;
     fn name(&self) -> &str {
         &self.name
     }
@@ -339,6 +378,56 @@ pub enum ParamId272Output {
     BmsPcbaPn,
     BmsPcbaRev,
     BmsTempSensorType,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId526Check {
+    pub name: String,
+    pub output: ParamId526Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId526Output {
+    PcbDeGrNo,
+    PcbSubDeNo,
+    PcbVarNo,
+    PcbPn,
+    PcbRev,
+    PcbSerNo,
+    PcbProdTime,
+    PcbExtFlash,
+    PcbExtEeprom,
+    PcbAccelerometer,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId096Check {
+    pub name: String,
+    pub output: ParamId096Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId096Output {
+    GprsLteStat,
+    GprsLteSignQual,
+    GnssHwStat,
+    SimStatus,
+    BleHwStat,
+    GprsLteConnStat,
+    BleConnStat,
+    WifiConnStat,
+    WifiHwStat,
+    LoraConnStat,
+    LoraHwStat,
+    RtkHwStat,
+    RtkConnStat,
+    ConnectedRaSerial,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -536,6 +625,46 @@ impl CheckableResult for ParamId272Result {
     }
 }
 
+impl CheckableResult for ParamId526Result {
+    type OutputEnum = ParamId526Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId526Output::PcbDeGrNo => self.pcb_de_gr_no as f64,
+            ParamId526Output::PcbSubDeNo => self.pcb_sub_de_no as f64,
+            ParamId526Output::PcbVarNo => self.pcb_var_no as f64,
+            ParamId526Output::PcbPn => self.pcb_pn as f64,
+            ParamId526Output::PcbRev => self.pcb_rev as f64,
+            ParamId526Output::PcbSerNo => self.pcb_ser_no as f64,
+            ParamId526Output::PcbProdTime => self.pcb_prod_time as f64,
+            ParamId526Output::PcbExtFlash => self.pcb_ext_flash as f64,
+            ParamId526Output::PcbExtEeprom => self.pcb_ext_eeprom as f64,
+            ParamId526Output::PcbAccelerometer => self.pcb_accelerometer as f64,
+        }
+    }
+}
+
+impl CheckableResult for ParamId096Result {
+    type OutputEnum = ParamId096Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId096Output::GprsLteStat => self.gprs_lte_stat as f64,
+            ParamId096Output::GprsLteSignQual => self.gprs_lte_sign_qual as f64,
+            ParamId096Output::GnssHwStat => self.gnss_hw_stat as f64,
+            ParamId096Output::SimStatus => self.sim_status as f64,
+            ParamId096Output::BleHwStat => self.ble_hw_stat as f64,
+            ParamId096Output::GprsLteConnStat => self.gprs_lte_conn_stat as f64,
+            ParamId096Output::BleConnStat => self.ble_conn_stat as f64,
+            ParamId096Output::WifiConnStat => self.wifi_conn_stat as f64,
+            ParamId096Output::WifiHwStat => self.wifi_hw_stat as f64,
+            ParamId096Output::LoraConnStat => self.lora_conn_stat as f64,
+            ParamId096Output::LoraHwStat => self.lora_hw_stat as f64,
+            ParamId096Output::RtkHwStat => self.rtk_hw_stat as f64,
+            ParamId096Output::RtkConnStat => self.rtk_conn_stat as f64,
+            ParamId096Output::ConnectedRaSerial => self.connected_ra_serial as f64,
+        }
+    }
+}
+
 impl CheckableResult for ParamId080Result {
     type OutputEnum = ParamId080Output;
     fn get_value(&self, output: Self::OutputEnum) -> f64 {
@@ -661,6 +790,38 @@ pub struct ParamId272Result {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct ParamId526Result {
+    pub pcb_de_gr_no: u16,
+    pub pcb_sub_de_no: u8,
+    pub pcb_var_no: u8,
+    pub pcb_pn: u32,
+    pub pcb_rev: u16,
+    pub pcb_ser_no: u32,
+    pub pcb_prod_time: u32,
+    pub pcb_ext_flash: u8,
+    pub pcb_ext_eeprom: u8,
+    pub pcb_accelerometer: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId096Result {
+    pub gprs_lte_stat: u8,
+    pub gprs_lte_sign_qual: u8,
+    pub gnss_hw_stat: u8,
+    pub sim_status: u8,
+    pub ble_hw_stat: u8,
+    pub gprs_lte_conn_stat: u8,
+    pub ble_conn_stat: u8,
+    pub wifi_conn_stat: u8,
+    pub wifi_hw_stat: u8,
+    pub lora_conn_stat: u8,
+    pub lora_hw_stat: u8,
+    pub rtk_hw_stat: u8,
+    pub rtk_conn_stat: u8,
+    pub connected_ra_serial: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct ParamId080Result {
     pub mower_main_p: u8,
     pub mower_sub_state: u8,
@@ -723,6 +884,11 @@ pub struct ParamId794Result {
     pub maj_par_sw_ver: u8,
     pub min_par_sw_ver: u8,
     pub build_no: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParamId798Result {
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -865,6 +1031,48 @@ impl fmt::Display for ParamId272Result {
     }
 }
 
+impl fmt::Display for ParamId526Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "PcbDeGrNo={}, PcbSubDeNo={}, PcbVarNo={}, PcbPN={}, PcbRev={}, PcbSerNo={}, PcbProdTime={}, PcbExtFlash={}, PcbExtEeprom={}, PcbAccelerometer={}",
+            self.pcb_de_gr_no,
+            self.pcb_sub_de_no,
+            self.pcb_var_no,
+            self.pcb_pn,
+            self.pcb_rev,
+            self.pcb_ser_no,
+            self.pcb_prod_time,
+            self.pcb_ext_flash,
+            self.pcb_ext_eeprom,
+            self.pcb_accelerometer
+        )
+    }
+}
+
+impl fmt::Display for ParamId096Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "GprsLteStat={}, GprsLteSignQual={}, GnssHwStat={}, SimStatus={}, BleHwStat={}, GprsLteConnStat={}, BleConnStat={}, WifiConnStat={}, WifiHwStat={}, LoraConnStat={}, LoraHwStat={}, RtkHwStat={}, RtkConnStat={}, ConnectedRaSerial={}",
+            self.gprs_lte_stat,
+            self.gprs_lte_sign_qual,
+            self.gnss_hw_stat,
+            self.sim_status,
+            self.ble_hw_stat,
+            self.gprs_lte_conn_stat,
+            self.ble_conn_stat,
+            self.wifi_conn_stat,
+            self.wifi_hw_stat,
+            self.lora_conn_stat,
+            self.lora_hw_stat,
+            self.rtk_hw_stat,
+            self.rtk_conn_stat,
+            self.connected_ra_serial
+        )
+    }
+}
+
 impl fmt::Display for ParamId080Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -949,5 +1157,11 @@ impl fmt::Display for ParamId794Result {
             self.min_par_sw_ver,
             self.build_no
         )
+    }
+}
+
+impl fmt::Display for ParamId798Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Version={}", self.version)
     }
 }

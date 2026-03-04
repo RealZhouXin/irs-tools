@@ -5,9 +5,9 @@ use libloading::Library;
 use tracing::{error, info};
 
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId118Result, ParamId120Result,
-    ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
-    ParamId776Result, ParamId794Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId118Result,
+    ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId526Result,
+    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -37,6 +37,36 @@ type ParamId272Fn = unsafe extern "system" fn(
     *mut u16,
     *mut u32,
     *mut u16,
+    *mut u32,
+);
+type ParamId526Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+    *mut u32,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+);
+type ParamId096Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
     *mut u32,
 );
 type ParamId080Fn = unsafe extern "system" fn(
@@ -86,6 +116,7 @@ type ParamId568Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId610Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId794Fn =
     unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId798Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId776Fn = unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
 
 pub struct CommDll {
@@ -99,6 +130,8 @@ pub struct CommDll {
     param_id588: ParamId588Fn,
     param_id654: ParamId654Fn,
     param_id272: ParamId272Fn,
+    param_id526: ParamId526Fn,
+    param_id096: ParamId096Fn,
     param_id080: ParamId080Fn,
     param_id118: ParamId118Fn,
     param_id120: ParamId120Fn,
@@ -109,6 +142,7 @@ pub struct CommDll {
     param_id568: ParamId568Fn,
     param_id610: ParamId610Fn,
     param_id794: ParamId794Fn,
+    param_id798: ParamId798Fn,
     param_id776: ParamId776Fn,
 }
 
@@ -237,6 +271,33 @@ impl CommSession {
                     }
                 },
             )
+    }
+
+    pub fn param_id798(&self) -> CommandResult<ParamId798Result> {
+        info!("Running ParamId798");
+        let mut return_code: u8 = 9;
+        let mut version = [0u8; 36];
+
+        unsafe {
+            (self.dll.param_id798)(&mut return_code, version.as_mut_ptr());
+        }
+
+        if return_code != 0 {
+            error!("ParamId798 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId798 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        let end = version
+            .iter()
+            .position(|&byte| byte == 0)
+            .unwrap_or(version.len());
+        Ok(ParamId798Result {
+            version: String::from_utf8_lossy(&version[..end]).into_owned(),
+        })
     }
 
     fn run_common_param_command(
@@ -378,6 +439,124 @@ impl CommSession {
             bms_pcba_pn,
             bms_pcba_rev,
             bms_temp_sensor_type,
+        })
+    }
+
+    pub fn param_id526(&self) -> CommandResult<ParamId526Result> {
+        info!("Running ParamId526");
+        let mut return_code: u8 = 9;
+        let mut pcb_de_gr_no: u16 = 0;
+        let mut pcb_sub_de_no: u8 = 0;
+        let mut pcb_var_no: u8 = 0;
+        let mut pcb_pn: u32 = 0;
+        let mut pcb_rev: u16 = 0;
+        let mut pcb_ser_no: u32 = 0;
+        let mut pcb_prod_time: u32 = 0;
+        let mut pcb_ext_flash: u8 = 0;
+        let mut pcb_ext_eeprom: u8 = 0;
+        let mut pcb_accelerometer: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id526)(
+                &mut return_code,
+                &mut pcb_de_gr_no,
+                &mut pcb_sub_de_no,
+                &mut pcb_var_no,
+                &mut pcb_pn,
+                &mut pcb_rev,
+                &mut pcb_ser_no,
+                &mut pcb_prod_time,
+                &mut pcb_ext_flash,
+                &mut pcb_ext_eeprom,
+                &mut pcb_accelerometer,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId526 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId526 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId526Result {
+            pcb_de_gr_no,
+            pcb_sub_de_no,
+            pcb_var_no,
+            pcb_pn,
+            pcb_rev,
+            pcb_ser_no,
+            pcb_prod_time,
+            pcb_ext_flash,
+            pcb_ext_eeprom,
+            pcb_accelerometer,
+        })
+    }
+
+    pub fn param_id096(&self) -> CommandResult<ParamId096Result> {
+        info!("Running ParamId096");
+        let mut return_code: u8 = 9;
+        let mut gprs_lte_stat: u8 = 0;
+        let mut gprs_lte_sign_qual: u8 = 0;
+        let mut gnss_hw_stat: u8 = 0;
+        let mut sim_status: u8 = 0;
+        let mut ble_hw_stat: u8 = 0;
+        let mut gprs_lte_conn_stat: u8 = 0;
+        let mut ble_conn_stat: u8 = 0;
+        let mut wifi_conn_stat: u8 = 0;
+        let mut wifi_hw_stat: u8 = 0;
+        let mut lora_conn_stat: u8 = 0;
+        let mut lora_hw_stat: u8 = 0;
+        let mut rtk_hw_stat: u8 = 0;
+        let mut rtk_conn_stat: u8 = 0;
+        let mut connected_ra_serial: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id096)(
+                &mut return_code,
+                &mut gprs_lte_stat,
+                &mut gprs_lte_sign_qual,
+                &mut gnss_hw_stat,
+                &mut sim_status,
+                &mut ble_hw_stat,
+                &mut gprs_lte_conn_stat,
+                &mut ble_conn_stat,
+                &mut wifi_conn_stat,
+                &mut wifi_hw_stat,
+                &mut lora_conn_stat,
+                &mut lora_hw_stat,
+                &mut rtk_hw_stat,
+                &mut rtk_conn_stat,
+                &mut connected_ra_serial,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId096 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId096 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId096Result {
+            gprs_lte_stat,
+            gprs_lte_sign_qual,
+            gnss_hw_stat,
+            sim_status,
+            ble_hw_stat,
+            gprs_lte_conn_stat,
+            ble_conn_stat,
+            wifi_conn_stat,
+            wifi_hw_stat,
+            lora_conn_stat,
+            lora_hw_stat,
+            rtk_hw_stat,
+            rtk_conn_stat,
+            connected_ra_serial,
         })
     }
 
@@ -818,6 +997,14 @@ impl CommDll {
                 &lib,
                 &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
             )?;
+            let param_id526 = load_symbol::<ParamId526Fn>(
+                &lib,
+                &[b"ParamId526\0", b"ParamId526@44\0", b"_ParamId526@44\0"],
+            )?;
+            let param_id096 = load_symbol::<ParamId096Fn>(
+                &lib,
+                &[b"ParamId096\0", b"ParamId096@60\0", b"_ParamId096@60\0"],
+            )?;
             let param_id080 = load_symbol::<ParamId080Fn>(
                 &lib,
                 &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
@@ -846,6 +1033,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId794\0", b"ParamId794@28\0", b"_ParamId794@28\0"],
             )?;
+            let param_id798 = load_symbol::<ParamId798Fn>(
+                &lib,
+                &[b"ParamId798\0", b"ParamId798@8\0", b"_ParamId798@8\0"],
+            )?;
             let param_id776 = load_symbol::<ParamId776Fn>(
                 &lib,
                 &[b"ParamId776\0", b"ParamId776@24\0", b"_ParamId776@24\0"],
@@ -862,6 +1053,8 @@ impl CommDll {
                 param_id588,
                 param_id654,
                 param_id272,
+                param_id526,
+                param_id096,
                 param_id080,
                 param_id118,
                 param_id120,
@@ -872,6 +1065,7 @@ impl CommDll {
                 param_id568,
                 param_id610,
                 param_id794,
+                param_id798,
                 param_id776,
             })
         }

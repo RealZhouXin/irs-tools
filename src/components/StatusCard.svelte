@@ -7,6 +7,7 @@
     statusKey: StatusKey;
     summaryState: SummaryState;
     summaryLabel: string;
+    machineSn: string | null;
   }>();
 
   // 根据当前状态返回对应的 Tailwind 颜色类名
@@ -31,6 +32,9 @@
       <Card.Description class="mt-1 text-2xl font-bold text-foreground">
         {text.status[statusKey]}
       </Card.Description>
+      <p class="mt-2 text-sm text-muted-foreground">
+        {text.machineSnLabel}: <span class="font-mono text-foreground">{machineSn ?? "-"}</span>
+      </p>
     </div>
     <div class="flex flex-col items-end">
       <span class="text-sm text-muted-foreground">{text.table.result}:</span>
@@ -40,4 +44,3 @@
     </div>
   </Card.Header>
 </Card.Root>
-

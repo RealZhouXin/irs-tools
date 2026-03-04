@@ -76,6 +76,41 @@ min = 0
 max = 255
 
 [[tests]]
+name = "096 无线通信状态"
+command = "param_id096"
+stage = "status"
+[[tests.checks]]
+name = "sim_status"
+output = "sim_status"
+min = 1
+max = 1
+[[tests.checks]]
+name = "gprs_lte_sign_qual"
+output = "gprs_lte_sign_qual"
+min = 51
+max = 255
+[[tests.checks]]
+name = "gnss_hw_stat"
+output = "gnss_hw_stat"
+min = 3
+max = 3
+
+[[tests]]
+name = "526 应用板硬件信息"
+command = "param_id526"
+stage = "status"
+[[tests.checks]]
+name = "pcb_pn"
+output = "pcb_pn"
+min = 40085400
+max = 40085400
+[[tests.checks]]
+name = "pcb_rev"
+output = "pcb_rev"
+min = 4
+max = 4
+
+[[tests]]
 name = "272 电池信息"
 command = "param_id272"
 stage = "battery"
@@ -209,6 +244,11 @@ name = "build_no"
 output = "build_no"
 min = 0
 max = 999999
+
+[[tests]]
+name = "798 通信板软件版本"
+command = "param_id798"
+stage = "software"
 
 [[tests]]
 name = "120 加速度计数据"

@@ -68,6 +68,7 @@
   let language = $state<Language>("zh");
   let statusKey = $state<StatusKey>("idle");
   let summaryState = $state<SummaryState>("idle");
+  let machineSn = $state<string | null>(null);
   let running = $state(false);
   let retesting = $state<string | null>(null);
   let error = $state<string | null>(null);
@@ -153,7 +154,15 @@
       showCollisionBarDialog = false;
       collisionBarPromptPayload = null;
     }
+    if (incoming.command === "ParamId526") {
+      machineSn = extractPcbSerNo(incoming.raw_response);
+    }
     upsertResult(incoming);
+  }
+
+  function extractPcbSerNo(rawResponse: string): string | null {
+    const match = rawResponse.match(/(?:^|,\s*)PcbSerNo=(\d+)/);
+    return match?.[1] ?? null;
   }
 
   function upsertResult(result: TestResult) {
@@ -467,6 +476,7 @@
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
     statusKey = "running";
     summaryState = "pending";
+    machineSn = null;
 
     try {
       const stagesToRun =
@@ -661,6 +671,7 @@
         {statusKey}
         {summaryState}
         {summaryLabel}
+        {machineSn}
         {retesting}
         {exportError}
         {exportSuccess}

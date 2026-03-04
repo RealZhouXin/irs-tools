@@ -10,6 +10,7 @@ export const textMap: Record<Language, Translation> = {
         export: "导出数据",
         exporting: "导出中...",
         statusTitle: "检测状态",
+        machineSnLabel: "机器SN",
         status: {
             idle: "等待开始",
             running: "检测中，请稍候...",
@@ -106,6 +107,7 @@ export const textMap: Record<Language, Translation> = {
         export: "Export Data",
         exporting: "Exporting...",
         statusTitle: "Status",
+        machineSnLabel: "Machine SN",
         status: {
             idle: "Ready",
             running: "Running...",

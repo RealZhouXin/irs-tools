@@ -265,6 +265,24 @@ fn build_action_result(
     }
 }
 
+fn build_param_id798_result(group_name: String, stage: String, version: String) -> TestResult {
+    let has_version = !version.is_empty();
+    TestResult {
+        name: group_name,
+        stage,
+        command: "ParamId798".to_string(),
+        passed: has_version,
+        raw_response: format!("Version={version}"),
+        checks: vec![CheckResult {
+            name: "version_not_empty".to_string(),
+            min: None,
+            max: None,
+            value: Some(if has_version { 1.0 } else { 0.0 }),
+            passed: has_version,
+        }],
+    }
+}
+
 fn build_front_light_result(
     group_name: String,
     stage: String,
@@ -691,6 +709,26 @@ fn run_group_with_emitters(
                 &response,
             ))
         }
+        CommandGroupSpec::ParamId526 { checks } => {
+            let response = gateway.param_id526()?;
+            Ok(build_checked_result(
+                name,
+                stage,
+                "ParamId526".to_string(),
+                &checks,
+                &response,
+            ))
+        }
+        CommandGroupSpec::ParamId096 { checks } => {
+            let response = gateway.param_id096()?;
+            Ok(build_checked_result(
+                name,
+                stage,
+                "ParamId096".to_string(),
+                &checks,
+                &response,
+            ))
+        }
         CommandGroupSpec::ParamId080 { checks } => {
             let response = gateway.param_id080()?;
             Ok(build_checked_result(
@@ -841,6 +879,10 @@ fn run_group_with_emitters(
                 &checks,
                 &response,
             ))
+        }
+        CommandGroupSpec::ParamId798 => {
+            let response = gateway.param_id798()?;
+            Ok(build_param_id798_result(name, stage, response.version))
         }
         CommandGroupSpec::ParamId776 { timeout_ms } => {
             run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
@@ -1209,9 +1251,10 @@ mod tests {
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
         CommandGroupSpec, EmergencyStopPhase, EmergencyStopTestPayload, KeyStatePayload,
-        ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId120Result,
-        ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
-        ParamId776Result, ParamId794Result, TestGroup,
+        ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId096Check,
+        ParamId096Output, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
+        ParamId526Check, ParamId526Output, ParamId588Result, ParamId654Result, ParamId776Result,
+        ParamId794Result, ParamId798Result, TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -1244,6 +1287,40 @@ mod tests {
 
         fn param_id272(&self) -> CommandResult<ParamId272Result> {
             panic!("not used in this test")
+        }
+
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            Ok(crate::models::ParamId526Result {
+                pcb_de_gr_no: 0,
+                pcb_sub_de_no: 0,
+                pcb_var_no: 0,
+                pcb_pn: 40085400,
+                pcb_rev: 4,
+                pcb_ser_no: 12345678,
+                pcb_prod_time: 0,
+                pcb_ext_flash: 0,
+                pcb_ext_eeprom: 0,
+                pcb_accelerometer: 0,
+            })
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            Ok(crate::models::ParamId096Result {
+                gprs_lte_stat: 0,
+                gprs_lte_sign_qual: 60,
+                gnss_hw_stat: 3,
+                sim_status: 1,
+                ble_hw_stat: 0,
+                gprs_lte_conn_stat: 0,
+                ble_conn_stat: 0,
+                wifi_conn_stat: 0,
+                wifi_hw_stat: 0,
+                lora_conn_stat: 0,
+                lora_hw_stat: 0,
+                rtk_hw_stat: 0,
+                rtk_conn_stat: 0,
+                connected_ra_serial: 0,
+            })
         }
 
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
@@ -1298,6 +1375,12 @@ mod tests {
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
             panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
+            Ok(ParamId798Result {
+                version: "COMM_SW_1.0.0".to_string(),
+            })
         }
 
         fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
@@ -1403,6 +1486,128 @@ mod tests {
     }
 
     #[test]
+    fn run_group_param_id096_passes_when_values_match_checks() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_568: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "096 wireless".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId096 {
+                checks: vec![
+                    ParamId096Check {
+                        name: "sim_status".to_string(),
+                        output: ParamId096Output::SimStatus,
+                        min: 1.0,
+                        max: 1.0,
+                    },
+                    ParamId096Check {
+                        name: "gprs_lte_sign_qual".to_string(),
+                        output: ParamId096Output::GprsLteSignQual,
+                        min: 51.0,
+                        max: 255.0,
+                    },
+                    ParamId096Check {
+                        name: "gnss_hw_stat".to_string(),
+                        output: ParamId096Output::GnssHwStat,
+                        min: 3.0,
+                        max: 3.0,
+                    },
+                ],
+            },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId096");
+        assert_eq!(result.checks.len(), 3);
+        assert!(result.checks.iter().all(|c| c.passed));
+    }
+
+    #[test]
+    fn run_group_param_id526_passes_when_values_match_checks() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_568: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "526 app board".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId526 {
+                checks: vec![
+                    ParamId526Check {
+                        name: "pcb_pn".to_string(),
+                        output: ParamId526Output::PcbPn,
+                        min: 40085400.0,
+                        max: 40085400.0,
+                    },
+                    ParamId526Check {
+                        name: "pcb_rev".to_string(),
+                        output: ParamId526Output::PcbRev,
+                        min: 4.0,
+                        max: 4.0,
+                    },
+                ],
+            },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId526");
+        assert!(result.raw_response.contains("PcbSerNo=12345678"));
+        assert_eq!(result.checks.len(), 2);
+        assert!(result.checks.iter().all(|c| c.passed));
+    }
+
+    #[test]
     fn run_group_param_id606_calls_gateway() {
         let gateway = FakeGateway {
             result_068: ParamId068Result {
@@ -1445,6 +1650,51 @@ mod tests {
         assert!(gateway.called_606.get());
         assert_eq!(result.command, "ParamId606");
         assert!(result.raw_response.contains("LightOn=1"));
+    }
+
+    #[test]
+    fn run_group_param_id798_passes_when_version_present() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_568: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "798 test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId798,
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId798");
+        assert_eq!(result.raw_response, "Version=COMM_SW_1.0.0");
+        assert_eq!(result.checks.len(), 1);
+        assert_eq!(result.checks[0].name, "version_not_empty");
+        assert!(result.checks[0].passed);
     }
 
     #[test]
@@ -1705,6 +1955,14 @@ mod tests {
             panic!("not used in this test")
         }
 
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            panic!("not used in this test")
+        }
+
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
             panic!("not used in this test")
         }
@@ -1756,6 +2014,10 @@ mod tests {
         }
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
             panic!("not used in this test")
         }
 
@@ -1860,6 +2122,14 @@ mod tests {
             panic!("not used in this test")
         }
 
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            panic!("not used in this test")
+        }
+
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
             let idx = self.called_080.get();
             let mower_main_p = self
@@ -1916,6 +2186,10 @@ mod tests {
         }
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
             panic!("not used in this test")
         }
 
@@ -2094,6 +2368,14 @@ mod tests {
             panic!("not used in this test")
         }
 
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            panic!("not used in this test")
+        }
+
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
             panic!("not used in this test")
         }
@@ -2131,6 +2413,10 @@ mod tests {
         }
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
             panic!("not used in this test")
         }
 

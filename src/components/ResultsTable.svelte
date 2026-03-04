@@ -42,6 +42,20 @@
       passed: items.every((item) => item.passed),
     }));
   });
+
+  function getVersionFromRawResponse(group: TestResult): string {
+    const prefix = "Version=";
+    return group.raw_response.startsWith(prefix)
+      ? group.raw_response.slice(prefix.length)
+      : group.raw_response;
+  }
+
+  function getCheckDisplayValue(group: TestResult, check: TestResult["checks"][number]): string {
+    if (group.command === "ParamId798" && check.name === "version_not_empty") {
+      return getVersionFromRawResponse(group);
+    }
+    return check.value === null ? "-" : String(check.value);
+  }
 </script>
 
 <section class="space-y-6">
@@ -137,7 +151,7 @@
                           : `${check.min} ~ ${check.max}`}
                       </Table.Cell>
                       <Table.Cell class="font-mono font-medium text-sm">
-                        {check.value === null ? "-" : check.value}
+                        {getCheckDisplayValue(group, check)}
                       </Table.Cell>
                       <Table.Cell>
                         <span class="text-sm font-medium {check.passed ? 'text-green-600' : 'text-destructive'}">
@@ -155,4 +169,3 @@
     </div>
   {/if}
 </section>
-

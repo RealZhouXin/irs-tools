@@ -238,11 +238,8 @@ void ParamId080(uint8_t* ReturnCode, uint8_t* MowerMainP, uint8_t* MowerSubState
 void ParamId094(uint8_t* ReturnCode, int32_t* latDeg, int32_t* longDeg, uint8_t* HDOP);
 
 /*Get wireless communication status*/
-#if (PLATFORM_VERSION == 1)
-void ParamId096(uint8_t* ReturnCode, uint8_t* GprsLteStat, uint8_t* GprsLteSignQual, uint8_t* GNSSHWstat, uint8_t* SimStatus, uint8_t* BLEHwStat, uint8_t* GprsLteConnStat, uint8_t* BLEConnStat, uint8_t* WiFiConnStat, uint8_t* WiFiHwStat);
-#else
 void ParamId096(uint8_t* ReturnCode, uint8_t* GprsLteStat, uint8_t* GprsLteSignQual, uint8_t* GNSSHWstat, uint8_t* SimStatus, uint8_t* BLEHwStat, uint8_t* GprsLteConnStat, uint8_t* BLEConnStat, uint8_t* WiFiConnStat, uint8_t* WiFiHwStat, uint8_t* LoraConnStat, uint8_t* LoraHwStat, uint8_t* RtkHwStat, uint8_t* RtkConnStat, uint32_t* ConnectedRaSerial);
-#endif
+
 
 /*Get real time data for battery 1*/
 void ParamId108(uint8_t* ReturnCode, uint16_t* BattVolMW, int16_t* BattCurr, int16_t* BattEnLvl, int16_t* BattTemp, uint16_t* MainVoltage);

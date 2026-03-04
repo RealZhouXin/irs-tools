@@ -9,6 +9,7 @@ export type Translation = {
   export: string;
   exporting: string;
   statusTitle: string;
+  machineSnLabel: string;
   status: {
     idle: string;
     running: string;

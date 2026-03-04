@@ -5,9 +5,9 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId118Result, ParamId120Result,
-    ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
-    ParamId776Result, ParamId794Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId118Result,
+    ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId526Result,
+    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -17,6 +17,8 @@ pub trait DeviceGateway {
     fn param_id588(&self) -> CommandResult<ParamId588Result>;
     fn param_id654(&self) -> CommandResult<ParamId654Result>;
     fn param_id272(&self) -> CommandResult<ParamId272Result>;
+    fn param_id526(&self) -> CommandResult<ParamId526Result>;
+    fn param_id096(&self) -> CommandResult<ParamId096Result>;
     fn param_id080(&self) -> CommandResult<ParamId080Result>;
     fn param_id118(&self) -> CommandResult<ParamId118Result>;
     fn param_id120(&self) -> CommandResult<ParamId120Result>;
@@ -27,6 +29,7 @@ pub trait DeviceGateway {
     fn param_id568(&self, on: u8) -> CommandResult<()>;
     fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()>;
     fn param_id794(&self) -> CommandResult<ParamId794Result>;
+    fn param_id798(&self) -> CommandResult<ParamId798Result>;
     fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result>;
 }
 
@@ -80,6 +83,14 @@ impl DeviceGateway for DllDeviceGateway {
         self.session.param_id272()
     }
 
+    fn param_id526(&self) -> CommandResult<ParamId526Result> {
+        self.session.param_id526()
+    }
+
+    fn param_id096(&self) -> CommandResult<ParamId096Result> {
+        self.session.param_id096()
+    }
+
     fn param_id080(&self) -> CommandResult<ParamId080Result> {
         self.session.param_id080()
     }
@@ -118,6 +129,10 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id794(&self) -> CommandResult<ParamId794Result> {
         self.session.param_id794()
+    }
+
+    fn param_id798(&self) -> CommandResult<ParamId798Result> {
+        self.session.param_id798()
     }
 
     fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
