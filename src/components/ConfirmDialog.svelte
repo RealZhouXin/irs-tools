@@ -11,6 +11,7 @@
     noLabel,
     onYes,
     onNo,
+    onRequestClose,
     showLightAnimation = false,
     lightColor = null,
   } = $props<{
@@ -21,13 +22,20 @@
     noLabel: string;
     onYes: () => void;
     onNo: () => void;
+    onRequestClose: () => void;
     showLightAnimation?: boolean;
     lightColor?: LightColor | null;
   }>();
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      onRequestClose();
+    }
+  }
 </script>
 
 {#if open}
-  <div class="overlay" role="presentation">
+  <div class="overlay" role="presentation" onclick={handleOverlayClick}>
     <div class="dialog" role="dialog" aria-modal="true" aria-label={title}>
       <h3>{title}</h3>
       <p>{message}</p>

@@ -5,7 +5,7 @@ use crate::config::{read_base_config, read_test_stages, write_base_config};
 use crate::models::{BaseConfig, TestResult, TestSummary};
 use crate::test_runner::{
     submit_emergency_stop_cancel, submit_front_light_confirmation, submit_key_test_cancel,
-    submit_rear_light_confirmation, submit_speaker_confirmation,
+    submit_rear_light_confirmation, submit_sensor_prompt_cancel, submit_speaker_confirmation,
 };
 use crate::test_service::{TestService, request_stop_test};
 use crate::types::CommandResult;
@@ -124,4 +124,9 @@ pub fn cancel_emergency_stop_test() -> CommandResult<()> {
 #[tauri::command]
 pub fn cancel_key_test() -> CommandResult<()> {
     submit_key_test_cancel()
+}
+
+#[tauri::command]
+pub fn cancel_sensor_prompt_test() -> CommandResult<()> {
+    submit_sensor_prompt_cancel()
 }

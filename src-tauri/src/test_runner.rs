@@ -68,6 +68,14 @@ struct EmergencyStopTestState {
 
 static EMERGENCY_STOP_TEST_SYNC: OnceLock<Mutex<EmergencyStopTestState>> = OnceLock::new();
 
+#[derive(Debug)]
+struct SensorPromptState {
+    waiting: bool,
+    canceled: bool,
+}
+
+static SENSOR_PROMPT_SYNC: OnceLock<Mutex<SensorPromptState>> = OnceLock::new();
+
 const REAR_LIGHT_NORMAL_MODE: u8 = 3;
 const REAR_LIGHT_CONFIRM_STEPS: [(u8, RearLightColor); 3] = [
     (4, RearLightColor::Red),
@@ -173,6 +181,39 @@ fn emergency_stop_test_sync() -> &'static Mutex<EmergencyStopTestState> {
             canceled: false,
         })
     })
+}
+
+fn sensor_prompt_sync() -> &'static Mutex<SensorPromptState> {
+    SENSOR_PROMPT_SYNC.get_or_init(|| {
+        Mutex::new(SensorPromptState {
+            waiting: false,
+            canceled: false,
+        })
+    })
+}
+
+fn start_sensor_prompt_session() -> CommandResult<()> {
+    let lock = sensor_prompt_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("传感器提示状态锁定失败"))?;
+    state.waiting = true;
+    state.canceled = false;
+    Ok(())
+}
+
+fn finish_sensor_prompt_session() {
+    if let Ok(mut state) = sensor_prompt_sync().lock() {
+        state.waiting = false;
+        state.canceled = false;
+    }
+}
+
+fn is_sensor_prompt_canceled() -> CommandResult<bool> {
+    let state = sensor_prompt_sync()
+        .lock()
+        .map_err(|_| AppError::msg("传感器提示状态锁定失败"))?;
+    Ok(state.canceled)
 }
 
 fn start_emergency_stop_test_session() -> CommandResult<()> {
@@ -558,6 +599,18 @@ pub fn submit_key_test_cancel() -> CommandResult<()> {
     Ok(())
 }
 
+pub fn submit_sensor_prompt_cancel() -> CommandResult<()> {
+    let lock = sensor_prompt_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("传感器提示状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有进行中的传感器提示测试"));
+    }
+    state.canceled = true;
+    Ok(())
+}
+
 fn wait_for_front_light_confirmation(
     app: &AppHandle,
     request: FrontLightConfirmRequestPayload,
@@ -939,80 +992,116 @@ fn run_collision_bar_test_group(
         });
     }
 
-    on_prompt(CollisionBarPromptPayload {
-        name: name.clone(),
-        stage: stage.clone(),
-        prompt_kind: SensorPromptKind::CollisionBar,
-    })?;
+    start_sensor_prompt_session()?;
 
-    let elapsed_limit = if timeout_ms == 0 {
-        u64::MAX
-    } else {
-        timeout_ms
-    };
-    let mut elapsed_ms: u64 = 0;
-    let mut last = initial;
+    let result = (|| -> CommandResult<TestResult> {
+        on_prompt(CollisionBarPromptPayload {
+            name: name.clone(),
+            stage: stage.clone(),
+            prompt_kind: SensorPromptKind::CollisionBar,
+        })?;
 
-    while elapsed_ms < elapsed_limit {
-        thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
-        elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
-        last = gateway.param_id118()?;
-        if last.collision_sen > 0 {
-            return Ok(TestResult {
-                name,
-                stage,
-                command: "ParamId118".to_string(),
-                passed: true,
-                raw_response: format!(
-                    "InitialCollisionSen=0, TriggeredAfter={}ms, {}",
-                    elapsed_ms, last
-                ),
-                checks: vec![
-                    CheckResult {
-                        name: "initial_collision_sen_is_0".to_string(),
-                        min: Some(0.0),
-                        max: Some(0.0),
-                        value: Some(0.0),
-                        passed: true,
-                    },
-                    CheckResult {
-                        name: "collision_sen_triggered".to_string(),
-                        min: Some(1.0),
-                        max: None,
-                        value: Some(last.collision_sen as f64),
-                        passed: true,
-                    },
-                ],
-            });
+        let elapsed_limit = if timeout_ms == 0 {
+            u64::MAX
+        } else {
+            timeout_ms
+        };
+        let mut elapsed_ms: u64 = 0;
+        let mut last = initial;
+
+        while elapsed_ms < elapsed_limit {
+            if is_sensor_prompt_canceled()? {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId118".to_string(),
+                    passed: false,
+                    raw_response: format!(
+                        "CanceledByUser, ElapsedMs={}, InitialCollisionSen=0, LastCollisionSen={}, LastResult={}",
+                        elapsed_ms, last.collision_sen, last
+                    ),
+                    checks: vec![
+                        CheckResult {
+                            name: "initial_collision_sen_is_0".to_string(),
+                            min: Some(0.0),
+                            max: Some(0.0),
+                            value: Some(0.0),
+                            passed: true,
+                        },
+                        CheckResult {
+                            name: "collision_sen_triggered".to_string(),
+                            min: Some(1.0),
+                            max: None,
+                            value: Some(last.collision_sen as f64),
+                            passed: false,
+                        },
+                    ],
+                });
+            }
+
+            thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
+            elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
+            last = gateway.param_id118()?;
+            if last.collision_sen > 0 {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId118".to_string(),
+                    passed: true,
+                    raw_response: format!(
+                        "InitialCollisionSen=0, TriggeredAfter={}ms, {}",
+                        elapsed_ms, last
+                    ),
+                    checks: vec![
+                        CheckResult {
+                            name: "initial_collision_sen_is_0".to_string(),
+                            min: Some(0.0),
+                            max: Some(0.0),
+                            value: Some(0.0),
+                            passed: true,
+                        },
+                        CheckResult {
+                            name: "collision_sen_triggered".to_string(),
+                            min: Some(1.0),
+                            max: None,
+                            value: Some(last.collision_sen as f64),
+                            passed: true,
+                        },
+                    ],
+                });
+            }
         }
-    }
 
-    Ok(TestResult {
-        name,
-        stage,
-        command: "ParamId118".to_string(),
-        passed: false,
-        raw_response: format!(
-            "Timeout={}ms, InitialCollisionSen=0, LastCollisionSen={}, LastResult={}",
-            elapsed_ms, last.collision_sen, last
-        ),
-        checks: vec![
-            CheckResult {
-                name: "initial_collision_sen_is_0".to_string(),
-                min: Some(0.0),
-                max: Some(0.0),
-                value: Some(0.0),
-                passed: true,
-            },
-            CheckResult {
-                name: "collision_sen_triggered".to_string(),
-                min: Some(1.0),
-                max: None,
-                value: Some(last.collision_sen as f64),
-                passed: false,
-            },
-        ],
-    })
+        Ok(TestResult {
+            name,
+            stage,
+            command: "ParamId118".to_string(),
+            passed: false,
+            raw_response: format!(
+                "Timeout={}ms, InitialCollisionSen=0, LastCollisionSen={}, LastResult={}",
+                elapsed_ms, last.collision_sen, last
+            ),
+            checks: vec![
+                CheckResult {
+                    name: "initial_collision_sen_is_0".to_string(),
+                    min: Some(0.0),
+                    max: Some(0.0),
+                    value: Some(0.0),
+                    passed: true,
+                },
+                CheckResult {
+                    name: "collision_sen_triggered".to_string(),
+                    min: Some(1.0),
+                    max: None,
+                    value: Some(last.collision_sen as f64),
+                    passed: false,
+                },
+            ],
+        })
+    })();
+
+    finish_sensor_prompt_session();
+    result
 }
 
 fn run_lift_sensor_test_group(
@@ -1028,66 +1117,93 @@ fn run_lift_sensor_test_group(
         name, lift_threshold
     );
 
-    on_prompt(CollisionBarPromptPayload {
-        name: name.clone(),
-        stage: stage.clone(),
-        prompt_kind: SensorPromptKind::LiftSensor,
-    })?;
+    start_sensor_prompt_session()?;
 
-    let elapsed_limit = if timeout_ms == 0 {
-        u64::MAX
-    } else {
-        timeout_ms
-    };
-    let mut elapsed_ms: u64 = 0;
-    let mut last_lift_sen: u8 = 0;
-    let mut last_raw = "N/A".to_string();
+    let result = (|| -> CommandResult<TestResult> {
+        on_prompt(CollisionBarPromptPayload {
+            name: name.clone(),
+            stage: stage.clone(),
+            prompt_kind: SensorPromptKind::LiftSensor,
+        })?;
 
-    while elapsed_ms < elapsed_limit {
-        thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
-        elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
-        let response = gateway.param_id118()?;
-        last_lift_sen = response.lift_sen;
-        last_raw = response.to_string();
+        let elapsed_limit = if timeout_ms == 0 {
+            u64::MAX
+        } else {
+            timeout_ms
+        };
+        let mut elapsed_ms: u64 = 0;
+        let mut last_lift_sen: u8 = 0;
+        let mut last_raw = "N/A".to_string();
 
-        if response.lift_sen > lift_threshold {
-            return Ok(TestResult {
-                name,
-                stage,
-                command: "ParamId118".to_string(),
-                passed: true,
-                raw_response: format!(
-                    "LiftThreshold={}, TriggeredAfter={}ms, {}",
-                    lift_threshold, elapsed_ms, response
-                ),
-                checks: vec![CheckResult {
-                    name: "lift_sen_triggered".to_string(),
-                    min: Some((lift_threshold as f64) + 1.0),
-                    max: None,
-                    value: Some(response.lift_sen as f64),
+        while elapsed_ms < elapsed_limit {
+            if is_sensor_prompt_canceled()? {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId118".to_string(),
+                    passed: false,
+                    raw_response: format!(
+                        "CanceledByUser, ElapsedMs={}, LiftThreshold={}, LastLiftSen={}, LastResult={}",
+                        elapsed_ms, lift_threshold, last_lift_sen, last_raw
+                    ),
+                    checks: vec![CheckResult {
+                        name: "lift_sen_triggered".to_string(),
+                        min: Some((lift_threshold as f64) + 1.0),
+                        max: None,
+                        value: Some(last_lift_sen as f64),
+                        passed: false,
+                    }],
+                });
+            }
+
+            thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
+            elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
+            let response = gateway.param_id118()?;
+            last_lift_sen = response.lift_sen;
+            last_raw = response.to_string();
+
+            if response.lift_sen > lift_threshold {
+                return Ok(TestResult {
+                    name,
+                    stage,
+                    command: "ParamId118".to_string(),
                     passed: true,
-                }],
-            });
+                    raw_response: format!(
+                        "LiftThreshold={}, TriggeredAfter={}ms, {}",
+                        lift_threshold, elapsed_ms, response
+                    ),
+                    checks: vec![CheckResult {
+                        name: "lift_sen_triggered".to_string(),
+                        min: Some((lift_threshold as f64) + 1.0),
+                        max: None,
+                        value: Some(response.lift_sen as f64),
+                        passed: true,
+                    }],
+                });
+            }
         }
-    }
 
-    Ok(TestResult {
-        name,
-        stage,
-        command: "ParamId118".to_string(),
-        passed: false,
-        raw_response: format!(
-            "Timeout={}ms, LiftThreshold={}, LastLiftSen={}, LastResult={}",
-            elapsed_ms, lift_threshold, last_lift_sen, last_raw
-        ),
-        checks: vec![CheckResult {
-            name: "lift_sen_triggered".to_string(),
-            min: Some((lift_threshold as f64) + 1.0),
-            max: None,
-            value: Some(last_lift_sen as f64),
+        Ok(TestResult {
+            name,
+            stage,
+            command: "ParamId118".to_string(),
             passed: false,
-        }],
-    })
+            raw_response: format!(
+                "Timeout={}ms, LiftThreshold={}, LastLiftSen={}, LastResult={}",
+                elapsed_ms, lift_threshold, last_lift_sen, last_raw
+            ),
+            checks: vec![CheckResult {
+                name: "lift_sen_triggered".to_string(),
+                min: Some((lift_threshold as f64) + 1.0),
+                max: None,
+                value: Some(last_lift_sen as f64),
+                passed: false,
+            }],
+        })
+    })();
+
+    finish_sensor_prompt_session();
+    result
 }
 
 fn run_emergency_stop_test_group(
@@ -2183,6 +2299,42 @@ mod tests {
         assert_eq!(prompted.get(), 0);
     }
 
+    #[test]
+    fn run_group_param_id118_collision_bar_fails_when_dialog_closed() {
+        let gateway = FakeCollisionGateway {
+            collision_sequence: vec![0, 0, 1],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 collision cancel".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                let _ = super::submit_sensor_prompt_cancel();
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert!(result.raw_response.contains("CanceledByUser"));
+        assert_eq!(prompted.get(), 1);
+    }
+
     struct FakeLiftGateway {
         lift_sequence: Vec<u8>,
         called_118: Cell<usize>,
@@ -2353,6 +2505,45 @@ mod tests {
         assert!(!result.passed);
         assert_eq!(result.command, "ParamId118");
         assert_eq!(gateway.called_118.get(), 2);
+        assert_eq!(prompted.get(), 1);
+    }
+
+    #[test]
+    fn run_group_param_id118_lift_sensor_fails_when_dialog_closed() {
+        let gateway = FakeLiftGateway {
+            lift_sequence: vec![0, 1, 2],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 lift cancel".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118LiftSensor {
+                timeout_ms: 10,
+                lift_threshold: 1,
+            },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                let _ = super::submit_sensor_prompt_cancel();
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert!(result.raw_response.contains("CanceledByUser"));
         assert_eq!(prompted.get(), 1);
     }
 

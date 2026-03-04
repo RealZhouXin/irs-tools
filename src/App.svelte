@@ -16,6 +16,7 @@
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
+    cancelSensorPromptTest,
     cancelEmergencyStopTest,
     cancelKeyTest,
     confirmFrontLight,
@@ -279,6 +280,16 @@
 
   async function handleSpeakerTestDialogClose() {
     await confirmSpeakerResult(false);
+  }
+
+  async function handleSensorPromptDialogClose() {
+    showCollisionBarDialog = false;
+    collisionBarPromptPayload = null;
+    try {
+      await cancelSensorPromptTest();
+    } catch (err) {
+      console.error("Failed to cancel sensor prompt test", err);
+    }
   }
 
   function isLiftSensorPrompt(): boolean {
@@ -552,7 +563,7 @@
 
     try {
       const updated = await retestGroup(groupName);
-      upsertResult(updated);
+      handleIncomingResult(updated);
       recalcSummaryState();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -734,6 +745,7 @@
     }
     onYes={() => confirmLightResult(true)}
     onNo={() => confirmLightResult(false)}
+    onRequestClose={() => confirmLightResult(false)}
   />
 
   <KeyTestDialog
@@ -758,6 +770,7 @@
     open={showCollisionBarDialog}
     title={getSensorPromptTitle()}
     message={getSensorPromptMessage()}
+    onRequestClose={handleSensorPromptDialogClose}
   />
 
   <EmergencyStopDialog

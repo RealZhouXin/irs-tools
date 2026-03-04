@@ -67,6 +67,10 @@ export function cancelKeyTest() {
   return invoke("cancel_key_test");
 }
 
+export function cancelSensorPromptTest() {
+  return invoke("cancel_sensor_prompt_test");
+}
+
 export function retestGroup(groupName: string) {
   return invoke<TestResult>("retest_group", { groupName });
 }

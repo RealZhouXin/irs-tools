@@ -1,13 +1,20 @@
 <script lang="ts">
-  let { open, title, message } = $props<{
+  let { open, title, message, onRequestClose } = $props<{
     open: boolean;
     title: string;
     message: string;
+    onRequestClose: () => void;
   }>();
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      onRequestClose();
+    }
+  }
 </script>
 
 {#if open}
-  <div class="overlay" role="presentation">
+  <div class="overlay" role="presentation" onclick={handleOverlayClick}>
     <div class="dialog" role="dialog" aria-modal="true" aria-label={title}>
       <h3>{title}</h3>
       <p>{message}</p>
