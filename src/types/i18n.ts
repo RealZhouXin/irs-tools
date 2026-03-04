@@ -96,4 +96,6 @@ export type Translation = {
   speakerTestQuestion: string;
   collisionBarTestTitle: string;
   collisionBarTestInstruction: string;
+  liftSensorTestTitle: string;
+  liftSensorTestInstruction: string;
 };

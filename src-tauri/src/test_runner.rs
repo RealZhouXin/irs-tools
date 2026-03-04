@@ -6,8 +6,8 @@ use crate::events::{
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CollisionBarPromptPayload, CommandGroupSpec,
     EmergencyStopPhase, EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload,
-    RearLightColor, RearLightConfirmRequestPayload, SpeakerConfirmRequestPayload, TestGroup,
-    TestResult,
+    RearLightColor, RearLightConfirmRequestPayload, SensorPromptKind, SpeakerConfirmRequestPayload,
+    TestGroup, TestResult,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -749,6 +749,17 @@ fn run_group_with_emitters(
         CommandGroupSpec::ParamId118CollisionBar { timeout_ms } => {
             run_collision_bar_test_group(gateway, name, stage, timeout_ms, on_collision_bar_prompt)
         }
+        CommandGroupSpec::ParamId118LiftSensor {
+            timeout_ms,
+            lift_threshold,
+        } => run_lift_sensor_test_group(
+            gateway,
+            name,
+            stage,
+            timeout_ms,
+            lift_threshold,
+            on_collision_bar_prompt,
+        ),
         CommandGroupSpec::ParamId120 { checks } => {
             let response = gateway.param_id120()?;
             Ok(build_checked_result(
@@ -931,6 +942,7 @@ fn run_collision_bar_test_group(
     on_prompt(CollisionBarPromptPayload {
         name: name.clone(),
         stage: stage.clone(),
+        prompt_kind: SensorPromptKind::CollisionBar,
     })?;
 
     let elapsed_limit = if timeout_ms == 0 {
@@ -1000,6 +1012,81 @@ fn run_collision_bar_test_group(
                 passed: false,
             },
         ],
+    })
+}
+
+fn run_lift_sensor_test_group(
+    gateway: &dyn DeviceGateway,
+    name: String,
+    stage: String,
+    timeout_ms: u64,
+    lift_threshold: u8,
+    on_prompt: &dyn Fn(CollisionBarPromptPayload) -> CommandResult<()>,
+) -> CommandResult<TestResult> {
+    info!(
+        "Starting lift sensor test: {}, threshold={}",
+        name, lift_threshold
+    );
+
+    on_prompt(CollisionBarPromptPayload {
+        name: name.clone(),
+        stage: stage.clone(),
+        prompt_kind: SensorPromptKind::LiftSensor,
+    })?;
+
+    let elapsed_limit = if timeout_ms == 0 {
+        u64::MAX
+    } else {
+        timeout_ms
+    };
+    let mut elapsed_ms: u64 = 0;
+    let mut last_lift_sen: u8 = 0;
+    let mut last_raw = "N/A".to_string();
+
+    while elapsed_ms < elapsed_limit {
+        thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
+        elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
+        let response = gateway.param_id118()?;
+        last_lift_sen = response.lift_sen;
+        last_raw = response.to_string();
+
+        if response.lift_sen > lift_threshold {
+            return Ok(TestResult {
+                name,
+                stage,
+                command: "ParamId118".to_string(),
+                passed: true,
+                raw_response: format!(
+                    "LiftThreshold={}, TriggeredAfter={}ms, {}",
+                    lift_threshold, elapsed_ms, response
+                ),
+                checks: vec![CheckResult {
+                    name: "lift_sen_triggered".to_string(),
+                    min: Some((lift_threshold as f64) + 1.0),
+                    max: None,
+                    value: Some(response.lift_sen as f64),
+                    passed: true,
+                }],
+            });
+        }
+    }
+
+    Ok(TestResult {
+        name,
+        stage,
+        command: "ParamId118".to_string(),
+        passed: false,
+        raw_response: format!(
+            "Timeout={}ms, LiftThreshold={}, LastLiftSen={}, LastResult={}",
+            elapsed_ms, lift_threshold, last_lift_sen, last_raw
+        ),
+        checks: vec![CheckResult {
+            name: "lift_sen_triggered".to_string(),
+            min: Some((lift_threshold as f64) + 1.0),
+            max: None,
+            value: Some(last_lift_sen as f64),
+            passed: false,
+        }],
     })
 }
 
@@ -2094,6 +2181,179 @@ mod tests {
         assert_eq!(result.command, "ParamId118");
         assert_eq!(gateway.called_118.get(), 1);
         assert_eq!(prompted.get(), 0);
+    }
+
+    struct FakeLiftGateway {
+        lift_sequence: Vec<u8>,
+        called_118: Cell<usize>,
+    }
+
+    impl DeviceGateway for FakeLiftGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id068(&self) -> CommandResult<ParamId068Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id588(&self) -> CommandResult<ParamId588Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id654(&self) -> CommandResult<ParamId654Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id272(&self) -> CommandResult<ParamId272Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
+            let idx = self.called_118.get();
+            let value = self
+                .lift_sequence
+                .get(idx)
+                .copied()
+                .or_else(|| self.lift_sequence.last().copied())
+                .unwrap_or(0);
+            self.called_118.set(idx + 1);
+            Ok(crate::models::ParamId118Result {
+                collision_sen: 0,
+                lift_sen: value,
+                status_flags: 0,
+                stop_sen: 0,
+                disabling_sen: 0,
+            })
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
+            panic!("not used in this test")
+        }
+    }
+
+    #[test]
+    fn run_group_param_id118_lift_sensor_passes_after_trigger() {
+        let gateway = FakeLiftGateway {
+            lift_sequence: vec![0, 1, 2],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 lift test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118LiftSensor {
+                timeout_ms: 10,
+                lift_threshold: 1,
+            },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert_eq!(gateway.called_118.get(), 3);
+        assert_eq!(prompted.get(), 1);
+    }
+
+    #[test]
+    fn run_group_param_id118_lift_sensor_times_out() {
+        let gateway = FakeLiftGateway {
+            lift_sequence: vec![0, 1, 1],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 lift test timeout".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118LiftSensor {
+                timeout_ms: 2,
+                lift_threshold: 1,
+            },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert_eq!(gateway.called_118.get(), 2);
+        assert_eq!(prompted.get(), 1);
     }
 
     struct FakeEmergencyStopGateway {

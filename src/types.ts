@@ -8,6 +8,7 @@ export type {
   KeyStatePayload,
   RearLightColor,
   RearLightConfirmRequestPayload,
+  SensorPromptKind,
   SpeakerConfirmRequestPayload,
   TestResult,
   TestSummary,

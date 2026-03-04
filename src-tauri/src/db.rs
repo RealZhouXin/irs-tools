@@ -20,6 +20,7 @@ pub fn persist_test_results(
     app: &tauri::AppHandle,
     stage: &str,
     status: &str,
+    sn: Option<u32>,
     start_time: DateTime<Local>,
     duration_ms: i64,
     results: &[TestResult],
@@ -32,10 +33,11 @@ pub fn persist_test_results(
         .map_err(|err| AppError::msg(format!("开启数据库事务失败: {err}")))?;
 
     tx.execute(
-        "INSERT INTO test_sessions (stage, status, duration_ms, start_time) VALUES (?1, ?2, ?3, ?4)",
+        "INSERT INTO test_sessions (stage, status, sn, duration_ms, start_time) VALUES (?1, ?2, ?3, ?4, ?5)",
         params![
             stage,
             status,
+            sn,
             duration_ms,
             start_time.format("%Y-%m-%d %H:%M:%S").to_string()
         ],
@@ -101,7 +103,7 @@ pub fn export_test_results_csv(
     let mut stmt = connection
         .prepare(
             "SELECT \
-             s.start_time, s.stage, c.group_name, c.command, c.check_name, \
+             s.start_time, s.stage, s.sn, c.group_name, c.command, c.check_name, \
              c.val_real, c.min_limit, c.max_limit, c.passed, c.raw_response \
              FROM test_sessions s \
              JOIN test_checks c ON s.id = c.session_id \
@@ -121,6 +123,7 @@ pub fn export_test_results_csv(
         .write_record([
             "测试时间",
             "测试场景",
+            "机器SN",
             "测试项组",
             "执行指令",
             "检查项(Check)",
@@ -147,35 +150,39 @@ pub fn export_test_results_csv(
         let stage: String = row
             .get(1)
             .map_err(|err| AppError::msg(format!("读取测试场景失败: {err}")))?;
-        let group_name: String = row
+        let sn: Option<u32> = row
             .get(2)
+            .map_err(|err| AppError::msg(format!("读取机器SN失败: {err}")))?;
+        let group_name: String = row
+            .get(3)
             .map_err(|err| AppError::msg(format!("读取测试组失败: {err}")))?;
         let command: String = row
-            .get(3)
+            .get(4)
             .map_err(|err| AppError::msg(format!("读取命令失败: {err}")))?;
         let check_name: String = row
-            .get(4)
+            .get(5)
             .map_err(|err| AppError::msg(format!("读取检查项失败: {err}")))?;
         let val_real: Option<f64> = row
-            .get(5)
+            .get(6)
             .map_err(|err| AppError::msg(format!("读取实测值失败: {err}")))?;
         let min_limit: Option<f64> = row
-            .get(6)
+            .get(7)
             .map_err(|err| AppError::msg(format!("读取下限失败: {err}")))?;
         let max_limit: Option<f64> = row
-            .get(7)
+            .get(8)
             .map_err(|err| AppError::msg(format!("读取上限失败: {err}")))?;
         let passed: i64 = row
-            .get(8)
+            .get(9)
             .map_err(|err| AppError::msg(format!("读取通过状态失败: {err}")))?;
         let raw_response: String = row
-            .get(9)
+            .get(10)
             .map_err(|err| AppError::msg(format!("读取原始报文失败: {err}")))?;
 
         writer
             .write_record([
                 start_time,
                 stage,
+                sn.map(|v| v.to_string()).unwrap_or_default(),
                 group_name,
                 command,
                 check_name,
@@ -267,6 +274,7 @@ fn init_schema(connection: &Connection) -> CommandResult<()> {
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  stage TEXT NOT NULL,
                  status TEXT NOT NULL,
+                 sn INTEGER NULL,
                  duration_ms INTEGER NOT NULL,
                  start_time TEXT NOT NULL
              );
@@ -287,6 +295,38 @@ fn init_schema(connection: &Connection) -> CommandResult<()> {
              CREATE INDEX IF NOT EXISTS idx_test_checks_session_id ON test_checks(session_id);",
         )
         .map_err(|err| AppError::msg(format!("初始化数据库结构失败: {err}")))?;
+    ensure_test_sessions_sn_column(connection)?;
+
+    Ok(())
+}
+
+fn ensure_test_sessions_sn_column(connection: &Connection) -> CommandResult<()> {
+    let mut stmt = connection
+        .prepare("PRAGMA table_info(test_sessions)")
+        .map_err(|err| AppError::msg(format!("读取 test_sessions 表结构失败: {err}")))?;
+    let mut rows = stmt
+        .query([])
+        .map_err(|err| AppError::msg(format!("执行 test_sessions 表结构查询失败: {err}")))?;
+
+    let mut has_sn = false;
+    while let Some(row) = rows
+        .next()
+        .map_err(|err| AppError::msg(format!("读取 test_sessions 表结构行失败: {err}")))?
+    {
+        let name: String = row
+            .get(1)
+            .map_err(|err| AppError::msg(format!("读取 test_sessions 列名失败: {err}")))?;
+        if name == "sn" {
+            has_sn = true;
+            break;
+        }
+    }
+
+    if !has_sn {
+        connection
+            .execute("ALTER TABLE test_sessions ADD COLUMN sn INTEGER NULL", [])
+            .map_err(|err| AppError::msg(format!("迁移 test_sessions.sn 列失败: {err}")))?;
+    }
 
     Ok(())
 }

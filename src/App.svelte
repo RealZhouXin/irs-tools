@@ -281,6 +281,25 @@
     await confirmSpeakerResult(false);
   }
 
+  function isLiftSensorPrompt(): boolean {
+    return collisionBarPromptPayload?.prompt_kind === "lift_sensor";
+  }
+
+  function getSensorPromptTitle(): string {
+    return isLiftSensorPrompt()
+      ? text.liftSensorTestTitle
+      : text.collisionBarTestTitle;
+  }
+
+  function getSensorPromptMessage(): string {
+    const base = isLiftSensorPrompt()
+      ? text.liftSensorTestInstruction
+      : text.collisionBarTestInstruction;
+    return collisionBarPromptPayload
+      ? `${base} (${collisionBarPromptPayload.name})`
+      : base;
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
@@ -737,12 +756,8 @@
 
   <InstructionDialog
     open={showCollisionBarDialog}
-    title={text.collisionBarTestTitle}
-    message={
-      collisionBarPromptPayload
-        ? `${text.collisionBarTestInstruction} (${collisionBarPromptPayload.name})`
-        : text.collisionBarTestInstruction
-    }
+    title={getSensorPromptTitle()}
+    message={getSensorPromptMessage()}
   />
 
   <EmergencyStopDialog

@@ -54,7 +54,10 @@ export type SpeakerConfirmRequestPayload = {
 export type CollisionBarPromptPayload = {
   name: string;
   stage: string;
+  prompt_kind: SensorPromptKind;
 };
+
+export type SensorPromptKind = "collision_bar" | "lift_sensor";
 
 export type EmergencyStopPhase =
   | "press_emergency_stop"

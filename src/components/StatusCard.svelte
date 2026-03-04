@@ -2,7 +2,7 @@
   import type { StatusKey, SummaryState, Translation } from "../types";
   import * as Card from "$lib/components/ui/card/index.js";
 
-  let { text, statusKey, summaryState, summaryLabel } = $props<{
+  let { text, statusKey, summaryState, summaryLabel, machineSn } = $props<{
     text: Translation;
     statusKey: StatusKey;
     summaryState: SummaryState;

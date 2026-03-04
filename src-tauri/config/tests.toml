@@ -1,4 +1,4 @@
-stages = ["software", "status", "battery", "sensor", "cutting_height", "actuator", "key_test"]
+stages = ["info", "software", "status", "battery", "sensor", "cutting_height", "actuator", "key_test"]
 
 [[tests]]
 name = "068 主板应用软件"
@@ -98,7 +98,7 @@ max = 3
 [[tests]]
 name = "526 应用板硬件信息"
 command = "param_id526"
-stage = "status"
+stage = "info"
 [[tests.checks]]
 name = "pcb_pn"
 output = "pcb_pn"
@@ -413,6 +413,13 @@ name = "118 碰撞条测试"
 command = "param_id118_collision_bar"
 stage = "sensor"
 timeout_ms = 30000
+
+[[tests]]
+name = "118 抬升传感器测试"
+command = "param_id118_lift_sensor"
+stage = "sensor"
+timeout_ms = 30000
+lift_threshold = 0
 
 [[tests]]
 name = "080 急停键测试"

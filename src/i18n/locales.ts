@@ -97,6 +97,8 @@ export const textMap: Record<Language, Translation> = {
         speakerTestQuestion: "请确认扬声器是否有响声？",
         collisionBarTestTitle: "碰撞条测试",
         collisionBarTestInstruction: "请用手捏住碰撞条，系统将自动检测触发状态。",
+        liftSensorTestTitle: "抬升传感器测试",
+        liftSensorTestInstruction: "请抬起机器尾部，使万向轮悬空，系统将自动检测抬升状态。",
     },
     en: {
         title: "Test Console",
@@ -194,6 +196,8 @@ export const textMap: Record<Language, Translation> = {
         speakerTestQuestion: "Please confirm whether the speaker produced sound.",
         collisionBarTestTitle: "Collision Bar Test",
         collisionBarTestInstruction: "Please pinch the collision bar by hand. The system will detect the trigger automatically.",
+        liftSensorTestTitle: "Lift Sensor Test",
+        liftSensorTestInstruction: "Please lift the rear of the mower so the caster wheel is off the ground. The system will detect lift status automatically.",
     },
 };
 

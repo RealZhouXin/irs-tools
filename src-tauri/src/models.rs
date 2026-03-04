@@ -50,6 +50,10 @@ pub struct TestGroup {
     pub command: CommandGroupSpec,
 }
 
+fn default_lift_sensor_threshold() -> u8 {
+    0
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum CommandGroupSpec {
@@ -79,6 +83,11 @@ pub enum CommandGroupSpec {
     },
     ParamId118CollisionBar {
         timeout_ms: u64,
+    },
+    ParamId118LiftSensor {
+        timeout_ms: u64,
+        #[serde(default = "default_lift_sensor_threshold")]
+        lift_threshold: u8,
     },
     ParamId120 {
         checks: Vec<ParamId120Check>,
@@ -961,6 +970,14 @@ pub struct EmergencyStopTestPayload {
 pub struct CollisionBarPromptPayload {
     pub name: String,
     pub stage: String,
+    pub prompt_kind: SensorPromptKind,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SensorPromptKind {
+    CollisionBar,
+    LiftSensor,
 }
 
 impl fmt::Display for ParamId588Result {
