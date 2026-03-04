@@ -3,6 +3,7 @@
   import { save } from "@tauri-apps/plugin-dialog";
   import type {
     BaseConfig,
+    CollisionBarPromptPayload,
     EmergencyStopTestPayload,
     KeyStatePayload,
     LogLevel,
@@ -32,6 +33,7 @@
     stopTest,
     subscribeFrontLightConfirmRequest,
     subscribeEmergencyStopTestUpdate,
+    subscribeCollisionBarPromptRequest,
     subscribeRearLightConfirmRequest,
     subscribeSpeakerConfirmRequest,
     subscribeKeyStateUpdate,
@@ -43,6 +45,7 @@
   import ExportDialog from "./components/ExportDialog.svelte";
   import EmergencyStopDialog from "./components/EmergencyStopDialog.svelte";
   import KeyTestDialog from "./components/KeyTestDialog.svelte";
+  import InstructionDialog from "./components/InstructionDialog.svelte";
   import SpeakerTestDialog from "./components/SpeakerTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
@@ -86,6 +89,8 @@
   let showKeyTestDialog = $state(false);
   let keyTestDialogDismissed = $state(false);
   let showSpeakerTestDialog = $state(false);
+  let showCollisionBarDialog = $state(false);
+  let collisionBarPromptPayload = $state<CollisionBarPromptPayload | null>(null);
   let showEmergencyStopDialog = $state(false);
   let emergencyStopPayload = $state<EmergencyStopTestPayload | null>(null);
   let keyState = $state<KeyStatePayload>({
@@ -143,6 +148,10 @@
     }
     if (incoming.command === "ParamId568") {
       showSpeakerTestDialog = false;
+    }
+    if (incoming.command === "ParamId118") {
+      showCollisionBarDialog = false;
+      collisionBarPromptPayload = null;
     }
     upsertResult(incoming);
   }
@@ -267,6 +276,7 @@
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
     let unlistenEmergencyStopUpdate: (() => void) | null = null;
+    let unlistenCollisionBarPrompt: (() => void) | null = null;
     let unlistenFrontLightConfirm: (() => void) | null = null;
     let unlistenRearLightConfirm: (() => void) | null = null;
     let unlistenSpeakerConfirm: (() => void) | null = null;
@@ -313,6 +323,21 @@
       .catch((err) => {
         console.error(
           `Failed to listen ${TAURI_EVENTS.emergencyStopTestUpdate}`,
+          err,
+        );
+      });
+
+    subscribeCollisionBarPromptRequest((payload) => {
+      collisionBarPromptPayload = payload;
+      showCollisionBarDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenCollisionBarPrompt = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.collisionBarPromptRequest}`,
           err,
         );
       });
@@ -398,6 +423,9 @@
       if (unlistenEmergencyStopUpdate) {
         unlistenEmergencyStopUpdate();
       }
+      if (unlistenCollisionBarPrompt) {
+        unlistenCollisionBarPrompt();
+      }
       if (unlistenFrontLightConfirm) {
         unlistenFrontLightConfirm();
       }
@@ -432,6 +460,8 @@
     showEmergencyStopDialog = false;
     emergencyStopPayload = null;
     showSpeakerTestDialog = false;
+    showCollisionBarDialog = false;
+    collisionBarPromptPayload = null;
     showKeyTestDialog = false;
     keyTestDialogDismissed = false;
     keyState = { up_pressed: false, down_pressed: false, back_pressed: false, confirm_pressed: false };
@@ -692,6 +722,16 @@
     onYes={() => confirmSpeakerResult(true)}
     onNo={() => confirmSpeakerResult(false)}
     onRequestClose={handleSpeakerTestDialogClose}
+  />
+
+  <InstructionDialog
+    open={showCollisionBarDialog}
+    title={text.collisionBarTestTitle}
+    message={
+      collisionBarPromptPayload
+        ? `${text.collisionBarTestInstruction} (${collisionBarPromptPayload.name})`
+        : text.collisionBarTestInstruction
+    }
   />
 
   <EmergencyStopDialog

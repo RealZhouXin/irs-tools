@@ -94,6 +94,8 @@ export const textMap: Record<Language, Translation> = {
         keyTestTimeout: "超时",
         speakerTestTitle: "扬声器测试",
         speakerTestQuestion: "请确认扬声器是否有响声？",
+        collisionBarTestTitle: "碰撞条测试",
+        collisionBarTestInstruction: "请用手捏住碰撞条，系统将自动检测触发状态。",
     },
     en: {
         title: "Test Console",
@@ -188,6 +190,8 @@ export const textMap: Record<Language, Translation> = {
         keyTestTimeout: "Timeout",
         speakerTestTitle: "Speaker Test",
         speakerTestQuestion: "Please confirm whether the speaker produced sound.",
+        collisionBarTestTitle: "Collision Bar Test",
+        collisionBarTestInstruction: "Please pinch the collision bar by hand. The system will detect the trigger automatically.",
     },
 };
 

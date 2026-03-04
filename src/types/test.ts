@@ -51,6 +51,11 @@ export type SpeakerConfirmRequestPayload = {
   on: number;
 };
 
+export type CollisionBarPromptPayload = {
+  name: string;
+  stage: string;
+};
+
 export type EmergencyStopPhase =
   | "press_emergency_stop"
   | "unlock_by_back_and_confirm";

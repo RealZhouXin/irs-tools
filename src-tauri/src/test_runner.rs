@@ -1,12 +1,13 @@
 use crate::device_gateway::DeviceGateway;
 use crate::events::{
-    EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST, KEY_STATE_UPDATE,
-    REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST,
+    COLLISION_BAR_PROMPT_REQUEST, EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST,
+    KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST,
 };
 use crate::models::{
-    CheckConfig, CheckResult, CheckableResult, CommandGroupSpec, EmergencyStopPhase,
-    EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload, RearLightColor,
-    RearLightConfirmRequestPayload, SpeakerConfirmRequestPayload, TestGroup, TestResult,
+    CheckConfig, CheckResult, CheckableResult, CollisionBarPromptPayload, CommandGroupSpec,
+    EmergencyStopPhase, EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload,
+    RearLightColor, RearLightConfirmRequestPayload, SpeakerConfirmRequestPayload, TestGroup,
+    TestResult,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -21,6 +22,10 @@ const PARAM_ID470_MAX_RETRIES: u32 = 5;
 const PARAM_ID470_RETRY_DELAY_MS: u64 = 0;
 #[cfg(not(test))]
 const PARAM_ID470_RETRY_DELAY_MS: u64 = 1000;
+#[cfg(test)]
+const PARAM_ID118_POLL_INTERVAL_MS: u64 = 0;
+#[cfg(not(test))]
+const PARAM_ID118_POLL_INTERVAL_MS: u64 = 1000;
 
 #[derive(Debug)]
 struct FrontLightConfirmState {
@@ -462,6 +467,7 @@ pub fn run_group(
         &|request| wait_for_front_light_confirmation(app, request),
         &|request| wait_for_rear_light_confirmation(app, request),
         &|request| wait_for_speaker_confirmation(app, request),
+        &|request| wait_for_collision_bar_prompt(app, request),
         &|payload| {
             if let Err(err) = app.emit(EMERGENCY_STOP_TEST_UPDATE, &payload) {
                 error!("Failed to emit emergency stop update: {}", err);
@@ -621,6 +627,14 @@ fn wait_for_speaker_confirmation(
     Ok(result)
 }
 
+fn wait_for_collision_bar_prompt(
+    app: &AppHandle,
+    request: CollisionBarPromptPayload,
+) -> CommandResult<()> {
+    app.emit(COLLISION_BAR_PROMPT_REQUEST, &request)
+        .map_err(|err| AppError::msg(format!("发送碰撞条提示事件失败: {err}")))
+}
+
 fn run_group_with_emitters(
     gateway: &dyn DeviceGateway,
     group: TestGroup,
@@ -628,6 +642,7 @@ fn run_group_with_emitters(
     on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
     on_rear_light_confirm: &dyn Fn(RearLightConfirmRequestPayload) -> CommandResult<bool>,
     on_speaker_confirm: &dyn Fn(SpeakerConfirmRequestPayload) -> CommandResult<bool>,
+    on_collision_bar_prompt: &dyn Fn(CollisionBarPromptPayload) -> CommandResult<()>,
     on_emergency_stop_update: &dyn Fn(EmergencyStopTestPayload),
 ) -> CommandResult<TestResult> {
     let TestGroup {
@@ -693,6 +708,9 @@ fn run_group_with_emitters(
             timeout_ms,
             on_emergency_stop_update,
         ),
+        CommandGroupSpec::ParamId118CollisionBar { timeout_ms } => {
+            run_collision_bar_test_group(gateway, name, stage, timeout_ms, on_collision_bar_prompt)
+        }
         CommandGroupSpec::ParamId120 { checks } => {
             let response = gateway.param_id120()?;
             Ok(build_checked_result(
@@ -828,6 +846,119 @@ fn run_group_with_emitters(
             run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
         }
     }
+}
+
+fn run_collision_bar_test_group(
+    gateway: &dyn DeviceGateway,
+    name: String,
+    stage: String,
+    timeout_ms: u64,
+    on_prompt: &dyn Fn(CollisionBarPromptPayload) -> CommandResult<()>,
+) -> CommandResult<TestResult> {
+    info!("Starting collision bar test: {}", name);
+    let initial = gateway.param_id118()?;
+    let initial_ok = initial.collision_sen == 0;
+    if !initial_ok {
+        return Ok(TestResult {
+            name,
+            stage,
+            command: "ParamId118".to_string(),
+            passed: false,
+            raw_response: format!(
+                "{initial}, Reason=InitialCollisionNotZero, ExpectedCollisionSen=0"
+            ),
+            checks: vec![
+                CheckResult {
+                    name: "initial_collision_sen_is_0".to_string(),
+                    min: Some(0.0),
+                    max: Some(0.0),
+                    value: Some(initial.collision_sen as f64),
+                    passed: false,
+                },
+                CheckResult {
+                    name: "collision_sen_triggered".to_string(),
+                    min: Some(1.0),
+                    max: None,
+                    value: Some(initial.collision_sen as f64),
+                    passed: false,
+                },
+            ],
+        });
+    }
+
+    on_prompt(CollisionBarPromptPayload {
+        name: name.clone(),
+        stage: stage.clone(),
+    })?;
+
+    let elapsed_limit = if timeout_ms == 0 {
+        u64::MAX
+    } else {
+        timeout_ms
+    };
+    let mut elapsed_ms: u64 = 0;
+    let mut last = initial;
+
+    while elapsed_ms < elapsed_limit {
+        thread::sleep(Duration::from_millis(PARAM_ID118_POLL_INTERVAL_MS));
+        elapsed_ms = elapsed_ms.saturating_add(PARAM_ID118_POLL_INTERVAL_MS.max(1));
+        last = gateway.param_id118()?;
+        if last.collision_sen > 0 {
+            return Ok(TestResult {
+                name,
+                stage,
+                command: "ParamId118".to_string(),
+                passed: true,
+                raw_response: format!(
+                    "InitialCollisionSen=0, TriggeredAfter={}ms, {}",
+                    elapsed_ms, last
+                ),
+                checks: vec![
+                    CheckResult {
+                        name: "initial_collision_sen_is_0".to_string(),
+                        min: Some(0.0),
+                        max: Some(0.0),
+                        value: Some(0.0),
+                        passed: true,
+                    },
+                    CheckResult {
+                        name: "collision_sen_triggered".to_string(),
+                        min: Some(1.0),
+                        max: None,
+                        value: Some(last.collision_sen as f64),
+                        passed: true,
+                    },
+                ],
+            });
+        }
+    }
+
+    Ok(TestResult {
+        name,
+        stage,
+        command: "ParamId118".to_string(),
+        passed: false,
+        raw_response: format!(
+            "Timeout={}ms, InitialCollisionSen=0, LastCollisionSen={}, LastResult={}",
+            elapsed_ms, last.collision_sen, last
+        ),
+        checks: vec![
+            CheckResult {
+                name: "initial_collision_sen_is_0".to_string(),
+                min: Some(0.0),
+                max: Some(0.0),
+                value: Some(0.0),
+                passed: true,
+            },
+            CheckResult {
+                name: "collision_sen_triggered".to_string(),
+                min: Some(1.0),
+                max: None,
+                value: Some(last.collision_sen as f64),
+                passed: false,
+            },
+        ],
+    })
 }
 
 fn run_emergency_stop_test_group(
@@ -1119,6 +1250,10 @@ mod tests {
             panic!("not used in this test")
         }
 
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
+            panic!("not used in this test")
+        }
+
         fn param_id120(&self) -> CommandResult<ParamId120Result> {
             panic!("not used in this test")
         }
@@ -1209,6 +1344,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1257,6 +1393,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1300,6 +1437,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1344,6 +1482,7 @@ mod tests {
             &|_| Ok(false),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1385,6 +1524,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1431,6 +1571,7 @@ mod tests {
                 Ok(index == 0)
             },
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1482,6 +1623,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1529,11 +1671,167 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
         assert!(result.passed);
         assert_eq!(gateway.called_470.get(), 3);
+    }
+
+    struct FakeCollisionGateway {
+        collision_sequence: Vec<u8>,
+        called_118: Cell<usize>,
+    }
+
+    impl DeviceGateway for FakeCollisionGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id068(&self) -> CommandResult<ParamId068Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id588(&self) -> CommandResult<ParamId588Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id654(&self) -> CommandResult<ParamId654Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id272(&self) -> CommandResult<ParamId272Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
+            let idx = self.called_118.get();
+            let value = self
+                .collision_sequence
+                .get(idx)
+                .copied()
+                .or_else(|| self.collision_sequence.last().copied())
+                .unwrap_or(0);
+            self.called_118.set(idx + 1);
+            Ok(crate::models::ParamId118Result {
+                collision_sen: value,
+                lift_sen: 0,
+                status_flags: 0,
+                stop_sen: 0,
+                disabling_sen: 0,
+            })
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
+            panic!("not used in this test")
+        }
+    }
+
+    #[test]
+    fn run_group_param_id118_collision_bar_passes_after_trigger() {
+        let gateway = FakeCollisionGateway {
+            collision_sequence: vec![0, 0, 1],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 collision test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert_eq!(gateway.called_118.get(), 3);
+        assert_eq!(prompted.get(), 1);
+    }
+
+    #[test]
+    fn run_group_param_id118_collision_bar_fails_when_initial_not_zero() {
+        let gateway = FakeCollisionGateway {
+            collision_sequence: vec![1],
+            called_118: Cell::new(0),
+        };
+
+        let group = TestGroup {
+            name: "118 collision test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
+        };
+
+        let prompted = Cell::new(0usize);
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| {
+                prompted.set(prompted.get() + 1);
+                Ok(())
+            },
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert_eq!(result.command, "ParamId118");
+        assert_eq!(gateway.called_118.get(), 1);
+        assert_eq!(prompted.get(), 0);
     }
 
     struct FakeEmergencyStopGateway {
@@ -1583,6 +1881,10 @@ mod tests {
                 notify: 0,
                 configuration_hash: 0,
             })
+        }
+
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
+            panic!("not used in this test")
         }
 
         fn param_id120(&self) -> CommandResult<ParamId120Result> {
@@ -1643,6 +1945,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|payload| {
                 updates.borrow_mut().push(payload);
             },
@@ -1684,6 +1987,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|payload| {
                 updates.borrow_mut().push(payload);
             },
@@ -1719,6 +2023,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1748,6 +2053,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|payload| {
                 if matches!(payload.phase, EmergencyStopPhase::PressEmergencyStop) {
                     let _ = submit_emergency_stop_cancel();
@@ -1789,6 +2095,10 @@ mod tests {
         }
 
         fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
             panic!("not used in this test")
         }
 
@@ -1893,6 +2203,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1933,6 +2244,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");
@@ -1983,6 +2295,7 @@ mod tests {
             &|_| Ok(true),
             &|_| Ok(true),
             &|_| Ok(true),
+            &|_| Ok(()),
             &|_| {},
         )
         .expect("group should run");

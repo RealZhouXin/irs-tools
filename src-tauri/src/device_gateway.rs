@@ -5,9 +5,9 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId776Result,
-    ParamId794Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId118Result, ParamId120Result,
+    ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+    ParamId776Result, ParamId794Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -18,6 +18,7 @@ pub trait DeviceGateway {
     fn param_id654(&self) -> CommandResult<ParamId654Result>;
     fn param_id272(&self) -> CommandResult<ParamId272Result>;
     fn param_id080(&self) -> CommandResult<ParamId080Result>;
+    fn param_id118(&self) -> CommandResult<ParamId118Result>;
     fn param_id120(&self) -> CommandResult<ParamId120Result>;
     fn param_id122(&self) -> CommandResult<ParamId122Result>;
     fn param_id470(&self) -> CommandResult<ParamId470Result>;
@@ -81,6 +82,10 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id080(&self) -> CommandResult<ParamId080Result> {
         self.session.param_id080()
+    }
+
+    fn param_id118(&self) -> CommandResult<ParamId118Result> {
+        self.session.param_id118()
     }
 
     fn param_id120(&self) -> CommandResult<ParamId120Result> {

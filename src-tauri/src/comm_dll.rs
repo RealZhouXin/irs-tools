@@ -5,9 +5,9 @@ use libloading::Library;
 use tracing::{error, info};
 
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result, ParamId776Result,
-    ParamId794Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId118Result, ParamId120Result,
+    ParamId122Result, ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+    ParamId776Result, ParamId794Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -52,6 +52,8 @@ type ParamId080Fn = unsafe extern "system" fn(
     *mut u16,
     *mut u8,
 );
+type ParamId118Fn =
+    unsafe extern "system" fn(*mut u8, *mut u8, *mut u8, *mut u16, *mut u8, *mut u8);
 type ParamId120Fn = unsafe extern "system" fn(
     *mut u8,
     *mut i16,
@@ -98,6 +100,7 @@ pub struct CommDll {
     param_id654: ParamId654Fn,
     param_id272: ParamId272Fn,
     param_id080: ParamId080Fn,
+    param_id118: ParamId118Fn,
     param_id120: ParamId120Fn,
     param_id122: ParamId122Fn,
     param_id470: ParamId470Fn,
@@ -428,6 +431,44 @@ impl CommSession {
             source_for_next_start_stop,
             notify,
             configuration_hash,
+        })
+    }
+
+    pub fn param_id118(&self) -> CommandResult<ParamId118Result> {
+        info!("Running ParamId118");
+        let mut return_code: u8 = 9;
+        let mut collision_sen: u8 = 0;
+        let mut lift_sen: u8 = 0;
+        let mut status_flags: u16 = 0;
+        let mut stop_sen: u8 = 0;
+        let mut disabling_sen: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id118)(
+                &mut return_code,
+                &mut collision_sen,
+                &mut lift_sen,
+                &mut status_flags,
+                &mut stop_sen,
+                &mut disabling_sen,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId118 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId118 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId118Result {
+            collision_sen,
+            lift_sen,
+            status_flags,
+            stop_sen,
+            disabling_sen,
         })
     }
 
@@ -781,6 +822,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
             )?;
+            let param_id118 = load_symbol::<ParamId118Fn>(
+                &lib,
+                &[b"ParamId118\0", b"ParamId118@24\0", b"_ParamId118@24\0"],
+            )?;
             let param_id120 = load_symbol::<ParamId120Fn>(
                 &lib,
                 &[b"ParamId120\0", b"ParamId120@48\0", b"_ParamId120@48\0"],
@@ -818,6 +863,7 @@ impl CommDll {
                 param_id654,
                 param_id272,
                 param_id080,
+                param_id118,
                 param_id120,
                 param_id122,
                 param_id470,

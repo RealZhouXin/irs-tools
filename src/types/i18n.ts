@@ -93,4 +93,6 @@ export type Translation = {
   keyTestTimeout: string;
   speakerTestTitle: string;
   speakerTestQuestion: string;
+  collisionBarTestTitle: string;
+  collisionBarTestInstruction: string;
 };

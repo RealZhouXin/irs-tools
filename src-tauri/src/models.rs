@@ -71,6 +71,9 @@ pub enum CommandGroupSpec {
     ParamId080EmergencyStop {
         timeout_ms: u64,
     },
+    ParamId118CollisionBar {
+        timeout_ms: u64,
+    },
     ParamId120 {
         checks: Vec<ParamId120Check>,
     },
@@ -672,6 +675,15 @@ pub struct ParamId080Result {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct ParamId118Result {
+    pub collision_sen: u8,
+    pub lift_sen: u8,
+    pub status_flags: u16,
+    pub stop_sen: u8,
+    pub disabling_sen: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct ParamId120Result {
     pub pitch_angle: i16,
     pub roll_angle: i16,
@@ -779,6 +791,12 @@ pub struct EmergencyStopTestPayload {
     pub timeout_ms: u64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct CollisionBarPromptPayload {
+    pub name: String,
+    pub stage: String,
+}
+
 impl fmt::Display for ParamId588Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -862,6 +880,16 @@ impl fmt::Display for ParamId080Result {
             self.source_for_next_start_stop,
             self.notify,
             self.configuration_hash
+        )
+    }
+}
+
+impl fmt::Display for ParamId118Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "CollisionSen={}, LiftSen={}, StatusFlags={}, StopSen={}, DisablingSen={}",
+            self.collision_sen, self.lift_sen, self.status_flags, self.stop_sen, self.disabling_sen
         )
     }
 }

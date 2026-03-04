@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import type {
   BaseConfig,
+  CollisionBarPromptPayload,
   EmergencyStopTestPayload,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
@@ -19,6 +20,7 @@ export const TAURI_EVENTS = {
   rearLightConfirmRequest: "rear-light-confirm-request",
   speakerConfirmRequest: "speaker-confirm-request",
   emergencyStopTestUpdate: "emergency-stop-test-update",
+  collisionBarPromptRequest: "collision-bar-prompt-request",
 } as const;
 
 export function showMainWindow() {
@@ -147,6 +149,18 @@ export async function subscribeEmergencyStopTestUpdate(
 ) {
   const stop = await listen<EmergencyStopTestPayload>(
     TAURI_EVENTS.emergencyStopTestUpdate,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeCollisionBarPromptRequest(
+  handler: (payload: CollisionBarPromptPayload) => void,
+) {
+  const stop = await listen<CollisionBarPromptPayload>(
+    TAURI_EVENTS.collisionBarPromptRequest,
     (event) => {
       handler(event.payload);
     },

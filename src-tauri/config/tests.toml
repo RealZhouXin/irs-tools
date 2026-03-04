@@ -369,6 +369,12 @@ command = "param_id610"
 stage = "actuator"
 
 [[tests]]
+name = "118 碰撞条测试"
+command = "param_id118_collision_bar"
+stage = "sensor"
+timeout_ms = 30000
+
+[[tests]]
 name = "080 急停键测试"
 command = "param_id080_emergency_stop"
 stage = "key_test"
