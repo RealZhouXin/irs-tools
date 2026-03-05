@@ -7,7 +7,8 @@ use tracing::{error, info};
 use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId118Result,
     ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId526Result,
-    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId798Result,
+    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId796Result,
+    ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -116,6 +117,7 @@ type ParamId568Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId610Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId794Fn =
     unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId796Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId798Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId776Fn = unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
 
@@ -142,6 +144,7 @@ pub struct CommDll {
     param_id568: ParamId568Fn,
     param_id610: ParamId610Fn,
     param_id794: ParamId794Fn,
+    param_id796: ParamId796Fn,
     param_id798: ParamId798Fn,
     param_id776: ParamId776Fn,
 }
@@ -298,6 +301,27 @@ impl CommSession {
         Ok(ParamId798Result {
             version: String::from_utf8_lossy(&version[..end]).into_owned(),
         })
+    }
+
+    pub fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        info!("Running ParamId796");
+        let mut return_code: u8 = 9;
+        let mut mqtt_status: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id796)(&mut return_code, &mut mqtt_status);
+        }
+
+        if return_code != 0 {
+            error!("ParamId796 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId796 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId796Result { mqtt_status })
     }
 
     fn run_common_param_command(
@@ -1033,6 +1057,10 @@ impl CommDll {
                 &lib,
                 &[b"ParamId794\0", b"ParamId794@28\0", b"_ParamId794@28\0"],
             )?;
+            let param_id796 = load_symbol::<ParamId796Fn>(
+                &lib,
+                &[b"ParamId796\0", b"ParamId796@8\0", b"_ParamId796@8\0"],
+            )?;
             let param_id798 = load_symbol::<ParamId798Fn>(
                 &lib,
                 &[b"ParamId798\0", b"ParamId798@8\0", b"_ParamId798@8\0"],
@@ -1065,6 +1093,7 @@ impl CommDll {
                 param_id568,
                 param_id610,
                 param_id794,
+                param_id796,
                 param_id798,
                 param_id776,
             })

@@ -944,6 +944,16 @@ fn run_group_with_emitters(
                 &response,
             ))
         }
+        CommandGroupSpec::ParamId796 { checks } => {
+            let response = gateway.param_id796()?;
+            Ok(build_checked_result(
+                name,
+                stage,
+                "ParamId796".to_string(),
+                &checks,
+                &response,
+            ))
+        }
         CommandGroupSpec::ParamId798 => {
             let response = gateway.param_id798()?;
             Ok(build_param_id798_result(name, stage, response.version))
@@ -1457,7 +1467,8 @@ mod tests {
         ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId096Check,
         ParamId096Output, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
         ParamId526Check, ParamId526Output, ParamId588Result, ParamId654Result, ParamId776Result,
-        ParamId794Result, ParamId798Result, TestGroup,
+        ParamId794Result, ParamId796Check, ParamId796Output, ParamId796Result, ParamId798Result,
+        TestGroup,
     };
     use crate::types::CommandResult;
 
@@ -1578,6 +1589,10 @@ mod tests {
 
         fn param_id794(&self) -> CommandResult<ParamId794Result> {
             panic!("not used in this test")
+        }
+
+        fn param_id796(&self) -> CommandResult<ParamId796Result> {
+            Ok(ParamId796Result { mqtt_status: 1 })
         }
 
         fn param_id798(&self) -> CommandResult<ParamId798Result> {
@@ -1897,6 +1912,58 @@ mod tests {
         assert_eq!(result.raw_response, "Version=COMM_SW_1.0.0");
         assert_eq!(result.checks.len(), 1);
         assert_eq!(result.checks[0].name, "version_not_empty");
+        assert!(result.checks[0].passed);
+    }
+
+    #[test]
+    fn run_group_param_id796_passes_when_mqtt_status_is_online() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 0,
+                min_par_sw_ver: 0,
+                build_no: 0,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_568: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "796 mqtt".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId796 {
+                checks: vec![ParamId796Check {
+                    name: "mqtt_status".to_string(),
+                    output: ParamId796Output::MqttStatus,
+                    min: 1.0,
+                    max: 1.0,
+                }],
+            },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.command, "ParamId796");
+        assert_eq!(result.raw_response, "MqttStatus=1");
+        assert_eq!(result.checks.len(), 1);
+        assert_eq!(result.checks[0].name, "mqtt_status");
         assert!(result.checks[0].passed);
     }
 

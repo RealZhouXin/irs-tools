@@ -7,7 +7,8 @@ use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
     ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId118Result,
     ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId526Result,
-    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId798Result,
+    ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result, ParamId796Result,
+    ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -29,6 +30,9 @@ pub trait DeviceGateway {
     fn param_id568(&self, on: u8) -> CommandResult<()>;
     fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()>;
     fn param_id794(&self) -> CommandResult<ParamId794Result>;
+    fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId796"))
+    }
     fn param_id798(&self) -> CommandResult<ParamId798Result>;
     fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result>;
 }
@@ -129,6 +133,10 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id794(&self) -> CommandResult<ParamId794Result> {
         self.session.param_id794()
+    }
+
+    fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        self.session.param_id796()
     }
 
     fn param_id798(&self) -> CommandResult<ParamId798Result> {

@@ -115,6 +115,9 @@ pub enum CommandGroupSpec {
     ParamId794 {
         checks: Vec<ParamId794Check>,
     },
+    ParamId796 {
+        checks: Vec<ParamId796Check>,
+    },
     ParamId798,
     ParamId776 {
         timeout_ms: u64,
@@ -291,6 +294,22 @@ impl CheckConfig for ParamId470Check {
 
 impl CheckConfig for ParamId794Check {
     type OutputEnum = ParamId794Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for ParamId796Check {
+    type OutputEnum = ParamId796Output;
     fn name(&self) -> &str {
         &self.name
     }
@@ -540,6 +559,20 @@ pub enum ParamId794Output {
     BuildNo,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ParamId796Check {
+    pub name: String,
+    pub output: ParamId796Output,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ParamId796Output {
+    MqttStatus,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CheckResult {
     pub name: String,
@@ -750,6 +783,15 @@ impl CheckableResult for ParamId794Result {
     }
 }
 
+impl CheckableResult for ParamId796Result {
+    type OutputEnum = ParamId796Output;
+    fn get_value(&self, output: Self::OutputEnum) -> f64 {
+        match output {
+            ParamId796Output::MqttStatus => self.mqtt_status as f64,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ParamId588Result {
     pub dev_gr_no: u16,
@@ -893,6 +935,11 @@ pub struct ParamId794Result {
     pub maj_par_sw_ver: u8,
     pub min_par_sw_ver: u8,
     pub build_no: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId796Result {
+    pub mqtt_status: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -1174,6 +1221,12 @@ impl fmt::Display for ParamId794Result {
             self.min_par_sw_ver,
             self.build_no
         )
+    }
+}
+
+impl fmt::Display for ParamId796Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MqttStatus={}", self.mqtt_status)
     }
 }
 
