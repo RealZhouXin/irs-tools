@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 IRS Tools 项目的 AI Agent 工作指南与架构说明。
 
@@ -631,7 +631,7 @@ db
 
 # 12 Agent Self-Documentation（自动完善文档）
 
-Agents  **被允许更新 CLAUDE.md** 。
+Agents  **被允许更新 AGENTS.md** 。
 
 当出现以下情况时：
 
@@ -668,7 +668,7 @@ Agents 在理解项目时应：
 1. 优先阅读：
 
 ```text
-CLAUDE.md
+AGENTS.md
 README.md
 DATABASE_DESIGN.md
 ```

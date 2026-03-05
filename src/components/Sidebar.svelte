@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Translation } from "../types";
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+  import FlaskConicalIcon from "@lucide/svelte/icons/flask-conical";
 
   let { view, text, onOpenTests, onOpenSettings } = $props<{
     view: "main" | "settings";
@@ -24,15 +25,7 @@
               aria-label={text.navTests}
               class="group-data-[collapsible=icon]:justify-center"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M7 6h10M7 12h10M7 18h10"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
+              <FlaskConicalIcon aria-hidden="true" />
               <span class="group-data-[collapsible=icon]:hidden">{text.navTests}</span>
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>
