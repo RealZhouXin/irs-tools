@@ -5,3 +5,4 @@ pub const REAR_LIGHT_CONFIRM_REQUEST: &str = "rear-light-confirm-request";
 pub const SPEAKER_CONFIRM_REQUEST: &str = "speaker-confirm-request";
 pub const EMERGENCY_STOP_TEST_UPDATE: &str = "emergency-stop-test-update";
 pub const COLLISION_BAR_PROMPT_REQUEST: &str = "collision-bar-prompt-request";
+pub const WHEEL_MOTOR_TEST_UPDATE: &str = "wheel-motor-test-update";

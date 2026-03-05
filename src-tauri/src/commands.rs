@@ -6,6 +6,7 @@ use crate::models::{BaseConfig, TestResult, TestSummary};
 use crate::test_runner::{
     submit_emergency_stop_cancel, submit_front_light_confirmation, submit_key_test_cancel,
     submit_rear_light_confirmation, submit_sensor_prompt_cancel, submit_speaker_confirmation,
+    submit_wheel_motor_lift_confirmation,
 };
 use crate::test_service::{TestService, request_stop_test};
 use crate::types::CommandResult;
@@ -129,4 +130,9 @@ pub fn cancel_key_test() -> CommandResult<()> {
 #[tauri::command]
 pub fn cancel_sensor_prompt_test() -> CommandResult<()> {
     submit_sensor_prompt_cancel()
+}
+
+#[tauri::command]
+pub fn confirm_wheel_motor_lifted(is_lifted: bool) -> CommandResult<()> {
+    submit_wheel_motor_lift_confirmation(is_lifted)
 }

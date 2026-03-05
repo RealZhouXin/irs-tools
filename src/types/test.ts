@@ -71,3 +71,14 @@ export type EmergencyStopTestPayload = {
   elapsed_ms: number;
   timeout_ms: number;
 };
+
+export type WheelMotorTestPhase =
+  | "lift_confirm"
+  | "testing_right"
+  | "testing_left";
+
+export type WheelMotorTestUpdatePayload = {
+  name: string;
+  stage: string;
+  phase: WheelMotorTestPhase;
+};

@@ -13,6 +13,8 @@
     StatusKey,
     SummaryState,
     TestResult,
+    WheelMotorTestPhase,
+    WheelMotorTestUpdatePayload,
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
@@ -22,6 +24,7 @@
     confirmFrontLight,
     confirmRearLight,
     confirmSpeaker,
+    confirmWheelMotorLifted,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
@@ -39,6 +42,7 @@
     subscribeSpeakerConfirmRequest,
     subscribeKeyStateUpdate,
     subscribeTestGroupComplete,
+    subscribeWheelMotorTestUpdate,
   } from "./services/tauri";
   import AppSidebar from "./components/Sidebar.svelte";
   import * as SidebarUI from "$lib/components/ui/sidebar/index.js";
@@ -48,6 +52,7 @@
   import KeyTestDialog from "./components/KeyTestDialog.svelte";
   import InstructionDialog from "./components/InstructionDialog.svelte";
   import SpeakerTestDialog from "./components/SpeakerTestDialog.svelte";
+  import WheelMotorTestDialog from "./components/WheelMotorTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
 
@@ -93,6 +98,8 @@
   let showSpeakerTestDialog = $state(false);
   let showCollisionBarDialog = $state(false);
   let collisionBarPromptPayload = $state<CollisionBarPromptPayload | null>(null);
+  let showWheelMotorDialog = $state(false);
+  let wheelMotorPayload = $state<WheelMotorTestUpdatePayload | null>(null);
   let showEmergencyStopDialog = $state(false);
   let emergencyStopPayload = $state<EmergencyStopTestPayload | null>(null);
   let keyState = $state<KeyStatePayload>({
@@ -154,6 +161,10 @@
     if (incoming.command === "ParamId118") {
       showCollisionBarDialog = false;
       collisionBarPromptPayload = null;
+    }
+    if (incoming.command === "WheelMotorTest") {
+      showWheelMotorDialog = false;
+      wheelMotorPayload = null;
     }
     if (incoming.command === "ParamId526") {
       machineSn = extractPcbSerNo(incoming.raw_response);
@@ -311,11 +322,55 @@
       : base;
   }
 
+  function getWheelMotorMessage(): string {
+    if (!wheelMotorPayload) {
+      return text.wheelMotorLiftPrompt;
+    }
+    if (wheelMotorPayload.phase === "testing_right") {
+      return text.wheelMotorTestingRight;
+    }
+    if (wheelMotorPayload.phase === "testing_left") {
+      return text.wheelMotorTestingLeft;
+    }
+    return text.wheelMotorLiftPrompt;
+  }
+
+  function getWheelMotorPhase(): WheelMotorTestPhase {
+    return wheelMotorPayload?.phase ?? "lift_confirm";
+  }
+
+  async function handleWheelMotorConfirm() {
+    wheelMotorPayload = {
+      name: wheelMotorPayload?.name ?? "",
+      stage: wheelMotorPayload?.stage ?? "",
+      phase: "testing_right",
+    };
+    try {
+      await confirmWheelMotorLifted(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
+      showWheelMotorDialog = false;
+      wheelMotorPayload = null;
+    }
+  }
+
+  async function handleWheelMotorCancel() {
+    showWheelMotorDialog = false;
+    wheelMotorPayload = null;
+    try {
+      await confirmWheelMotorLifted(false);
+    } catch (err) {
+      console.error("Failed to submit wheel motor lift cancel", err);
+    }
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
     let unlistenEmergencyStopUpdate: (() => void) | null = null;
     let unlistenCollisionBarPrompt: (() => void) | null = null;
+    let unlistenWheelMotorTestUpdate: (() => void) | null = null;
     let unlistenFrontLightConfirm: (() => void) | null = null;
     let unlistenRearLightConfirm: (() => void) | null = null;
     let unlistenSpeakerConfirm: (() => void) | null = null;
@@ -377,6 +432,21 @@
       .catch((err) => {
         console.error(
           `Failed to listen ${TAURI_EVENTS.collisionBarPromptRequest}`,
+          err,
+        );
+      });
+
+    subscribeWheelMotorTestUpdate((payload) => {
+      wheelMotorPayload = payload;
+      showWheelMotorDialog = true;
+      summaryState = "pending";
+    })
+      .then((stop) => {
+        unlistenWheelMotorTestUpdate = stop;
+      })
+      .catch((err) => {
+        console.error(
+          `Failed to listen ${TAURI_EVENTS.wheelMotorTestUpdate}`,
           err,
         );
       });
@@ -464,6 +534,9 @@
       }
       if (unlistenCollisionBarPrompt) {
         unlistenCollisionBarPrompt();
+      }
+      if (unlistenWheelMotorTestUpdate) {
+        unlistenWheelMotorTestUpdate();
       }
       if (unlistenFrontLightConfirm) {
         unlistenFrontLightConfirm();
@@ -771,6 +844,17 @@
     title={getSensorPromptTitle()}
     message={getSensorPromptMessage()}
     onRequestClose={handleSensorPromptDialogClose}
+  />
+
+  <WheelMotorTestDialog
+    open={showWheelMotorDialog}
+    title={text.wheelMotorTestTitle}
+    message={getWheelMotorMessage()}
+    phase={getWheelMotorPhase()}
+    confirmLabel={text.confirmOk}
+    cancelLabel={text.exportCancel}
+    onConfirm={handleWheelMotorConfirm}
+    onCancel={handleWheelMotorCancel}
   />
 
   <EmergencyStopDialog

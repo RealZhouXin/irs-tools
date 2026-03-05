@@ -144,6 +144,7 @@ src/main.ts
 test-group-complete
 key-state-update
 front-light-confirm-request
+wheel-motor-test-update
 ```
 
 前灯确认流程：
@@ -182,11 +183,13 @@ start_test
 stop_test
 retest_group
 confirm_front_light
+confirm_wheel_motor_lifted
 get_base_config
 save_base_config
 get_test_stages
 export_test_results_csv
 get_available_export_dates
+confirm_wheel_motor_lifted
 ```
 
 Agent 修改前端逻辑时  **必须优先复用此文件** 。
@@ -368,6 +371,7 @@ test_runner::run_group
 470
 794
 796
+114
 ```
 
 动作类
@@ -375,12 +379,15 @@ test_runner::run_group
 ```text
 468
 606
+254
+256
 ```
 
 组合类
 
 ```text
 CuttingHeightSetAndVerify
+WheelMotorTest
 ```
 
 按键测试
@@ -425,8 +432,33 @@ front-light-confirm-request
 frontend confirm
   ↓
 confirm_front_light
+confirm_wheel_motor_lifted
   ↓
 backend continue
+```
+
+---
+
+### 驱动轮电机测试
+
+```text
+WheelMotorTest
+```
+
+流程：
+
+```text
+backend emit wheel-motor-test-update(lift_confirm)
+  ↓
+frontend confirm
+  ↓
+confirm_wheel_motor_lifted
+  ↓
+backend execute 254(right) + 114采样
+  ↓
+backend execute 256(left) + 114采样
+  ↓
+按两条 checks（right_wheel_motor / left_wheel_motor）出结果
 ```
 
 ---
@@ -588,6 +620,7 @@ AI agents  **必须遵守以下规则** 。
 test-group-complete
 key-state-update
 front-light-confirm-request
+wheel-motor-test-update
 ```
 
 ---

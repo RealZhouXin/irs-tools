@@ -54,6 +54,22 @@ fn default_lift_sensor_threshold() -> u8 {
     0
 }
 
+fn default_wheel_motor_speed() -> i16 {
+    45
+}
+
+fn default_wheel_sample_interval_ms() -> u64 {
+    1000
+}
+
+fn default_wheel_sample_count() -> u8 {
+    3
+}
+
+fn default_wheel_inactive_max_speed() -> f64 {
+    10.0
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum CommandGroupSpec {
@@ -109,6 +125,21 @@ pub enum CommandGroupSpec {
     ParamId606 {
         front_light_mode: u8,
         power: u8,
+    },
+    WheelMotorTest {
+        #[serde(default = "default_wheel_motor_speed")]
+        right_motor_speed: i16,
+        #[serde(default = "default_wheel_motor_speed")]
+        left_motor_speed: i16,
+        #[serde(default = "default_wheel_sample_interval_ms")]
+        sample_interval_ms: u64,
+        #[serde(default = "default_wheel_sample_count")]
+        sample_count: u8,
+        #[serde(default = "default_wheel_inactive_max_speed")]
+        right_test_inactive_max_speed_mm_s: f64,
+        #[serde(default = "default_wheel_inactive_max_speed")]
+        left_test_inactive_max_speed_mm_s: f64,
+        checks: Vec<WheelMotorCheck>,
     },
     ParamId568,
     ParamId610,
@@ -310,6 +341,22 @@ impl CheckConfig for ParamId794Check {
 
 impl CheckConfig for ParamId796Check {
     type OutputEnum = ParamId796Output;
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn output(&self) -> Self::OutputEnum {
+        self.output
+    }
+    fn min(&self) -> f64 {
+        self.min
+    }
+    fn max(&self) -> f64 {
+        self.max
+    }
+}
+
+impl CheckConfig for WheelMotorCheck {
+    type OutputEnum = WheelMotorOutput;
     fn name(&self) -> &str {
         &self.name
     }
@@ -571,6 +618,21 @@ pub struct ParamId796Check {
 #[serde(rename_all = "snake_case")]
 pub enum ParamId796Output {
     MqttStatus,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct WheelMotorCheck {
+    pub name: String,
+    pub output: WheelMotorOutput,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WheelMotorOutput {
+    RightWheelMotor,
+    LeftWheelMotor,
 }
 
 #[derive(Debug, Serialize)]
@@ -928,6 +990,25 @@ pub struct ParamId470Result {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct ParamId108Result {
+    pub batt_vol_mw: u16,
+    pub batt_curr: i16,
+    pub batt_en_lvl: i16,
+    pub batt_temp: i16,
+    pub main_voltage: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamId114Result {
+    pub right_whl_motor_p: i8,
+    pub right_whl_motor_curr: i16,
+    pub right_whl_motor_sp: i16,
+    pub left_whl_motor_p: i8,
+    pub lef_whl_motor_curr: i16,
+    pub lef_whl_motor_sp: i16,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct ParamId794Result {
     pub dev_gr_no: u16,
     pub sub_dev_gr_no: u8,
@@ -1018,6 +1099,21 @@ pub struct CollisionBarPromptPayload {
     pub name: String,
     pub stage: String,
     pub prompt_kind: SensorPromptKind,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WheelMotorTestPhase {
+    LiftConfirm,
+    TestingRight,
+    TestingLeft,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WheelMotorTestUpdatePayload {
+    pub name: String,
+    pub stage: String,
+    pub phase: WheelMotorTestPhase,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -1206,6 +1302,31 @@ impl fmt::Display for ParamId122Result {
 impl fmt::Display for ParamId470Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CuttingHeightMm={}", self.cutting_height_mm)
+    }
+}
+
+impl fmt::Display for ParamId108Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "BattVolMW={}, BattCurr={}, BattEnLvl={}, BattTemp={}, MainVoltage={}",
+            self.batt_vol_mw, self.batt_curr, self.batt_en_lvl, self.batt_temp, self.main_voltage
+        )
+    }
+}
+
+impl fmt::Display for ParamId114Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "RightWhlMotorP={}, RightWhlMotorCurr={}, RightWhlMotorSp={}, LeftWhlMotorP={}, LefWhlMotorCurr={}, LefWhlMotorSp={}",
+            self.right_whl_motor_p,
+            self.right_whl_motor_curr,
+            self.right_whl_motor_sp,
+            self.left_whl_motor_p,
+            self.lef_whl_motor_curr,
+            self.lef_whl_motor_sp
+        )
     }
 }
 

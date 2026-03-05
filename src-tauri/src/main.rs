@@ -55,7 +55,8 @@ fn main() {
             commands::confirm_speaker,
             commands::cancel_emergency_stop_test,
             commands::cancel_key_test,
-            commands::cancel_sensor_prompt_test
+            commands::cancel_sensor_prompt_test,
+            commands::confirm_wheel_motor_lifted
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

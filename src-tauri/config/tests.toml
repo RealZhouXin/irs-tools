@@ -419,6 +419,30 @@ command = "param_id610"
 stage = "actuator"
 
 [[tests]]
+name = "驱动轮电机测试"
+command = "wheel_motor_test"
+stage = "actuator"
+# 电机驱动速度（可配）
+right_motor_speed = 45
+left_motor_speed = 45
+# 采样配置（可配）
+sample_interval_ms = 1000
+sample_count = 3
+# 被动轮（另一侧）最大允许转速（可配，默认 10）
+right_test_inactive_max_speed_mm_s = 10
+left_test_inactive_max_speed_mm_s = 10
+[[tests.checks]]
+name = "right_wheel_motor"
+output = "right_wheel_motor"
+min = 700
+max = 999999
+[[tests.checks]]
+name = "left_wheel_motor"
+output = "left_wheel_motor"
+min = 700
+max = 999999
+
+[[tests]]
 name = "118 碰撞条测试"
 command = "param_id118_collision_bar"
 stage = "sensor"

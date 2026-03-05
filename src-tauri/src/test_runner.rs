@@ -2,12 +2,14 @@ use crate::device_gateway::DeviceGateway;
 use crate::events::{
     COLLISION_BAR_PROMPT_REQUEST, EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST,
     KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST,
+    WHEEL_MOTOR_TEST_UPDATE,
 };
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CollisionBarPromptPayload, CommandGroupSpec,
     EmergencyStopPhase, EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload,
     RearLightColor, RearLightConfirmRequestPayload, SensorPromptKind, SpeakerConfirmRequestPayload,
-    TestGroup, TestResult,
+    TestGroup, TestResult, WheelMotorCheck, WheelMotorOutput, WheelMotorTestPhase,
+    WheelMotorTestUpdatePayload,
 };
 use crate::types::{AppError, CommandResult};
 use std::fmt::Display;
@@ -75,6 +77,15 @@ struct SensorPromptState {
 }
 
 static SENSOR_PROMPT_SYNC: OnceLock<Mutex<SensorPromptState>> = OnceLock::new();
+
+#[derive(Debug)]
+struct WheelMotorLiftConfirmState {
+    waiting: bool,
+    response: Option<bool>,
+}
+
+static WHEEL_MOTOR_LIFT_CONFIRM_SYNC: OnceLock<(Mutex<WheelMotorLiftConfirmState>, Condvar)> =
+    OnceLock::new();
 
 const REAR_LIGHT_NORMAL_MODE: u8 = 3;
 const REAR_LIGHT_CONFIRM_STEPS: [(u8, RearLightColor); 3] = [
@@ -189,6 +200,18 @@ fn sensor_prompt_sync() -> &'static Mutex<SensorPromptState> {
             waiting: false,
             canceled: false,
         })
+    })
+}
+
+fn wheel_motor_lift_confirm_sync() -> &'static (Mutex<WheelMotorLiftConfirmState>, Condvar) {
+    WHEEL_MOTOR_LIFT_CONFIRM_SYNC.get_or_init(|| {
+        (
+            Mutex::new(WheelMotorLiftConfirmState {
+                waiting: false,
+                response: None,
+            }),
+            Condvar::new(),
+        )
     })
 }
 
@@ -515,7 +538,7 @@ pub fn run_group(
     group: TestGroup,
     app: &AppHandle,
 ) -> CommandResult<TestResult> {
-    run_group_with_emitters(
+    run_group_with_emitters_internal(
         gateway,
         group,
         &|state| {
@@ -531,6 +554,13 @@ pub fn run_group(
             if let Err(err) = app.emit(EMERGENCY_STOP_TEST_UPDATE, &payload) {
                 error!("Failed to emit emergency stop update: {}", err);
             }
+        },
+        &|request| wait_for_wheel_motor_lift_confirmation(app, request),
+        &|payload| {
+            if let Err(err) = app.emit(WHEEL_MOTOR_TEST_UPDATE, &payload) {
+                error!("Failed to emit wheel motor test update: {}", err);
+            }
+            Ok(())
         },
     )
 }
@@ -608,6 +638,19 @@ pub fn submit_sensor_prompt_cancel() -> CommandResult<()> {
         return Err(AppError::msg("当前没有进行中的传感器提示测试"));
     }
     state.canceled = true;
+    Ok(())
+}
+
+pub fn submit_wheel_motor_lift_confirmation(is_lifted: bool) -> CommandResult<()> {
+    let (lock, cvar) = wheel_motor_lift_confirm_sync();
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("轮电机抬起确认状态锁定失败"))?;
+    if !state.waiting {
+        return Err(AppError::msg("当前没有待确认的轮电机测试"));
+    }
+    state.response = Some(is_lifted);
+    cvar.notify_one();
     Ok(())
 }
 
@@ -706,6 +749,36 @@ fn wait_for_collision_bar_prompt(
         .map_err(|err| AppError::msg(format!("发送碰撞条提示事件失败: {err}")))
 }
 
+fn wait_for_wheel_motor_lift_confirmation(
+    app: &AppHandle,
+    request: WheelMotorTestUpdatePayload,
+) -> CommandResult<bool> {
+    let (lock, cvar) = wheel_motor_lift_confirm_sync();
+    {
+        let mut state = lock
+            .lock()
+            .map_err(|_| AppError::msg("轮电机抬起确认状态锁定失败"))?;
+        state.waiting = true;
+        state.response = None;
+    }
+
+    app.emit(WHEEL_MOTOR_TEST_UPDATE, &request)
+        .map_err(|err| AppError::msg(format!("发送轮电机抬起确认事件失败: {err}")))?;
+
+    let mut state = lock
+        .lock()
+        .map_err(|_| AppError::msg("轮电机抬起确认状态锁定失败"))?;
+    while state.response.is_none() {
+        state = cvar
+            .wait(state)
+            .map_err(|_| AppError::msg("轮电机抬起确认等待失败"))?;
+    }
+    let result = state.response.take().unwrap_or(false);
+    state.waiting = false;
+    Ok(result)
+}
+
+#[cfg(test)]
 fn run_group_with_emitters(
     gateway: &dyn DeviceGateway,
     group: TestGroup,
@@ -715,6 +788,32 @@ fn run_group_with_emitters(
     on_speaker_confirm: &dyn Fn(SpeakerConfirmRequestPayload) -> CommandResult<bool>,
     on_collision_bar_prompt: &dyn Fn(CollisionBarPromptPayload) -> CommandResult<()>,
     on_emergency_stop_update: &dyn Fn(EmergencyStopTestPayload),
+) -> CommandResult<TestResult> {
+    run_group_with_emitters_internal(
+        gateway,
+        group,
+        on_key_state_update,
+        on_front_light_confirm,
+        on_rear_light_confirm,
+        on_speaker_confirm,
+        on_collision_bar_prompt,
+        on_emergency_stop_update,
+        &|_| Ok(true),
+        &|_| Ok(()),
+    )
+}
+
+fn run_group_with_emitters_internal(
+    gateway: &dyn DeviceGateway,
+    group: TestGroup,
+    on_key_state_update: &dyn Fn(KeyStatePayload),
+    on_front_light_confirm: &dyn Fn(FrontLightConfirmRequestPayload) -> CommandResult<bool>,
+    on_rear_light_confirm: &dyn Fn(RearLightConfirmRequestPayload) -> CommandResult<bool>,
+    on_speaker_confirm: &dyn Fn(SpeakerConfirmRequestPayload) -> CommandResult<bool>,
+    on_collision_bar_prompt: &dyn Fn(CollisionBarPromptPayload) -> CommandResult<()>,
+    on_emergency_stop_update: &dyn Fn(EmergencyStopTestPayload),
+    on_wheel_motor_lift_confirm: &dyn Fn(WheelMotorTestUpdatePayload) -> CommandResult<bool>,
+    on_wheel_motor_test_update: &dyn Fn(WheelMotorTestUpdatePayload) -> CommandResult<()>,
 ) -> CommandResult<TestResult> {
     let TestGroup {
         name,
@@ -889,6 +988,28 @@ fn run_group_with_emitters(
                 is_lit,
             ))
         }
+        CommandGroupSpec::WheelMotorTest {
+            right_motor_speed,
+            left_motor_speed,
+            sample_interval_ms,
+            sample_count,
+            right_test_inactive_max_speed_mm_s,
+            left_test_inactive_max_speed_mm_s,
+            checks,
+        } => run_wheel_motor_test_group(
+            gateway,
+            name,
+            stage,
+            right_motor_speed,
+            left_motor_speed,
+            sample_interval_ms,
+            sample_count,
+            right_test_inactive_max_speed_mm_s,
+            left_test_inactive_max_speed_mm_s,
+            checks,
+            on_wheel_motor_lift_confirm,
+            on_wheel_motor_test_update,
+        ),
         CommandGroupSpec::ParamId568 => {
             let on = 1;
             gateway.param_id568(on)?;
@@ -961,6 +1082,195 @@ fn run_group_with_emitters(
         CommandGroupSpec::ParamId776 { timeout_ms } => {
             run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
         }
+    }
+}
+
+fn abs_speed_as_f64(value: i16) -> f64 {
+    i32::from(value).abs() as f64
+}
+
+fn collect_wheel_speed_avg(
+    gateway: &dyn DeviceGateway,
+    sample_count: u8,
+    sample_interval_ms: u64,
+) -> CommandResult<(f64, f64)> {
+    let count = usize::from(sample_count.max(1));
+    let mut right_sum = 0.0;
+    let mut left_sum = 0.0;
+
+    for _ in 0..count {
+        thread::sleep(Duration::from_millis(sample_interval_ms));
+        let sample = gateway.param_id114()?;
+        right_sum += abs_speed_as_f64(sample.right_whl_motor_sp);
+        left_sum += abs_speed_as_f64(sample.lef_whl_motor_sp);
+    }
+
+    Ok((right_sum / count as f64, left_sum / count as f64))
+}
+
+fn run_wheel_motor_test_group(
+    gateway: &dyn DeviceGateway,
+    name: String,
+    stage: String,
+    right_motor_speed: i16,
+    left_motor_speed: i16,
+    sample_interval_ms: u64,
+    sample_count: u8,
+    right_test_inactive_max_speed_mm_s: f64,
+    left_test_inactive_max_speed_mm_s: f64,
+    checks: Vec<WheelMotorCheck>,
+    on_lift_confirm: &dyn Fn(WheelMotorTestUpdatePayload) -> CommandResult<bool>,
+    on_test_update: &dyn Fn(WheelMotorTestUpdatePayload) -> CommandResult<()>,
+) -> CommandResult<TestResult> {
+    if checks.len() != 2 {
+        return Err(AppError::msg(
+            "wheel_motor_test 需要且仅允许 2 条 checks（right_wheel_motor 与 left_wheel_motor）",
+        ));
+    }
+
+    let mut right_check: Option<WheelMotorCheck> = None;
+    let mut left_check: Option<WheelMotorCheck> = None;
+    for check in checks {
+        match check.output {
+            WheelMotorOutput::RightWheelMotor => {
+                if right_check.is_some() {
+                    return Err(AppError::msg(
+                        "wheel_motor_test checks 不允许重复配置 right_wheel_motor",
+                    ));
+                }
+                right_check = Some(check);
+            }
+            WheelMotorOutput::LeftWheelMotor => {
+                if left_check.is_some() {
+                    return Err(AppError::msg(
+                        "wheel_motor_test checks 不允许重复配置 left_wheel_motor",
+                    ));
+                }
+                left_check = Some(check);
+            }
+        }
+    }
+    let right_check =
+        right_check.ok_or_else(|| AppError::msg("wheel_motor_test 缺少 right_wheel_motor check"))?;
+    let left_check =
+        left_check.ok_or_else(|| AppError::msg("wheel_motor_test 缺少 left_wheel_motor check"))?;
+
+    let confirmed = on_lift_confirm(WheelMotorTestUpdatePayload {
+        name: name.clone(),
+        stage: stage.clone(),
+        phase: WheelMotorTestPhase::LiftConfirm,
+    })?;
+    if !confirmed {
+        return Ok(TestResult {
+            name,
+            stage,
+            command: "WheelMotorTest".to_string(),
+            passed: false,
+            raw_response: "LiftNotConfirmed".to_string(),
+            checks: vec![
+                CheckResult {
+                    name: right_check.name,
+                    min: Some(right_check.min),
+                    max: Some(right_check.max),
+                    value: None,
+                    passed: false,
+                },
+                CheckResult {
+                    name: left_check.name,
+                    min: Some(left_check.min),
+                    max: Some(left_check.max),
+                    value: None,
+                    passed: false,
+                },
+            ],
+        });
+    }
+
+    let test_result = (|| -> CommandResult<TestResult> {
+        on_test_update(WheelMotorTestUpdatePayload {
+            name: name.clone(),
+            stage: stage.clone(),
+            phase: WheelMotorTestPhase::TestingRight,
+        })?;
+        gateway.param_id254(right_motor_speed)?;
+        let (right_active_avg, right_inactive_avg) =
+            collect_wheel_speed_avg(gateway, sample_count, sample_interval_ms)?;
+        gateway.param_id254(0)?;
+
+        on_test_update(WheelMotorTestUpdatePayload {
+            name: name.clone(),
+            stage: stage.clone(),
+            phase: WheelMotorTestPhase::TestingLeft,
+        })?;
+        gateway.param_id256(left_motor_speed)?;
+        let (left_inactive_avg, left_active_avg) =
+            collect_wheel_speed_avg(gateway, sample_count, sample_interval_ms)?;
+        gateway.param_id256(0)?;
+
+        let right_pass = right_active_avg >= right_check.min
+            && right_active_avg <= right_check.max
+            && right_inactive_avg <= right_test_inactive_max_speed_mm_s;
+        let left_pass = left_active_avg >= left_check.min
+            && left_active_avg <= left_check.max
+            && left_inactive_avg <= left_test_inactive_max_speed_mm_s;
+
+        let check_results = vec![
+            CheckResult {
+                name: right_check.name.clone(),
+                min: Some(right_check.min),
+                max: Some(right_check.max),
+                value: Some(right_active_avg),
+                passed: right_pass,
+            },
+            CheckResult {
+                name: left_check.name.clone(),
+                min: Some(left_check.min),
+                max: Some(left_check.max),
+                value: Some(left_active_avg),
+                passed: left_pass,
+            },
+        ];
+
+        Ok(TestResult {
+            name: name.clone(),
+            stage: stage.clone(),
+            command: "WheelMotorTest".to_string(),
+            passed: check_results.iter().all(|item| item.passed),
+            raw_response: format!(
+                "RightActiveAvg={:.2}, RightInactiveAvg={:.2}, LeftActiveAvg={:.2}, LeftInactiveAvg={:.2}, RightInactiveMax={:.2}, LeftInactiveMax={:.2}, SampleCount={}, SampleIntervalMs={}, RightMotorSpeed={}, LeftMotorSpeed={}",
+                right_active_avg,
+                right_inactive_avg,
+                left_active_avg,
+                left_inactive_avg,
+                right_test_inactive_max_speed_mm_s,
+                left_test_inactive_max_speed_mm_s,
+                sample_count.max(1),
+                sample_interval_ms,
+                right_motor_speed,
+                left_motor_speed
+            ),
+            checks: check_results,
+        })
+    })();
+
+    let stop_right_result = gateway.param_id254(0);
+    let stop_left_result = gateway.param_id256(0);
+
+    match (test_result, stop_right_result, stop_left_result) {
+        (Ok(result), Ok(()), Ok(())) => Ok(result),
+        (Ok(_), Err(stop_err), Ok(())) | (Ok(_), Ok(()), Err(stop_err)) => Err(stop_err),
+        (Ok(_), Err(right_err), Err(left_err)) => Err(AppError::msg(format!(
+            "轮电机测试完成但停止电机失败: right={right_err}, left={left_err}"
+        ))),
+        (Err(run_err), Ok(()), Ok(())) => Err(run_err),
+        (Err(run_err), Err(stop_err), Ok(())) | (Err(run_err), Ok(()), Err(stop_err)) => {
+            Err(AppError::msg(format!(
+                "{run_err}; 且停止电机失败: {stop_err}"
+            )))
+        }
+        (Err(run_err), Err(right_err), Err(left_err)) => Err(AppError::msg(format!(
+            "{run_err}; 且停止电机失败: right={right_err}, left={left_err}"
+        ))),
     }
 }
 
@@ -1465,10 +1775,10 @@ mod tests {
     use crate::models::{
         CommandGroupSpec, EmergencyStopPhase, EmergencyStopTestPayload, KeyStatePayload,
         ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId096Check,
-        ParamId096Output, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
-        ParamId526Check, ParamId526Output, ParamId588Result, ParamId654Result, ParamId776Result,
-        ParamId794Result, ParamId796Check, ParamId796Output, ParamId796Result, ParamId798Result,
-        TestGroup,
+        ParamId096Output, ParamId114Result, ParamId120Result, ParamId122Result, ParamId272Result,
+        ParamId470Result, ParamId526Check, ParamId526Output, ParamId588Result, ParamId654Result,
+        ParamId776Result, ParamId794Result, ParamId796Check, ParamId796Output, ParamId796Result,
+        ParamId798Result, TestGroup, WheelMotorCheck, WheelMotorOutput,
     };
     use crate::types::CommandResult;
 
@@ -3109,5 +3419,363 @@ mod tests {
         assert_eq!(result.command, "ParamId776");
         assert!(result.raw_response.contains("CanceledByUser"));
         assert_eq!(update_count.get(), 1);
+    }
+
+    struct FakeWheelMotorGateway {
+        samples: RefCell<Vec<ParamId114Result>>,
+        calls_254: RefCell<Vec<i16>>,
+        calls_256: RefCell<Vec<i16>>,
+    }
+
+    impl DeviceGateway for FakeWheelMotorGateway {
+        fn param_id374(&self, _test_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id068(&self) -> CommandResult<ParamId068Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id588(&self) -> CommandResult<ParamId588Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id654(&self) -> CommandResult<ParamId654Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id272(&self) -> CommandResult<ParamId272Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id526(&self) -> CommandResult<crate::models::ParamId526Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id096(&self) -> CommandResult<crate::models::ParamId096Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id080(&self) -> CommandResult<ParamId080Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id118(&self) -> CommandResult<crate::models::ParamId118Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id120(&self) -> CommandResult<ParamId120Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id122(&self) -> CommandResult<ParamId122Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id470(&self) -> CommandResult<ParamId470Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id468(&self, _cutting_height_mm: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id606(&self, _front_light_mode: u8, _power: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id254(&self, right_motor_speed: i16) -> CommandResult<()> {
+            self.calls_254.borrow_mut().push(right_motor_speed);
+            Ok(())
+        }
+
+        fn param_id256(&self, left_motor_speed: i16) -> CommandResult<()> {
+            self.calls_256.borrow_mut().push(left_motor_speed);
+            Ok(())
+        }
+
+        fn param_id114(&self) -> CommandResult<ParamId114Result> {
+            let mut samples = self.samples.borrow_mut();
+            if samples.is_empty() {
+                return Err(crate::types::AppError::msg("no sample"));
+            }
+            Ok(samples.remove(0))
+        }
+
+        fn param_id568(&self, _on: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id610(&self, _rear_light_mode: u8) -> CommandResult<()> {
+            panic!("not used in this test")
+        }
+
+        fn param_id794(&self) -> CommandResult<ParamId794Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id798(&self) -> CommandResult<ParamId798Result> {
+            panic!("not used in this test")
+        }
+
+        fn param_id776(&self, _cmd: u8) -> CommandResult<ParamId776Result> {
+            panic!("not used in this test")
+        }
+    }
+
+    fn wheel_group() -> TestGroup {
+        TestGroup {
+            name: "wheel".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::WheelMotorTest {
+                right_motor_speed: 45,
+                left_motor_speed: 45,
+                sample_interval_ms: 0,
+                sample_count: 3,
+                right_test_inactive_max_speed_mm_s: 10.0,
+                left_test_inactive_max_speed_mm_s: 10.0,
+                checks: vec![
+                    WheelMotorCheck {
+                        name: "right_wheel_motor".to_string(),
+                        output: WheelMotorOutput::RightWheelMotor,
+                        min: 700.0,
+                        max: 999999.0,
+                    },
+                    WheelMotorCheck {
+                        name: "left_wheel_motor".to_string(),
+                        output: WheelMotorOutput::LeftWheelMotor,
+                        min: 700.0,
+                        max: 999999.0,
+                    },
+                ],
+            },
+        }
+    }
+
+    #[test]
+    fn wheel_motor_right_inactive_over_limit_fails_right_check() {
+        let gateway = FakeWheelMotorGateway {
+            samples: RefCell::new(vec![
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 800,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 20,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 820,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 20,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 810,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 20,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 810,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 820,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 830,
+                },
+            ]),
+            calls_254: RefCell::new(Vec::new()),
+            calls_256: RefCell::new(Vec::new()),
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            wheel_group(),
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert_eq!(result.checks.len(), 2);
+        assert!(!result.passed);
+        assert!(!result.checks[0].passed);
+        assert!(result.checks[1].passed);
+        assert_eq!(gateway.calls_254.borrow().as_slice(), &[45, 0, 0]);
+        assert_eq!(gateway.calls_256.borrow().as_slice(), &[45, 0, 0]);
+    }
+
+    #[test]
+    fn wheel_motor_right_fail_still_runs_left() {
+        let gateway = FakeWheelMotorGateway {
+            samples: RefCell::new(vec![
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 200,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 220,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 210,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 760,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 770,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 780,
+                },
+            ]),
+            calls_254: RefCell::new(Vec::new()),
+            calls_256: RefCell::new(Vec::new()),
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            wheel_group(),
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(!result.passed);
+        assert!(!result.checks[0].passed);
+        assert!(result.checks[1].passed);
+        assert!(!gateway.calls_256.borrow().is_empty());
+    }
+
+    #[test]
+    fn wheel_motor_both_sides_pass() {
+        let gateway = FakeWheelMotorGateway {
+            samples: RefCell::new(vec![
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 810,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 820,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 830,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 810,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 820,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 830,
+                },
+            ]),
+            calls_254: RefCell::new(Vec::new()),
+            calls_256: RefCell::new(Vec::new()),
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            wheel_group(),
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.checks.len(), 2);
+        assert!(result.checks[0].passed);
+        assert!(result.checks[1].passed);
     }
 }

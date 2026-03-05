@@ -11,6 +11,7 @@ import type {
   SpeakerConfirmRequestPayload,
   TestResult,
   TestSummary,
+  WheelMotorTestUpdatePayload,
 } from "../types";
 
 export const TAURI_EVENTS = {
@@ -21,6 +22,7 @@ export const TAURI_EVENTS = {
   speakerConfirmRequest: "speaker-confirm-request",
   emergencyStopTestUpdate: "emergency-stop-test-update",
   collisionBarPromptRequest: "collision-bar-prompt-request",
+  wheelMotorTestUpdate: "wheel-motor-test-update",
 } as const;
 
 export function showMainWindow() {
@@ -69,6 +71,10 @@ export function cancelKeyTest() {
 
 export function cancelSensorPromptTest() {
   return invoke("cancel_sensor_prompt_test");
+}
+
+export function confirmWheelMotorLifted(isLifted: boolean) {
+  return invoke("confirm_wheel_motor_lifted", { isLifted });
 }
 
 export function retestGroup(groupName: string) {
@@ -165,6 +171,18 @@ export async function subscribeCollisionBarPromptRequest(
 ) {
   const stop = await listen<CollisionBarPromptPayload>(
     TAURI_EVENTS.collisionBarPromptRequest,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+  return stop;
+}
+
+export async function subscribeWheelMotorTestUpdate(
+  handler: (payload: WheelMotorTestUpdatePayload) => void,
+) {
+  const stop = await listen<WheelMotorTestUpdatePayload>(
+    TAURI_EVENTS.wheelMotorTestUpdate,
     (event) => {
       handler(event.payload);
     },

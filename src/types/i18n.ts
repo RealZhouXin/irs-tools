@@ -73,6 +73,7 @@ export type Translation = {
   aboutError: string;
   confirmTitle: string;
   confirmLightQuestion: string;
+  confirmOk: string;
   confirmYes: string;
   confirmNo: string;
   exportDialogTitle: string;
@@ -98,4 +99,8 @@ export type Translation = {
   collisionBarTestInstruction: string;
   liftSensorTestTitle: string;
   liftSensorTestInstruction: string;
+  wheelMotorTestTitle: string;
+  wheelMotorLiftPrompt: string;
+  wheelMotorTestingRight: string;
+  wheelMotorTestingLeft: string;
 };
