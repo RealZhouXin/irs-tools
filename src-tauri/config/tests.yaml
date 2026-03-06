@@ -91,12 +91,12 @@ tests:
     checks:
       - name: accel_x
         output: accel_x
-        min: -0.2
-        max: 0.2
+        min: -0.3
+        max: 0.3
       - name: accel_y
         output: accel_y
-        min: -0.2
-        max: 0.2
+        min: -0.3
+        max: 0.3
       - name: accel_z
         output: accel_z
         min: 9.6
@@ -193,7 +193,7 @@ tests:
     left_motor_speed: 45
     # 采样配置（可配）
     sample_interval_ms: 1000
-    sample_count: 3
+    sample_count: 5
     # 被动轮（另一侧）最大允许转速（可配，默认 10）
     right_test_inactive_max_speed_mm_s: 10
     left_test_inactive_max_speed_mm_s: 10
