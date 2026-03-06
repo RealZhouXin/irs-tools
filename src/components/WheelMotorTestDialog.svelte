@@ -1,5 +1,11 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { Button } from "$lib/components/ui/button/index.js";
+  import {
+    isEscapeKey,
+    isInteractiveDialogTarget,
+    isSpaceKey,
+  } from "$lib/dialog-shortcuts";
   import type { WheelMotorTestPhase } from "../types";
 
   let {
@@ -22,6 +28,16 @@
     onCancel: () => void;
   }>();
 
+  let dialogElement = $state<HTMLDivElement | null>(null);
+  let wasOpen = false;
+
+  $effect(() => {
+    if (open && !wasOpen) {
+      void tick().then(() => dialogElement?.focus());
+    }
+    wasOpen = open;
+  });
+
   function handleOverlayClick(event: MouseEvent) {
     if (event.target !== event.currentTarget) {
       return;
@@ -30,11 +46,36 @@
       onCancel();
     }
   }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (phase !== "lift_confirm") {
+      return;
+    }
+
+    if (isEscapeKey(event)) {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+
+    if (isSpaceKey(event) && !isInteractiveDialogTarget(event.target)) {
+      event.preventDefault();
+      onConfirm();
+    }
+  }
 </script>
 
 {#if open}
   <div class="overlay" role="presentation" onclick={handleOverlayClick}>
-    <div class="dialog" role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      bind:this={dialogElement}
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      tabindex={-1}
+      onkeydown={handleDialogKeydown}
+    >
       <h3>{title}</h3>
       <p>{message}</p>
       {#if phase === "lift_confirm"}
