@@ -5,8 +5,10 @@ use libloading::Library;
 use tracing::{error, info};
 
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
+    ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
+    ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
+    ParamId794Result, ParamId796Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -38,6 +40,36 @@ type ParamId272Fn = unsafe extern "system" fn(
     *mut u16,
     *mut u32,
 );
+type ParamId526Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u16,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+    *mut u16,
+    *mut u32,
+    *mut u32,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+);
+type ParamId096Fn = unsafe extern "system" fn(
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u8,
+    *mut u32,
+);
 type ParamId080Fn = unsafe extern "system" fn(
     *mut u8,
     *mut u8,
@@ -51,6 +83,8 @@ type ParamId080Fn = unsafe extern "system" fn(
     *mut u16,
     *mut u8,
 );
+type ParamId118Fn =
+    unsafe extern "system" fn(*mut u8, *mut u8, *mut u8, *mut u16, *mut u8, *mut u8);
 type ParamId120Fn = unsafe extern "system" fn(
     *mut u8,
     *mut i16,
@@ -79,6 +113,19 @@ type ParamId122Fn = unsafe extern "system" fn(
 type ParamId470Fn = unsafe extern "system" fn(*mut u8, *mut u8);
 type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
+type ParamId254Fn = unsafe extern "system" fn(*mut u8, i16);
+type ParamId256Fn = unsafe extern "system" fn(*mut u8, i16);
+type ParamId108Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut i16, *mut i16, *mut i16, *mut u16);
+type ParamId114Fn =
+    unsafe extern "system" fn(*mut u8, *mut i8, *mut i16, *mut i16, *mut i8, *mut i16, *mut i16);
+type ParamId568Fn = unsafe extern "system" fn(*mut u8, u8);
+type ParamId610Fn = unsafe extern "system" fn(*mut u8, u8);
+type ParamId794Fn =
+    unsafe extern "system" fn(*mut u8, *mut u16, *mut u8, *mut u8, *mut u8, *mut u8, *mut u32);
+type ParamId796Fn = unsafe extern "system" fn(*mut u8, *mut u8);
+type ParamId798Fn = unsafe extern "system" fn(*mut u8, *mut u8);
+type ParamId776Fn = unsafe extern "system" fn(*mut u8, u8, *mut u8, *mut u8, *mut u8, *mut u8);
 
 pub struct CommDll {
     _lib: Library,
@@ -91,12 +138,25 @@ pub struct CommDll {
     param_id588: ParamId588Fn,
     param_id654: ParamId654Fn,
     param_id272: ParamId272Fn,
+    param_id526: ParamId526Fn,
+    param_id096: ParamId096Fn,
     param_id080: ParamId080Fn,
+    param_id118: ParamId118Fn,
     param_id120: ParamId120Fn,
     param_id122: ParamId122Fn,
     param_id470: ParamId470Fn,
     param_id468: ParamId468Fn,
     param_id606: ParamId606Fn,
+    param_id254: ParamId254Fn,
+    param_id256: ParamId256Fn,
+    param_id108: ParamId108Fn,
+    param_id114: ParamId114Fn,
+    param_id568: ParamId568Fn,
+    param_id610: ParamId610Fn,
+    param_id794: ParamId794Fn,
+    param_id796: ParamId796Fn,
+    param_id798: ParamId798Fn,
+    param_id776: ParamId776Fn,
 }
 
 pub struct CommSession {
@@ -210,6 +270,70 @@ impl CommSession {
             )
     }
 
+    pub fn param_id794(&self) -> CommandResult<ParamId794Result> {
+        self.run_common_param_command("ParamId794", self.dll.param_id794)
+            .map(
+                |(dev_gr_no, sub_dev_gr_no, var_no, maj_par_sw_ver, min_par_sw_ver, build_no)| {
+                    ParamId794Result {
+                        dev_gr_no,
+                        sub_dev_gr_no,
+                        var_no,
+                        maj_par_sw_ver,
+                        min_par_sw_ver,
+                        build_no,
+                    }
+                },
+            )
+    }
+
+    pub fn param_id798(&self) -> CommandResult<ParamId798Result> {
+        info!("Running ParamId798");
+        let mut return_code: u8 = 9;
+        let mut version = [0u8; 36];
+
+        unsafe {
+            (self.dll.param_id798)(&mut return_code, version.as_mut_ptr());
+        }
+
+        if return_code != 0 {
+            error!("ParamId798 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId798 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        let end = version
+            .iter()
+            .position(|&byte| byte == 0)
+            .unwrap_or(version.len());
+        Ok(ParamId798Result {
+            version: String::from_utf8_lossy(&version[..end]).into_owned(),
+        })
+    }
+
+    pub fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        info!("Running ParamId796");
+        let mut return_code: u8 = 9;
+        let mut mqtt_status: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id796)(&mut return_code, &mut mqtt_status);
+        }
+
+        if return_code != 0 {
+            error!("ParamId796 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId796 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId796Result { mqtt_status })
+    }
+
     fn run_common_param_command(
         &self,
         name: &str,
@@ -287,6 +411,125 @@ impl CommSession {
         Ok(())
     }
 
+    pub fn param_id254(&self, right_motor_speed: i16) -> CommandResult<()> {
+        info!("Running ParamId254 RightMotorSpeed={}", right_motor_speed);
+        let mut return_code: u8 = 9;
+
+        unsafe {
+            (self.dll.param_id254)(&mut return_code, right_motor_speed);
+        }
+
+        if return_code != 0 {
+            error!("ParamId254 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId254 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn param_id256(&self, left_motor_speed: i16) -> CommandResult<()> {
+        info!("Running ParamId256 LeftMotorSpeed={}", left_motor_speed);
+        let mut return_code: u8 = 9;
+
+        unsafe {
+            (self.dll.param_id256)(&mut return_code, left_motor_speed);
+        }
+
+        if return_code != 0 {
+            error!("ParamId256 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId256 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn param_id108(&self) -> CommandResult<ParamId108Result> {
+        info!("Running ParamId108");
+        let mut return_code: u8 = 9;
+        let mut batt_vol_mw: u16 = 0;
+        let mut batt_curr: i16 = 0;
+        let mut batt_en_lvl: i16 = 0;
+        let mut batt_temp: i16 = 0;
+        let mut main_voltage: u16 = 0;
+
+        unsafe {
+            (self.dll.param_id108)(
+                &mut return_code,
+                &mut batt_vol_mw,
+                &mut batt_curr,
+                &mut batt_en_lvl,
+                &mut batt_temp,
+                &mut main_voltage,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId108 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId108 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId108Result {
+            batt_vol_mw,
+            batt_curr,
+            batt_en_lvl,
+            batt_temp,
+            main_voltage,
+        })
+    }
+
+    pub fn param_id114(&self) -> CommandResult<ParamId114Result> {
+        info!("Running ParamId114");
+        let mut return_code: u8 = 9;
+        let mut right_whl_motor_p: i8 = 0;
+        let mut right_whl_motor_curr: i16 = 0;
+        let mut right_whl_motor_sp: i16 = 0;
+        let mut left_whl_motor_p: i8 = 0;
+        let mut lef_whl_motor_curr: i16 = 0;
+        let mut lef_whl_motor_sp: i16 = 0;
+
+        unsafe {
+            (self.dll.param_id114)(
+                &mut return_code,
+                &mut right_whl_motor_p,
+                &mut right_whl_motor_curr,
+                &mut right_whl_motor_sp,
+                &mut left_whl_motor_p,
+                &mut lef_whl_motor_curr,
+                &mut lef_whl_motor_sp,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId114 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId114 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId114Result {
+            right_whl_motor_p,
+            right_whl_motor_curr,
+            right_whl_motor_sp,
+            left_whl_motor_p,
+            lef_whl_motor_curr,
+            lef_whl_motor_sp,
+        })
+    }
+
     pub fn param_id272(&self) -> CommandResult<ParamId272Result> {
         info!("Running ParamId272");
         let mut return_code: u8 = 9;
@@ -352,6 +595,124 @@ impl CommSession {
         })
     }
 
+    pub fn param_id526(&self) -> CommandResult<ParamId526Result> {
+        info!("Running ParamId526");
+        let mut return_code: u8 = 9;
+        let mut pcb_de_gr_no: u16 = 0;
+        let mut pcb_sub_de_no: u8 = 0;
+        let mut pcb_var_no: u8 = 0;
+        let mut pcb_pn: u32 = 0;
+        let mut pcb_rev: u16 = 0;
+        let mut pcb_ser_no: u32 = 0;
+        let mut pcb_prod_time: u32 = 0;
+        let mut pcb_ext_flash: u8 = 0;
+        let mut pcb_ext_eeprom: u8 = 0;
+        let mut pcb_accelerometer: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id526)(
+                &mut return_code,
+                &mut pcb_de_gr_no,
+                &mut pcb_sub_de_no,
+                &mut pcb_var_no,
+                &mut pcb_pn,
+                &mut pcb_rev,
+                &mut pcb_ser_no,
+                &mut pcb_prod_time,
+                &mut pcb_ext_flash,
+                &mut pcb_ext_eeprom,
+                &mut pcb_accelerometer,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId526 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId526 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId526Result {
+            pcb_de_gr_no,
+            pcb_sub_de_no,
+            pcb_var_no,
+            pcb_pn,
+            pcb_rev,
+            pcb_ser_no,
+            pcb_prod_time,
+            pcb_ext_flash,
+            pcb_ext_eeprom,
+            pcb_accelerometer,
+        })
+    }
+
+    pub fn param_id096(&self) -> CommandResult<ParamId096Result> {
+        info!("Running ParamId096");
+        let mut return_code: u8 = 9;
+        let mut gprs_lte_stat: u8 = 0;
+        let mut gprs_lte_sign_qual: u8 = 0;
+        let mut gnss_hw_stat: u8 = 0;
+        let mut sim_status: u8 = 0;
+        let mut ble_hw_stat: u8 = 0;
+        let mut gprs_lte_conn_stat: u8 = 0;
+        let mut ble_conn_stat: u8 = 0;
+        let mut wifi_conn_stat: u8 = 0;
+        let mut wifi_hw_stat: u8 = 0;
+        let mut lora_conn_stat: u8 = 0;
+        let mut lora_hw_stat: u8 = 0;
+        let mut rtk_hw_stat: u8 = 0;
+        let mut rtk_conn_stat: u8 = 0;
+        let mut connected_ra_serial: u32 = 0;
+
+        unsafe {
+            (self.dll.param_id096)(
+                &mut return_code,
+                &mut gprs_lte_stat,
+                &mut gprs_lte_sign_qual,
+                &mut gnss_hw_stat,
+                &mut sim_status,
+                &mut ble_hw_stat,
+                &mut gprs_lte_conn_stat,
+                &mut ble_conn_stat,
+                &mut wifi_conn_stat,
+                &mut wifi_hw_stat,
+                &mut lora_conn_stat,
+                &mut lora_hw_stat,
+                &mut rtk_hw_stat,
+                &mut rtk_conn_stat,
+                &mut connected_ra_serial,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId096 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId096 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId096Result {
+            gprs_lte_stat,
+            gprs_lte_sign_qual,
+            gnss_hw_stat,
+            sim_status,
+            ble_hw_stat,
+            gprs_lte_conn_stat,
+            ble_conn_stat,
+            wifi_conn_stat,
+            wifi_hw_stat,
+            lora_conn_stat,
+            lora_hw_stat,
+            rtk_hw_stat,
+            rtk_conn_stat,
+            connected_ra_serial,
+        })
+    }
+
     pub fn param_id080(&self) -> CommandResult<ParamId080Result> {
         info!("Running ParamId080");
         let mut return_code: u8 = 9;
@@ -402,6 +763,44 @@ impl CommSession {
             source_for_next_start_stop,
             notify,
             configuration_hash,
+        })
+    }
+
+    pub fn param_id118(&self) -> CommandResult<ParamId118Result> {
+        info!("Running ParamId118");
+        let mut return_code: u8 = 9;
+        let mut collision_sen: u8 = 0;
+        let mut lift_sen: u8 = 0;
+        let mut status_flags: u16 = 0;
+        let mut stop_sen: u8 = 0;
+        let mut disabling_sen: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id118)(
+                &mut return_code,
+                &mut collision_sen,
+                &mut lift_sen,
+                &mut status_flags,
+                &mut stop_sen,
+                &mut disabling_sen,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId118 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId118 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId118Result {
+            collision_sen,
+            lift_sen,
+            status_flags,
+            stop_sen,
+            disabling_sen,
         })
     }
 
@@ -529,6 +928,42 @@ impl CommSession {
         Ok(ParamId470Result { cutting_height_mm })
     }
 
+    pub fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
+        info!("Running ParamId776 Cmd={}", cmd);
+        let mut return_code: u8 = 9;
+        let mut up_key: u8 = 0;
+        let mut down_key: u8 = 0;
+        let mut back_key: u8 = 0;
+        let mut confirm_key: u8 = 0;
+
+        unsafe {
+            (self.dll.param_id776)(
+                &mut return_code,
+                cmd,
+                &mut up_key,
+                &mut down_key,
+                &mut back_key,
+                &mut confirm_key,
+            );
+        }
+
+        if return_code != 0 {
+            error!("ParamId776 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId776 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(ParamId776Result {
+            up_key,
+            down_key,
+            back_key,
+            confirm_key,
+        })
+    }
+
     pub fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()> {
         info!("Running ParamId468 CuttingHeightMm={}", cutting_height_mm);
         let mut return_code: u8 = 9;
@@ -541,6 +976,46 @@ impl CommSession {
             error!("ParamId468 failed with code {}", return_code);
             return Err(AppError::msg(format!(
                 "ParamId468 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn param_id568(&self, on: u8) -> CommandResult<()> {
+        info!("Running ParamId568 On={}", on);
+        let mut return_code: u8 = 9;
+
+        unsafe {
+            (self.dll.param_id568)(&mut return_code, on);
+        }
+
+        if return_code != 0 {
+            error!("ParamId568 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId568 执行失败: {} (ReturnCode={})",
+                return_code_message(return_code),
+                return_code
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {
+        info!("Running ParamId610 RearLightMode={}", rear_light_mode);
+        let mut return_code: u8 = 9;
+
+        unsafe {
+            (self.dll.param_id610)(&mut return_code, rear_light_mode);
+        }
+
+        if return_code != 0 {
+            error!("ParamId610 failed with code {}", return_code);
+            return Err(AppError::msg(format!(
+                "ParamId610 执行失败: {} (ReturnCode={})",
                 return_code_message(return_code),
                 return_code
             )));
@@ -659,6 +1134,30 @@ impl CommDll {
                 &lib,
                 &[b"ParamId606\0", b"ParamId606@12\0", b"_ParamId606@12\0"],
             )?;
+            let param_id254 = load_symbol::<ParamId254Fn>(
+                &lib,
+                &[b"ParamId254\0", b"ParamId254@8\0", b"_ParamId254@8\0"],
+            )?;
+            let param_id256 = load_symbol::<ParamId256Fn>(
+                &lib,
+                &[b"ParamId256\0", b"ParamId256@8\0", b"_ParamId256@8\0"],
+            )?;
+            let param_id108 = load_symbol::<ParamId108Fn>(
+                &lib,
+                &[b"ParamId108\0", b"ParamId108@24\0", b"_ParamId108@24\0"],
+            )?;
+            let param_id114 = load_symbol::<ParamId114Fn>(
+                &lib,
+                &[b"ParamId114\0", b"ParamId114@28\0", b"_ParamId114@28\0"],
+            )?;
+            let param_id568 = load_symbol::<ParamId568Fn>(
+                &lib,
+                &[b"ParamId568\0", b"ParamId568@8\0", b"_ParamId568@8\0"],
+            )?;
+            let param_id610 = load_symbol::<ParamId610Fn>(
+                &lib,
+                &[b"ParamId610\0", b"ParamId610@8\0", b"_ParamId610@8\0"],
+            )?;
             let param_id654 = load_symbol::<ParamId654Fn>(
                 &lib,
                 &[b"ParamId654\0", b"ParamId654@28\0", b"_ParamId654@28\0"],
@@ -667,9 +1166,21 @@ impl CommDll {
                 &lib,
                 &[b"ParamId272\0", b"ParamId272@60\0", b"_ParamId272@60\0"],
             )?;
+            let param_id526 = load_symbol::<ParamId526Fn>(
+                &lib,
+                &[b"ParamId526\0", b"ParamId526@44\0", b"_ParamId526@44\0"],
+            )?;
+            let param_id096 = load_symbol::<ParamId096Fn>(
+                &lib,
+                &[b"ParamId096\0", b"ParamId096@60\0", b"_ParamId096@60\0"],
+            )?;
             let param_id080 = load_symbol::<ParamId080Fn>(
                 &lib,
                 &[b"ParamId080\0", b"ParamId080@16\0", b"_ParamId080@16\0"],
+            )?;
+            let param_id118 = load_symbol::<ParamId118Fn>(
+                &lib,
+                &[b"ParamId118\0", b"ParamId118@24\0", b"_ParamId118@24\0"],
             )?;
             let param_id120 = load_symbol::<ParamId120Fn>(
                 &lib,
@@ -687,6 +1198,22 @@ impl CommDll {
                 &lib,
                 &[b"ParamId468\0", b"ParamId468@8\0", b"_ParamId468@8\0"],
             )?;
+            let param_id794 = load_symbol::<ParamId794Fn>(
+                &lib,
+                &[b"ParamId794\0", b"ParamId794@28\0", b"_ParamId794@28\0"],
+            )?;
+            let param_id796 = load_symbol::<ParamId796Fn>(
+                &lib,
+                &[b"ParamId796\0", b"ParamId796@8\0", b"_ParamId796@8\0"],
+            )?;
+            let param_id798 = load_symbol::<ParamId798Fn>(
+                &lib,
+                &[b"ParamId798\0", b"ParamId798@8\0", b"_ParamId798@8\0"],
+            )?;
+            let param_id776 = load_symbol::<ParamId776Fn>(
+                &lib,
+                &[b"ParamId776\0", b"ParamId776@24\0", b"_ParamId776@24\0"],
+            )?;
 
             Ok(Self {
                 _lib: lib,
@@ -699,12 +1226,25 @@ impl CommDll {
                 param_id588,
                 param_id654,
                 param_id272,
+                param_id526,
+                param_id096,
                 param_id080,
+                param_id118,
                 param_id120,
                 param_id122,
                 param_id470,
                 param_id468,
                 param_id606,
+                param_id254,
+                param_id256,
+                param_id108,
+                param_id114,
+                param_id568,
+                param_id610,
+                param_id794,
+                param_id796,
+                param_id798,
+                param_id776,
             })
         }
     }

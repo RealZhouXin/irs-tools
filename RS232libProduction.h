@@ -232,21 +232,14 @@ void ParamId078(uint8_t* ReturnCode, uint16_t* DevGrNo, uint8_t* SubDevGrNo, uin
 #endif
 
 /*Get mower status*/
-#if (PLATFORM_VERSION == 1)
-void ParamId080(uint8_t* ReturnCode, uint8_t* MowerMainP, uint8_t* MowerSubState, uint32_t* TimeStpNxtStart, uint8_t* BattStat, uint16_t* StatFlags, uint8_t* WrlessConStat, uint8_t* SignQual, uint8_t* SourceNextStart, uint16_t* Notify, uint8_t* ConfigurationHash);
-#else
 void ParamId080(uint8_t* ReturnCode, uint8_t* MowerMainP, uint8_t* MowerSubState, uint32_t* TimeStpNxtStart, uint8_t* BattStat, uint16_t* StatFlags, uint8_t* WrlessConStat, uint8_t* SignQuality, uint8_t* SourceForNextStartStop, uint16_t* Notify, uint8_t* ConfigurationHash);
-#endif
 
 /*Get GNSS position*/
 void ParamId094(uint8_t* ReturnCode, int32_t* latDeg, int32_t* longDeg, uint8_t* HDOP);
 
 /*Get wireless communication status*/
-#if (PLATFORM_VERSION == 1)
-void ParamId096(uint8_t* ReturnCode, uint8_t* GprsLteStat, uint8_t* GprsLteSignQual, uint8_t* GNSSHWstat, uint8_t* SimStatus, uint8_t* BLEHwStat, uint8_t* GprsLteConnStat, uint8_t* BLEConnStat, uint8_t* WiFiConnStat, uint8_t* WiFiHwStat);
-#else
 void ParamId096(uint8_t* ReturnCode, uint8_t* GprsLteStat, uint8_t* GprsLteSignQual, uint8_t* GNSSHWstat, uint8_t* SimStatus, uint8_t* BLEHwStat, uint8_t* GprsLteConnStat, uint8_t* BLEConnStat, uint8_t* WiFiConnStat, uint8_t* WiFiHwStat, uint8_t* LoraConnStat, uint8_t* LoraHwStat, uint8_t* RtkHwStat, uint8_t* RtkConnStat, uint32_t* ConnectedRaSerial);
-#endif
+
 
 /*Get real time data for battery 1*/
 void ParamId108(uint8_t* ReturnCode, uint16_t* BattVolMW, int16_t* BattCurr, int16_t* BattEnLvl, int16_t* BattTemp, uint16_t* MainVoltage);

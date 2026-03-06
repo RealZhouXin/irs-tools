@@ -98,7 +98,8 @@ where
             }
             let name = group.name.clone();
             info!("Starting group {}", name);
-            match run_group(gateway.as_ref(), group) {
+            let run_result = run_group(gateway.as_ref(), group, &self.app);
+            match run_result {
                 Ok(result) => {
                     info!("Completed group {} with passed={}", name, result.passed);
                     if let Err(err) = self.app.emit(TEST_GROUP_COMPLETE, &result) {
@@ -122,6 +123,7 @@ where
         info!("Leaving test mode via ParamId374(TestMode=0)");
         let exit_mode_result = gateway.param_id374(0);
         clear_stop_request();
+        let session_sn = extract_session_sn(&results);
         if let Some(err) = run_error {
             if let Err(exit_err) = exit_mode_result {
                 error!(
@@ -136,12 +138,15 @@ where
                 &self.app,
                 &session_stage,
                 "Error",
+                session_sn,
                 started_at,
                 run_timer.elapsed().as_millis() as i64,
                 &results,
             ) {
                 error!("Failed to persist errored test run: {}", db_err);
-                return Err(AppError::msg(format!("{err}; 且保存测试记录失败: {db_err}")));
+                return Err(AppError::msg(format!(
+                    "{err}; 且保存测试记录失败: {db_err}"
+                )));
             }
             warn!("Test run ended with error: {}", err);
             return Err(err);
@@ -154,6 +159,7 @@ where
                 &self.app,
                 &session_stage,
                 status,
+                session_sn,
                 started_at,
                 run_timer.elapsed().as_millis() as i64,
                 &results,
@@ -177,6 +183,7 @@ where
             &self.app,
             &session_stage,
             status,
+            session_sn,
             started_at,
             run_timer.elapsed().as_millis() as i64,
             &results,
@@ -203,7 +210,7 @@ where
         let gateway = self.build_gateway(&connection, read_timeout_ms)?;
         info!("Retest entering test mode via ParamId374(TestMode=2)");
         gateway.param_id374(2)?;
-        let result = run_group(gateway.as_ref(), group);
+        let result = run_group(gateway.as_ref(), group, &self.app);
         info!("Retest leaving test mode via ParamId374(TestMode=0)");
         let exit_mode_result = gateway.param_id374(0);
         match (result, exit_mode_result) {
@@ -290,4 +297,65 @@ fn select_tests_by_stages(
     }
 
     Ok(selected)
+}
+
+fn extract_session_sn(results: &[TestResult]) -> Option<u32> {
+    results
+        .iter()
+        .find(|result| result.command == "ParamId526")
+        .and_then(|result| {
+            result
+                .raw_response
+                .split(',')
+                .map(str::trim)
+                .find_map(|part| part.strip_prefix("PcbSerNo="))
+        })
+        .and_then(|value| value.parse::<u32>().ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_session_sn;
+    use crate::models::{CheckResult, TestResult};
+
+    fn make_test_result(command: &str, raw_response: &str) -> TestResult {
+        TestResult {
+            name: "group".to_string(),
+            stage: "stage".to_string(),
+            command: command.to_string(),
+            passed: true,
+            raw_response: raw_response.to_string(),
+            checks: vec![CheckResult {
+                name: "check".to_string(),
+                min: None,
+                max: None,
+                value: None,
+                display_min: None,
+                display_max: None,
+                display_value: None,
+                passed: true,
+            }],
+        }
+    }
+
+    #[test]
+    fn extract_session_sn_returns_value_from_param_id526() {
+        let results = vec![make_test_result(
+            "ParamId526",
+            "PcbDeGrNo=1, PcbSubDeNo=1, PcbSerNo=12345678, PcbRev=4",
+        )];
+        assert_eq!(extract_session_sn(&results), Some(12345678));
+    }
+
+    #[test]
+    fn extract_session_sn_returns_none_when_param_id526_missing() {
+        let results = vec![make_test_result("ParamId080", "MowerMainP=1")];
+        assert_eq!(extract_session_sn(&results), None);
+    }
+
+    #[test]
+    fn extract_session_sn_returns_none_when_parse_fails() {
+        let results = vec![make_test_result("ParamId526", "PcbSerNo=ABC")];
+        assert_eq!(extract_session_sn(&results), None);
+    }
 }

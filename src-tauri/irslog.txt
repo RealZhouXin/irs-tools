@@ -1,0 +1,122 @@
+[2026-03-03 16:36:49.409] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.409] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 0
+[2026-03-03 16:36:49.409] [debug] [NetworkHandle.cpp:68] send irs 16 bytes to socket
+[2026-03-03 16:36:49.419] [debug] [NetworkHandle.cpp:108] read header, body length: 8
+[2026-03-03 16:36:49.419] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 8
+[2026-03-03 16:36:49.419] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.419] [debug] [IRSMsg.cpp:178] payload length is 0, no payload to translate
+[2026-03-03 16:36:49.419] [debug] [CMDHandle.cpp:163] receive 8 bytes, msgRetVal: 0, msg type: 1, msg_client_id: 1, answer_client_id: 0, msg_param_id: 0, answer_param_id: 0
+[2026-03-03 16:36:49.420] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 374
+[2026-03-03 16:36:49.420] [debug] [NetworkHandle.cpp:68] send irs 24 bytes to socket
+[2026-03-03 16:36:49.466] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:36:49.466] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:36:49.466] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.466] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:36:49.466] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 375
+[2026-03-03 16:36:49.466] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 374, answer_param_id: 375
+[2026-03-03 16:36:49.467] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 68
+[2026-03-03 16:36:49.467] [debug] [NetworkHandle.cpp:68] send irs 22 bytes to socket
+[2026-03-03 16:36:49.495] [debug] [NetworkHandle.cpp:108] read header, body length: 33
+[2026-03-03 16:36:49.495] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 33
+[2026-03-03 16:36:49.495] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.495] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 20, param id: 0
+[2026-03-03 16:36:49.495] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 20, param id: 69
+[2026-03-03 16:36:49.495] [debug] [CMDHandle.cpp:163] receive 33 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 68, answer_param_id: 69
+[2026-03-03 16:36:49.497] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 588
+[2026-03-03 16:36:49.497] [debug] [NetworkHandle.cpp:68] send irs 22 bytes to socket
+[2026-03-03 16:36:49.517] [debug] [NetworkHandle.cpp:108] read header, body length: 33
+[2026-03-03 16:36:49.517] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 33
+[2026-03-03 16:36:49.517] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 20, param id: 0
+[2026-03-03 16:36:49.517] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 20, param id: 589
+[2026-03-03 16:36:49.517] [debug] [CMDHandle.cpp:163] receive 33 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 588, answer_param_id: 589
+[2026-03-03 16:36:49.517] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.518] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 654
+[2026-03-03 16:36:49.518] [debug] [NetworkHandle.cpp:68] send irs 22 bytes to socket
+[2026-03-03 16:36:49.553] [debug] [NetworkHandle.cpp:108] read header, body length: 33
+[2026-03-03 16:36:49.553] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 33
+[2026-03-03 16:36:49.553] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.553] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 20, param id: 0
+[2026-03-03 16:36:49.553] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 20, param id: 655
+[2026-03-03 16:36:49.554] [debug] [CMDHandle.cpp:163] receive 33 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 654, answer_param_id: 655
+[2026-03-03 16:36:49.555] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 794
+[2026-03-03 16:36:49.555] [debug] [NetworkHandle.cpp:68] send irs 22 bytes to socket
+[2026-03-03 16:36:49.591] [debug] [NetworkHandle.cpp:108] read header, body length: 33
+[2026-03-03 16:36:49.591] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 33
+[2026-03-03 16:36:49.591] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.591] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 20, param id: 0
+[2026-03-03 16:36:49.591] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 20, param id: 795
+[2026-03-03 16:36:49.591] [debug] [CMDHandle.cpp:163] receive 33 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 794, answer_param_id: 795
+[2026-03-03 16:36:49.593] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 374
+[2026-03-03 16:36:49.593] [debug] [NetworkHandle.cpp:68] send irs 24 bytes to socket
+[2026-03-03 16:36:49.638] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:36:49.638] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:36:49.638] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:36:49.638] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:36:49.638] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 375
+[2026-03-03 16:36:49.638] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 374, answer_param_id: 375
+[2026-03-03 16:36:49.652] [error] [NetworkHandle.cpp:97] Error reading header: 远程主机强迫关闭了一个现有的连接。
+[2026-03-03 16:37:11.267] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:11.268] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 0
+[2026-03-03 16:37:11.268] [debug] [NetworkHandle.cpp:68] send irs 16 bytes to socket
+[2026-03-03 16:37:11.284] [debug] [NetworkHandle.cpp:108] read header, body length: 8
+[2026-03-03 16:37:11.284] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 8
+[2026-03-03 16:37:11.284] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:11.284] [debug] [IRSMsg.cpp:178] payload length is 0, no payload to translate
+[2026-03-03 16:37:11.284] [debug] [CMDHandle.cpp:163] receive 8 bytes, msgRetVal: 0, msg type: 1, msg_client_id: 1, answer_client_id: 0, msg_param_id: 0, answer_param_id: 0
+[2026-03-03 16:37:11.285] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 374
+[2026-03-03 16:37:11.285] [debug] [NetworkHandle.cpp:68] send irs 24 bytes to socket
+[2026-03-03 16:37:11.310] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:11.310] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:11.310] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:11.310] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:11.310] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 375
+[2026-03-03 16:37:11.310] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 374, answer_param_id: 375
+[2026-03-03 16:37:11.311] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 606
+[2026-03-03 16:37:11.311] [debug] [NetworkHandle.cpp:68] send irs 24 bytes to socket
+[2026-03-03 16:37:11.373] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:11.373] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:11.373] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:11.373] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:11.373] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 607
+[2026-03-03 16:37:11.373] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 606, answer_param_id: 607
+[2026-03-03 16:37:12.434] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 610
+[2026-03-03 16:37:12.434] [debug] [NetworkHandle.cpp:68] send irs 23 bytes to socket
+[2026-03-03 16:37:12.462] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:12.462] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:12.462] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:12.462] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:12.462] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 611
+[2026-03-03 16:37:12.462] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 610, answer_param_id: 611
+[2026-03-03 16:37:15.274] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 610
+[2026-03-03 16:37:15.274] [debug] [NetworkHandle.cpp:68] send irs 23 bytes to socket
+[2026-03-03 16:37:15.319] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:15.319] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:15.319] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:15.319] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:15.319] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 611
+[2026-03-03 16:37:15.319] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 610, answer_param_id: 611
+[2026-03-03 16:37:16.422] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 610
+[2026-03-03 16:37:16.422] [debug] [NetworkHandle.cpp:68] send irs 23 bytes to socket
+[2026-03-03 16:37:16.443] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:16.443] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:16.443] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:16.443] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:16.443] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 611
+[2026-03-03 16:37:16.443] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 610, answer_param_id: 611
+[2026-03-03 16:37:18.598] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 610
+[2026-03-03 16:37:18.598] [debug] [NetworkHandle.cpp:68] send irs 23 bytes to socket
+[2026-03-03 16:37:18.625] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:18.625] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:18.625] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:18.625] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:18.625] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 611
+[2026-03-03 16:37:18.625] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 610, answer_param_id: 611
+[2026-03-03 16:37:18.627] [debug] [CMDHandle.cpp:100] sendWithResponse: param id: 374
+[2026-03-03 16:37:18.627] [debug] [NetworkHandle.cpp:68] send irs 24 bytes to socket
+[2026-03-03 16:37:18.677] [debug] [NetworkHandle.cpp:108] read header, body length: 23
+[2026-03-03 16:37:18.677] [debug] [NetworkHandle.cpp:132] read body, bytes transferred: 23
+[2026-03-03 16:37:18.677] [debug] [IRSMsg.cpp:163] IRSMsg::translateToMsg: Payload length: 10, param id: 0
+[2026-03-03 16:37:18.677] [debug] [NetworkHandle.cpp:90] starting async read header, ip: 10.101.1.64, port: 12345
+[2026-03-03 16:37:18.677] [debug] [IRSMsg.cpp:167] IRSMsg::translateToMsg: Payload length: 10, param id: 375
+[2026-03-03 16:37:18.677] [debug] [CMDHandle.cpp:163] receive 23 bytes, msgRetVal: 0, msg type: 3, msg_client_id: 1, answer_client_id: 1, msg_param_id: 374, answer_param_id: 375
+[2026-03-03 16:37:18.693] [error] [NetworkHandle.cpp:97] Error reading header: 远程主机强迫关闭了一个现有的连接。

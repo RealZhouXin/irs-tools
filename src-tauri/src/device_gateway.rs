@@ -5,8 +5,10 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId120Result, ParamId122Result,
-    ParamId272Result, ParamId470Result, ParamId588Result, ParamId654Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
+    ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
+    ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
+    ParamId794Result, ParamId796Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -16,12 +18,35 @@ pub trait DeviceGateway {
     fn param_id588(&self) -> CommandResult<ParamId588Result>;
     fn param_id654(&self) -> CommandResult<ParamId654Result>;
     fn param_id272(&self) -> CommandResult<ParamId272Result>;
+    fn param_id526(&self) -> CommandResult<ParamId526Result>;
+    fn param_id096(&self) -> CommandResult<ParamId096Result>;
     fn param_id080(&self) -> CommandResult<ParamId080Result>;
+    fn param_id118(&self) -> CommandResult<ParamId118Result>;
     fn param_id120(&self) -> CommandResult<ParamId120Result>;
     fn param_id122(&self) -> CommandResult<ParamId122Result>;
     fn param_id470(&self) -> CommandResult<ParamId470Result>;
     fn param_id468(&self, cutting_height_mm: u8) -> CommandResult<()>;
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()>;
+    fn param_id254(&self, _right_motor_speed: i16) -> CommandResult<()> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId254"))
+    }
+    fn param_id256(&self, _left_motor_speed: i16) -> CommandResult<()> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId256"))
+    }
+    fn param_id108(&self) -> CommandResult<ParamId108Result> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId108"))
+    }
+    fn param_id114(&self) -> CommandResult<ParamId114Result> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId114"))
+    }
+    fn param_id568(&self, on: u8) -> CommandResult<()>;
+    fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()>;
+    fn param_id794(&self) -> CommandResult<ParamId794Result>;
+    fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        Err(AppError::msg("DeviceGateway 未实现 ParamId796"))
+    }
+    fn param_id798(&self) -> CommandResult<ParamId798Result>;
+    fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result>;
 }
 
 pub trait DeviceGatewayFactory {
@@ -74,8 +99,20 @@ impl DeviceGateway for DllDeviceGateway {
         self.session.param_id272()
     }
 
+    fn param_id526(&self) -> CommandResult<ParamId526Result> {
+        self.session.param_id526()
+    }
+
+    fn param_id096(&self) -> CommandResult<ParamId096Result> {
+        self.session.param_id096()
+    }
+
     fn param_id080(&self) -> CommandResult<ParamId080Result> {
         self.session.param_id080()
+    }
+
+    fn param_id118(&self) -> CommandResult<ParamId118Result> {
+        self.session.param_id118()
     }
 
     fn param_id120(&self) -> CommandResult<ParamId120Result> {
@@ -96,6 +133,46 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id606(&self, front_light_mode: u8, power: u8) -> CommandResult<()> {
         self.session.param_id606(front_light_mode, power)
+    }
+
+    fn param_id254(&self, right_motor_speed: i16) -> CommandResult<()> {
+        self.session.param_id254(right_motor_speed)
+    }
+
+    fn param_id256(&self, left_motor_speed: i16) -> CommandResult<()> {
+        self.session.param_id256(left_motor_speed)
+    }
+
+    fn param_id108(&self) -> CommandResult<ParamId108Result> {
+        self.session.param_id108()
+    }
+
+    fn param_id114(&self) -> CommandResult<ParamId114Result> {
+        self.session.param_id114()
+    }
+
+    fn param_id568(&self, on: u8) -> CommandResult<()> {
+        self.session.param_id568(on)
+    }
+
+    fn param_id610(&self, rear_light_mode: u8) -> CommandResult<()> {
+        self.session.param_id610(rear_light_mode)
+    }
+
+    fn param_id794(&self) -> CommandResult<ParamId794Result> {
+        self.session.param_id794()
+    }
+
+    fn param_id796(&self) -> CommandResult<ParamId796Result> {
+        self.session.param_id796()
+    }
+
+    fn param_id798(&self) -> CommandResult<ParamId798Result> {
+        self.session.param_id798()
+    }
+
+    fn param_id776(&self, cmd: u8) -> CommandResult<ParamId776Result> {
+        self.session.param_id776(cmd)
     }
 }
 

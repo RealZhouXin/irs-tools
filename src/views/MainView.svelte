@@ -19,6 +19,7 @@
     statusKey,
     summaryState,
     summaryLabel,
+    machineSn,
     retesting,
     exportError,
     exportSuccess,
@@ -40,6 +41,7 @@
     statusKey: StatusKey;
     summaryState: SummaryState;
     summaryLabel: string;
+    machineSn: string | null;
     retesting: string | null;
     exportError: string | null;
     exportSuccess: string | null;
@@ -118,6 +120,7 @@
     {statusKey}
     {summaryState}
     {summaryLabel}
+    {machineSn}
   />
 
   {#if exportSuccess}

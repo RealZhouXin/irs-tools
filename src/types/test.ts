@@ -3,6 +3,9 @@ export type CheckResult = {
   min: number | null;
   max: number | null;
   value: number | null;
+  display_min?: string | null;
+  display_max?: string | null;
+  display_value?: string | null;
   passed: boolean;
 };
 
@@ -18,4 +21,67 @@ export type TestResult = {
 export type TestSummary = {
   results: TestResult[];
   overall_passed: boolean;
+};
+
+export type KeyStatePayload = {
+  up_pressed: boolean;
+  down_pressed: boolean;
+  back_pressed: boolean;
+  confirm_pressed: boolean;
+};
+
+export type FrontLightConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  front_light_mode: number;
+  power: number;
+};
+
+export type RearLightColor = "red" | "green" | "blue";
+
+export type RearLightConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  rear_light_mode: number;
+  expected_color: RearLightColor;
+  step_index: number;
+  total_steps: number;
+};
+
+export type SpeakerConfirmRequestPayload = {
+  name: string;
+  stage: string;
+  on: number;
+};
+
+export type CollisionBarPromptPayload = {
+  name: string;
+  stage: string;
+  prompt_kind: SensorPromptKind;
+};
+
+export type SensorPromptKind = "collision_bar" | "lift_sensor";
+
+export type EmergencyStopPhase =
+  | "press_emergency_stop"
+  | "unlock_by_back_and_confirm";
+
+export type EmergencyStopTestPayload = {
+  name: string;
+  stage: string;
+  phase: EmergencyStopPhase;
+  mower_main_p: number;
+  elapsed_ms: number;
+  timeout_ms: number;
+};
+
+export type WheelMotorTestPhase =
+  | "lift_confirm"
+  | "testing_right"
+  | "testing_left";
+
+export type WheelMotorTestUpdatePayload = {
+  name: string;
+  stage: string;
+  phase: WheelMotorTestPhase;
 };

@@ -9,6 +9,7 @@ export type Translation = {
   export: string;
   exporting: string;
   statusTitle: string;
+  machineSnLabel: string;
   status: {
     idle: string;
     running: string;
@@ -72,6 +73,7 @@ export type Translation = {
   aboutError: string;
   confirmTitle: string;
   confirmLightQuestion: string;
+  confirmOk: string;
   confirmYes: string;
   confirmNo: string;
   exportDialogTitle: string;
@@ -84,4 +86,21 @@ export type Translation = {
   exportFailed: string;
   exportNoData: string;
   exportDateLoadFailed: string;
+  keyTestTitle: string;
+  keyTestInstruction: string;
+  keyTestBack: string;
+  keyTestDown: string;
+  keyTestUp: string;
+  keyTestConfirm: string;
+  keyTestTimeout: string;
+  speakerTestTitle: string;
+  speakerTestQuestion: string;
+  collisionBarTestTitle: string;
+  collisionBarTestInstruction: string;
+  liftSensorTestTitle: string;
+  liftSensorTestInstruction: string;
+  wheelMotorTestTitle: string;
+  wheelMotorLiftPrompt: string;
+  wheelMotorTestingRight: string;
+  wheelMotorTestingLeft: string;
 };

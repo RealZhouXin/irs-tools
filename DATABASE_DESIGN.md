@@ -23,6 +23,7 @@
 | `id` | `INTEGER` | 主键 (自增) |
 | `stage` | `TEXT` | 触发的大场景 (例如: 总装测试, 老化测试) |
 | `status` | `TEXT` | 整体执行结果 (`Pass`, `Fail`, `Error`) |
+| `sn` | `INTEGER` | 机器 SN（来自 `ParamId526` 的 `PcbSerNo`，可为 `NULL`） |
 | `duration_ms` | `INTEGER` | 整体耗时 |
 | `start_time` | `DATETIME` | 测试开始时间，使用本地时间 |
 
@@ -57,7 +58,7 @@
 **预期的 SQL 查询语句：**
 ```sql
 SELECT 
-    s.start_time, s.stage, c.group_name, c.command, c.check_name, 
+    s.start_time, s.stage, s.sn, c.group_name, c.command, c.check_name, 
     c.val_real, c.min_limit, c.max_limit, c.passed, c.raw_response
 FROM test_sessions s
 JOIN test_checks c ON s.id = c.session_id
@@ -66,11 +67,11 @@ ORDER BY s.id ASC, c.id ASC
 ```
 
 **对应导出的 CSV 表头与行示例：**
-| 测试时间 | 测试场景 | 测试项组 | 执行指令 | **检查项 (Check)** | **实测值** | 下限 | 上限 | 是否通过 | 原始报文(Raw) |
+| 测试时间 | 测试场景 | 机器SN | 测试项组 | 执行指令 | **检查项 (Check)** | **实测值** | 下限 | 上限 | 是否通过 | 原始报文(Raw) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 26-03-02 10:15 | 出厂快测 | 陀螺仪检测 | param_id120 | PitchAngle | **1.2** | -10 | 10 | TRUE | PitchAngle=... |
-| 26-03-02 10:15 | 出厂快测 | 陀螺仪检测 | param_id120 | AccelX | **2.5** | -5 | 5 | TRUE | PitchAngle=... |
-| 26-03-02 10:16 | 功率测试 | 电池检测 | param_id272 | BattTemp | **85.0** | -10 | 80 | FALSE | BattPackPN=... |
+| 26-03-02 10:15 | 出厂快测 | 12345678 | 陀螺仪检测 | param_id120 | PitchAngle | **1.2** | -10 | 10 | TRUE | PitchAngle=... |
+| 26-03-02 10:15 | 出厂快测 | 12345678 | 陀螺仪检测 | param_id120 | AccelX | **2.5** | -5 | 5 | TRUE | PitchAngle=... |
+| 26-03-02 10:16 | 功率测试 |  | 电池检测 | param_id272 | BattTemp | **85.0** | -10 | 80 | FALSE | BattPackPN=... |
 
 ### 设计优点
 通过将 `Check` 展平成列，生产经理可以使用 Excel 强大的数据透视功能，单独拉取比如 `check_name = 'BattTemp'` 的数据创建线型趋势图去评估产线质量，彻底摆脱了复杂的 JSON 解析。
