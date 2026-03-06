@@ -99,7 +99,7 @@ CSV
 ├─ dist/                       # Vite build output
 ├─ src-tauri/config/
 │  ├─ threshold.toml
-│  └─ tests.toml
+│  └─ tests.yaml
 ├─ AGENTS.md
 ├─ DATABASE_DESIGN.md
 ├─ TASK_ORCHESTRATION_OPTIMIZATION.md
@@ -536,7 +536,7 @@ log level
 
 ---
 
-### tests.toml
+### tests.yaml
 
 测试定义：
 

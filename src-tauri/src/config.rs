@@ -7,7 +7,7 @@ use tracing::{info, warn};
 use crate::models::{BaseConfig, TestConfig, TestGroup};
 use crate::types::{AppError, CommandResult};
 
-const DEFAULT_CONFIG_FILES: &[&str] = &["config/threshold.toml", "config/tests.toml"];
+const DEFAULT_CONFIG_FILES: &[&str] = &["config/threshold.toml", "config/tests.yaml"];
 
 pub fn init_default_configs(app: &tauri::AppHandle) {
     let app_config_dir = match app.path().app_config_dir() {
@@ -103,11 +103,11 @@ pub fn read_test_stages(app: &tauri::AppHandle) -> CommandResult<Vec<String>> {
 }
 
 fn read_tests_config_file(app: &tauri::AppHandle) -> CommandResult<TestsConfig> {
-    let tests_path = resolve_readable_config_path(app, "config/tests.toml", "测试项配置文件")?;
+    let tests_path = resolve_readable_config_path(app, "config/tests.yaml", "测试项配置文件")?;
     info!("Using tests at {}", tests_path.display());
     let tests_data = std::fs::read_to_string(&tests_path)
         .map_err(|err| AppError::io("无法读取测试项配置文件", err))?;
-    toml::from_str(&tests_data).map_err(|err| AppError::toml_de("测试项配置解析失败", err))
+    serde_yaml::from_str(&tests_data).map_err(|err| AppError::yaml_de("测试项配置解析失败", err))
 }
 
 fn resolve_stage_order(tests_config: &TestsConfig) -> Vec<String> {
