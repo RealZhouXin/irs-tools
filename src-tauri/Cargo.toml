@@ -21,3 +21,6 @@ tauri-plugin-dialog = "2"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+
+[dev-dependencies]
+serial_test = "3"

@@ -1960,6 +1960,8 @@ fn run_key_test_group(
 mod tests {
     use std::cell::{Cell, RefCell};
 
+    use serial_test::serial;
+
     use super::{run_group_with_emitters, submit_emergency_stop_cancel, submit_key_test_cancel};
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
@@ -2845,6 +2847,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_collision_bar_passes_after_trigger() {
         let gateway = FakeCollisionGateway {
             collision_sequence: vec![0, 0, 1],
@@ -2880,6 +2883,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_collision_bar_fails_when_initial_not_zero() {
         let gateway = FakeCollisionGateway {
             collision_sequence: vec![1],
@@ -2915,6 +2919,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_collision_bar_fails_when_dialog_closed() {
         let gateway = FakeCollisionGateway {
             collision_sequence: vec![0, 0, 1],
@@ -3048,6 +3053,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_lift_sensor_passes_after_trigger() {
         let gateway = FakeLiftGateway {
             lift_sequence: vec![0, 1, 2],
@@ -3086,6 +3092,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_lift_sensor_times_out() {
         let gateway = FakeLiftGateway {
             lift_sequence: vec![0, 1, 1],
@@ -3124,6 +3131,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id118_lift_sensor_fails_when_dialog_closed() {
         let gateway = FakeLiftGateway {
             lift_sequence: vec![0, 1, 2],
@@ -3265,6 +3273,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id080_emergency_stop_passes() {
         let gateway = FakeEmergencyStopGateway {
             mower_main_p_sequence: vec![0, 1, 2],
@@ -3307,6 +3316,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id080_emergency_stop_does_not_pass_before_seen_one() {
         let gateway = FakeEmergencyStopGateway {
             mower_main_p_sequence: vec![2, 1, 2],
@@ -3344,6 +3354,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id080_emergency_stop_times_out() {
         let gateway = FakeEmergencyStopGateway {
             mower_main_p_sequence: vec![0, 1, 1],
@@ -3374,6 +3385,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id080_emergency_stop_fails_when_dialog_closed() {
         let gateway = FakeEmergencyStopGateway {
             mower_main_p_sequence: vec![0, 1, 2],
@@ -3519,6 +3531,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id776_passes_and_emits_updates() {
         let gateway = FakeKeyGateway {
             responses: vec![
@@ -3568,6 +3581,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id776_times_out() {
         let gateway = FakeKeyGateway {
             responses: vec![ParamId776Result {
@@ -3608,6 +3622,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn run_group_param_id776_fails_when_dialog_closed() {
         let gateway = FakeKeyGateway {
             responses: vec![
