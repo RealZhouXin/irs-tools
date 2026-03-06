@@ -5,8 +5,8 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId118Result,
-    ParamId108Result, ParamId114Result, ParamId120Result, ParamId122Result, ParamId272Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
+    ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
     ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
     ParamId794Result, ParamId796Result, ParamId798Result,
 };

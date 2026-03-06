@@ -74,13 +74,13 @@ fn default_wheel_inactive_max_speed() -> f64 {
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum CommandGroupSpec {
     ParamId068 {
-        checks: Vec<ParamId068Check>,
+        checks: Vec<VersionCheck>,
     },
     ParamId588 {
-        checks: Vec<ParamId588Check>,
+        checks: Vec<VersionCheck>,
     },
     ParamId654 {
-        checks: Vec<ParamId654Check>,
+        checks: Vec<VersionCheck>,
     },
     ParamId272 {
         checks: Vec<ParamId272Check>,
@@ -144,7 +144,7 @@ pub enum CommandGroupSpec {
     ParamId568,
     ParamId610,
     ParamId794 {
-        checks: Vec<ParamId794Check>,
+        checks: Vec<VersionCheck>,
     },
     ParamId796 {
         checks: Vec<ParamId796Check>,
@@ -161,54 +161,6 @@ pub trait CheckConfig {
     fn output(&self) -> Self::OutputEnum;
     fn min(&self) -> f64;
     fn max(&self) -> f64;
-}
-
-impl CheckConfig for ParamId068Check {
-    type OutputEnum = ParamId068Output;
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn output(&self) -> Self::OutputEnum {
-        self.output
-    }
-    fn min(&self) -> f64 {
-        self.min
-    }
-    fn max(&self) -> f64 {
-        self.max
-    }
-}
-
-impl CheckConfig for ParamId588Check {
-    type OutputEnum = ParamId588Output;
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn output(&self) -> Self::OutputEnum {
-        self.output
-    }
-    fn min(&self) -> f64 {
-        self.min
-    }
-    fn max(&self) -> f64 {
-        self.max
-    }
-}
-
-impl CheckConfig for ParamId654Check {
-    type OutputEnum = ParamId654Output;
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn output(&self) -> Self::OutputEnum {
-        self.output
-    }
-    fn min(&self) -> f64 {
-        self.min
-    }
-    fn max(&self) -> f64 {
-        self.max
-    }
 }
 
 impl CheckConfig for ParamId272Check {
@@ -323,22 +275,6 @@ impl CheckConfig for ParamId470Check {
     }
 }
 
-impl CheckConfig for ParamId794Check {
-    type OutputEnum = ParamId794Output;
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn output(&self) -> Self::OutputEnum {
-        self.output
-    }
-    fn min(&self) -> f64 {
-        self.min
-    }
-    fn max(&self) -> f64 {
-        self.max
-    }
-}
-
 impl CheckConfig for ParamId796Check {
     type OutputEnum = ParamId796Output;
     fn name(&self) -> &str {
@@ -372,60 +308,10 @@ impl CheckConfig for WheelMotorCheck {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ParamId068Check {
+pub struct VersionCheck {
     pub name: String,
-    pub output: ParamId068Output,
-    pub min: f64,
-    pub max: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum ParamId068Output {
-    DevGrNo,
-    SubDevGrNo,
-    VarNo,
-    MajParSwVer,
-    MinParSwVer,
-    BuildNo,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ParamId588Check {
-    pub name: String,
-    pub output: ParamId588Output,
-    pub min: f64,
-    pub max: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum ParamId588Output {
-    DevGrNo,
-    SubDevGrNo,
-    VarNo,
-    MajParSwVer,
-    MinParSwVer,
-    BuildNo,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ParamId654Check {
-    pub name: String,
-    pub output: ParamId654Output,
-    pub min: f64,
-    pub max: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum ParamId654Output {
-    DevGrNo,
-    SubDevGrNo,
-    VarNo,
-    MajParSwVer,
-    MinParSwVer,
-    BuildNo,
+    pub min: String,
+    pub max: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -588,25 +474,6 @@ pub enum ParamId470Output {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ParamId794Check {
-    pub name: String,
-    pub output: ParamId794Output,
-    pub min: f64,
-    pub max: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum ParamId794Output {
-    DevGrNo,
-    SubDevGrNo,
-    VarNo,
-    MajParSwVer,
-    MinParSwVer,
-    BuildNo,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ParamId796Check {
     pub name: String,
     pub output: ParamId796Output,
@@ -641,6 +508,9 @@ pub struct CheckResult {
     pub min: Option<f64>,
     pub max: Option<f64>,
     pub value: Option<f64>,
+    pub display_min: Option<String>,
+    pub display_max: Option<String>,
+    pub display_value: Option<String>,
     pub passed: bool,
 }
 
@@ -663,48 +533,6 @@ pub struct TestSummary {
 pub trait CheckableResult {
     type OutputEnum;
     fn get_value(&self, output: Self::OutputEnum) -> f64;
-}
-
-impl CheckableResult for ParamId588Result {
-    type OutputEnum = ParamId588Output;
-    fn get_value(&self, output: Self::OutputEnum) -> f64 {
-        match output {
-            ParamId588Output::DevGrNo => self.dev_gr_no as f64,
-            ParamId588Output::SubDevGrNo => self.sub_dev_gr_no as f64,
-            ParamId588Output::VarNo => self.var_no as f64,
-            ParamId588Output::MajParSwVer => self.maj_par_sw_ver as f64,
-            ParamId588Output::MinParSwVer => self.min_par_sw_ver as f64,
-            ParamId588Output::BuildNo => self.build_no as f64,
-        }
-    }
-}
-
-impl CheckableResult for ParamId068Result {
-    type OutputEnum = ParamId068Output;
-    fn get_value(&self, output: Self::OutputEnum) -> f64 {
-        match output {
-            ParamId068Output::DevGrNo => self.dev_gr_no as f64,
-            ParamId068Output::SubDevGrNo => self.sub_dev_gr_no as f64,
-            ParamId068Output::VarNo => self.var_no as f64,
-            ParamId068Output::MajParSwVer => self.maj_par_sw_ver as f64,
-            ParamId068Output::MinParSwVer => self.min_par_sw_ver as f64,
-            ParamId068Output::BuildNo => self.build_no as f64,
-        }
-    }
-}
-
-impl CheckableResult for ParamId654Result {
-    type OutputEnum = ParamId654Output;
-    fn get_value(&self, output: Self::OutputEnum) -> f64 {
-        match output {
-            ParamId654Output::DevGrNo => self.dev_gr_no as f64,
-            ParamId654Output::SubDevGrNo => self.sub_dev_gr_no as f64,
-            ParamId654Output::VarNo => self.var_no as f64,
-            ParamId654Output::MajParSwVer => self.maj_par_sw_ver as f64,
-            ParamId654Output::MinParSwVer => self.min_par_sw_ver as f64,
-            ParamId654Output::BuildNo => self.build_no as f64,
-        }
-    }
 }
 
 impl CheckableResult for ParamId272Result {
@@ -827,20 +655,6 @@ impl CheckableResult for ParamId470Result {
     fn get_value(&self, output: Self::OutputEnum) -> f64 {
         match output {
             ParamId470Output::CuttingHeightMm => self.cutting_height_mm as f64,
-        }
-    }
-}
-
-impl CheckableResult for ParamId794Result {
-    type OutputEnum = ParamId794Output;
-    fn get_value(&self, output: Self::OutputEnum) -> f64 {
-        match output {
-            ParamId794Output::DevGrNo => self.dev_gr_no as f64,
-            ParamId794Output::SubDevGrNo => self.sub_dev_gr_no as f64,
-            ParamId794Output::VarNo => self.var_no as f64,
-            ParamId794Output::MajParSwVer => self.maj_par_sw_ver as f64,
-            ParamId794Output::MinParSwVer => self.min_par_sw_ver as f64,
-            ParamId794Output::BuildNo => self.build_no as f64,
         }
     }
 }

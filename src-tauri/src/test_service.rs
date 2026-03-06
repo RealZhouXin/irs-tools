@@ -330,6 +330,9 @@ mod tests {
                 min: None,
                 max: None,
                 value: None,
+                display_min: None,
+                display_max: None,
+                display_value: None,
                 passed: true,
             }],
         }

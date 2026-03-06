@@ -3,6 +3,9 @@ export type CheckResult = {
   min: number | null;
   max: number | null;
   value: number | null;
+  display_min?: string | null;
+  display_max?: string | null;
+  display_value?: string | null;
   passed: boolean;
 };
 

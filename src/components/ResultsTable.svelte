@@ -51,10 +51,20 @@
   }
 
   function getCheckDisplayValue(group: TestResult, check: TestResult["checks"][number]): string {
+    if (check.display_value) {
+      return check.display_value;
+    }
     if (group.command === "ParamId798" && check.name === "version_not_empty") {
       return getVersionFromRawResponse(group);
     }
     return check.value === null ? "-" : String(check.value);
+  }
+
+  function getCheckDisplayRange(check: TestResult["checks"][number]): string {
+    if (check.display_min && check.display_max) {
+      return `${check.display_min} ~ ${check.display_max}`;
+    }
+    return check.min === null || check.max === null ? "-" : `${check.min} ~ ${check.max}`;
   }
 </script>
 
@@ -146,9 +156,7 @@
                       </Table.Cell>
                       <Table.Cell class="text-muted-foreground shrink-0">-</Table.Cell>
                       <Table.Cell class="text-slate-600 font-mono text-xs">
-                        {check.min === null || check.max === null
-                          ? "-"
-                          : `${check.min} ~ ${check.max}`}
+                        {getCheckDisplayRange(check)}
                       </Table.Cell>
                       <Table.Cell class="font-mono font-medium text-sm">
                         {getCheckDisplayValue(group, check)}

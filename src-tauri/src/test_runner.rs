@@ -1,14 +1,13 @@
 use crate::device_gateway::DeviceGateway;
 use crate::events::{
     COLLISION_BAR_PROMPT_REQUEST, EMERGENCY_STOP_TEST_UPDATE, FRONT_LIGHT_CONFIRM_REQUEST,
-    KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST,
-    WHEEL_MOTOR_TEST_UPDATE,
+    KEY_STATE_UPDATE, REAR_LIGHT_CONFIRM_REQUEST, SPEAKER_CONFIRM_REQUEST, WHEEL_MOTOR_TEST_UPDATE,
 };
 use crate::models::{
     CheckConfig, CheckResult, CheckableResult, CollisionBarPromptPayload, CommandGroupSpec,
     EmergencyStopPhase, EmergencyStopTestPayload, FrontLightConfirmRequestPayload, KeyStatePayload,
     RearLightColor, RearLightConfirmRequestPayload, SensorPromptKind, SpeakerConfirmRequestPayload,
-    TestGroup, TestResult, WheelMotorCheck, WheelMotorOutput, WheelMotorTestPhase,
+    TestGroup, TestResult, VersionCheck, WheelMotorCheck, WheelMotorOutput, WheelMotorTestPhase,
     WheelMotorTestUpdatePayload,
 };
 use crate::types::{AppError, CommandResult};
@@ -28,6 +27,51 @@ const PARAM_ID470_RETRY_DELAY_MS: u64 = 1000;
 const PARAM_ID118_POLL_INTERVAL_MS: u64 = 0;
 #[cfg(not(test))]
 const PARAM_ID118_POLL_INTERVAL_MS: u64 = 1000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct SemanticVersion {
+    major: u8,
+    minor: u8,
+    patch: u32,
+}
+
+impl SemanticVersion {
+    fn parse(input: &str) -> CommandResult<Self> {
+        let trimmed = input.trim();
+        let mut parts = trimmed.split('.');
+        let major = parts
+            .next()
+            .ok_or_else(|| AppError::msg(format!("无效版本号: {trimmed}")))?
+            .parse::<u8>()
+            .map_err(|err| AppError::msg(format!("无效版本号 {trimmed}: {err}")))?;
+        let minor = parts
+            .next()
+            .ok_or_else(|| AppError::msg(format!("无效版本号: {trimmed}")))?
+            .parse::<u8>()
+            .map_err(|err| AppError::msg(format!("无效版本号 {trimmed}: {err}")))?;
+        let patch = parts
+            .next()
+            .ok_or_else(|| AppError::msg(format!("无效版本号: {trimmed}")))?
+            .parse::<u32>()
+            .map_err(|err| AppError::msg(format!("无效版本号 {trimmed}: {err}")))?;
+
+        if parts.next().is_some() {
+            return Err(AppError::msg(format!("无效版本号: {trimmed}")));
+        }
+
+        Ok(Self {
+            major,
+            minor,
+            patch,
+        })
+    }
+}
+
+impl Display for SemanticVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
 
 #[derive(Debug)]
 struct FrontLightConfirmState {
@@ -278,10 +322,67 @@ where
                 min: Some(check.min()),
                 max: Some(check.max()),
                 value: Some(value),
+                display_min: None,
+                display_max: None,
+                display_value: None,
                 passed,
             }
         })
         .collect()
+}
+
+trait VersionedResult {
+    fn semantic_version(&self) -> SemanticVersion;
+}
+
+fn build_version_checked_result<TResult>(
+    group_name: String,
+    stage: String,
+    command: String,
+    checks: &[VersionCheck],
+    response: &TResult,
+) -> CommandResult<TestResult>
+where
+    TResult: VersionedResult + Display,
+{
+    if checks.len() != 1 {
+        return Err(AppError::msg(format!(
+            "{command} 版本检查需要且仅允许 1 条 check"
+        )));
+    }
+
+    let check = &checks[0];
+    let min = SemanticVersion::parse(&check.min)?;
+    let max = SemanticVersion::parse(&check.max)?;
+
+    if min > max {
+        return Err(AppError::msg(format!(
+            "{command} 版本检查配置非法: min {} 大于 max {}",
+            check.min, check.max
+        )));
+    }
+
+    let actual = response.semantic_version();
+    let actual_display = actual.to_string();
+    let passed = actual >= min && actual <= max;
+
+    Ok(TestResult {
+        name: group_name,
+        stage,
+        command,
+        passed,
+        raw_response: response.to_string(),
+        checks: vec![CheckResult {
+            name: check.name.clone(),
+            min: None,
+            max: None,
+            value: None,
+            display_min: Some(check.min.clone()),
+            display_max: Some(check.max.clone()),
+            display_value: Some(actual_display),
+            passed,
+        }],
+    })
 }
 
 fn build_checked_result<TConfig, TResult>(
@@ -307,6 +408,46 @@ where
     }
 }
 
+impl VersionedResult for crate::models::ParamId068Result {
+    fn semantic_version(&self) -> SemanticVersion {
+        SemanticVersion {
+            major: self.maj_par_sw_ver,
+            minor: self.min_par_sw_ver,
+            patch: self.build_no,
+        }
+    }
+}
+
+impl VersionedResult for crate::models::ParamId588Result {
+    fn semantic_version(&self) -> SemanticVersion {
+        SemanticVersion {
+            major: self.maj_par_sw_ver,
+            minor: self.min_par_sw_ver,
+            patch: self.build_no,
+        }
+    }
+}
+
+impl VersionedResult for crate::models::ParamId654Result {
+    fn semantic_version(&self) -> SemanticVersion {
+        SemanticVersion {
+            major: self.maj_par_sw_ver,
+            minor: self.min_par_sw_ver,
+            patch: self.build_no,
+        }
+    }
+}
+
+impl VersionedResult for crate::models::ParamId794Result {
+    fn semantic_version(&self) -> SemanticVersion {
+        SemanticVersion {
+            major: self.maj_par_sw_ver,
+            minor: self.min_par_sw_ver,
+            patch: self.build_no,
+        }
+    }
+}
+
 fn build_action_result(
     group_name: String,
     stage: String,
@@ -324,6 +465,9 @@ fn build_action_result(
             min: None,
             max: None,
             value: None,
+            display_min: None,
+            display_max: None,
+            display_value: None,
             passed: true,
         }],
     }
@@ -342,6 +486,9 @@ fn build_param_id798_result(group_name: String, stage: String, version: String) 
             min: None,
             max: None,
             value: Some(if has_version { 1.0 } else { 0.0 }),
+            display_min: None,
+            display_max: None,
+            display_value: Some(version),
             passed: has_version,
         }],
     }
@@ -370,6 +517,9 @@ fn build_front_light_result(
             min: None,
             max: None,
             value: Some(if is_lit { 1.0 } else { 0.0 }),
+            display_min: None,
+            display_max: None,
+            display_value: None,
             passed: is_lit,
         }],
     }
@@ -396,6 +546,9 @@ fn build_speaker_result(
             min: None,
             max: None,
             value: Some(if heard_sound { 1.0 } else { 0.0 }),
+            display_min: None,
+            display_max: None,
+            display_value: None,
             passed: heard_sound,
         }],
     }
@@ -433,6 +586,9 @@ fn build_rear_light_result(
             min: None,
             max: None,
             value: Some(if *confirmed { 1.0 } else { 0.0 }),
+            display_min: None,
+            display_max: None,
+            display_value: None,
             passed: *confirmed,
         })
         .collect();
@@ -472,6 +628,9 @@ fn build_emergency_stop_result(
             min: Some(2.0),
             max: Some(2.0),
             value: Some(mower_main_p as f64),
+            display_min: None,
+            display_max: None,
+            display_value: None,
             passed,
         }],
     }
@@ -823,33 +982,15 @@ fn run_group_with_emitters_internal(
     match command {
         CommandGroupSpec::ParamId068 { checks } => {
             let response = gateway.param_id068()?;
-            Ok(build_checked_result(
-                name,
-                stage,
-                "ParamId068".to_string(),
-                &checks,
-                &response,
-            ))
+            build_version_checked_result(name, stage, "ParamId068".to_string(), &checks, &response)
         }
         CommandGroupSpec::ParamId588 { checks } => {
             let response = gateway.param_id588()?;
-            Ok(build_checked_result(
-                name,
-                stage,
-                "ParamId588".to_string(),
-                &checks,
-                &response,
-            ))
+            build_version_checked_result(name, stage, "ParamId588".to_string(), &checks, &response)
         }
         CommandGroupSpec::ParamId654 { checks } => {
             let response = gateway.param_id654()?;
-            Ok(build_checked_result(
-                name,
-                stage,
-                "ParamId654".to_string(),
-                &checks,
-                &response,
-            ))
+            build_version_checked_result(name, stage, "ParamId654".to_string(), &checks, &response)
         }
         CommandGroupSpec::ParamId272 { checks } => {
             let response = gateway.param_id272()?;
@@ -1057,13 +1198,7 @@ fn run_group_with_emitters_internal(
         }
         CommandGroupSpec::ParamId794 { checks } => {
             let response = gateway.param_id794()?;
-            Ok(build_checked_result(
-                name,
-                stage,
-                "ParamId794".to_string(),
-                &checks,
-                &response,
-            ))
+            build_version_checked_result(name, stage, "ParamId794".to_string(), &checks, &response)
         }
         CommandGroupSpec::ParamId796 { checks } => {
             let response = gateway.param_id796()?;
@@ -1150,8 +1285,8 @@ fn run_wheel_motor_test_group(
             }
         }
     }
-    let right_check =
-        right_check.ok_or_else(|| AppError::msg("wheel_motor_test 缺少 right_wheel_motor check"))?;
+    let right_check = right_check
+        .ok_or_else(|| AppError::msg("wheel_motor_test 缺少 right_wheel_motor check"))?;
     let left_check =
         left_check.ok_or_else(|| AppError::msg("wheel_motor_test 缺少 left_wheel_motor check"))?;
 
@@ -1173,6 +1308,9 @@ fn run_wheel_motor_test_group(
                     min: Some(right_check.min),
                     max: Some(right_check.max),
                     value: None,
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: false,
                 },
                 CheckResult {
@@ -1180,6 +1318,9 @@ fn run_wheel_motor_test_group(
                     min: Some(left_check.min),
                     max: Some(left_check.max),
                     value: None,
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: false,
                 },
             ],
@@ -1220,6 +1361,9 @@ fn run_wheel_motor_test_group(
                 min: Some(right_check.min),
                 max: Some(right_check.max),
                 value: Some(right_active_avg),
+                display_min: None,
+                display_max: None,
+                display_value: None,
                 passed: right_pass,
             },
             CheckResult {
@@ -1227,6 +1371,9 @@ fn run_wheel_motor_test_group(
                 min: Some(left_check.min),
                 max: Some(left_check.max),
                 value: Some(left_active_avg),
+                display_min: None,
+                display_max: None,
+                display_value: None,
                 passed: left_pass,
             },
         ];
@@ -1263,11 +1410,9 @@ fn run_wheel_motor_test_group(
             "轮电机测试完成但停止电机失败: right={right_err}, left={left_err}"
         ))),
         (Err(run_err), Ok(()), Ok(())) => Err(run_err),
-        (Err(run_err), Err(stop_err), Ok(())) | (Err(run_err), Ok(()), Err(stop_err)) => {
-            Err(AppError::msg(format!(
-                "{run_err}; 且停止电机失败: {stop_err}"
-            )))
-        }
+        (Err(run_err), Err(stop_err), Ok(())) | (Err(run_err), Ok(()), Err(stop_err)) => Err(
+            AppError::msg(format!("{run_err}; 且停止电机失败: {stop_err}")),
+        ),
         (Err(run_err), Err(right_err), Err(left_err)) => Err(AppError::msg(format!(
             "{run_err}; 且停止电机失败: right={right_err}, left={left_err}"
         ))),
@@ -1299,6 +1444,9 @@ fn run_collision_bar_test_group(
                     min: Some(0.0),
                     max: Some(0.0),
                     value: Some(initial.collision_sen as f64),
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: false,
                 },
                 CheckResult {
@@ -1306,6 +1454,9 @@ fn run_collision_bar_test_group(
                     min: Some(1.0),
                     max: None,
                     value: Some(initial.collision_sen as f64),
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: false,
                 },
             ],
@@ -1346,6 +1497,9 @@ fn run_collision_bar_test_group(
                             min: Some(0.0),
                             max: Some(0.0),
                             value: Some(0.0),
+                            display_min: None,
+                            display_max: None,
+                            display_value: None,
                             passed: true,
                         },
                         CheckResult {
@@ -1353,6 +1507,9 @@ fn run_collision_bar_test_group(
                             min: Some(1.0),
                             max: None,
                             value: Some(last.collision_sen as f64),
+                            display_min: None,
+                            display_max: None,
+                            display_value: None,
                             passed: false,
                         },
                     ],
@@ -1378,6 +1535,9 @@ fn run_collision_bar_test_group(
                             min: Some(0.0),
                             max: Some(0.0),
                             value: Some(0.0),
+                            display_min: None,
+                            display_max: None,
+                            display_value: None,
                             passed: true,
                         },
                         CheckResult {
@@ -1385,6 +1545,9 @@ fn run_collision_bar_test_group(
                             min: Some(1.0),
                             max: None,
                             value: Some(last.collision_sen as f64),
+                            display_min: None,
+                            display_max: None,
+                            display_value: None,
                             passed: true,
                         },
                     ],
@@ -1407,6 +1570,9 @@ fn run_collision_bar_test_group(
                     min: Some(0.0),
                     max: Some(0.0),
                     value: Some(0.0),
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: true,
                 },
                 CheckResult {
@@ -1414,6 +1580,9 @@ fn run_collision_bar_test_group(
                     min: Some(1.0),
                     max: None,
                     value: Some(last.collision_sen as f64),
+                    display_min: None,
+                    display_max: None,
+                    display_value: None,
                     passed: false,
                 },
             ],
@@ -1471,6 +1640,9 @@ fn run_lift_sensor_test_group(
                         min: Some((lift_threshold as f64) + 1.0),
                         max: None,
                         value: Some(last_lift_sen as f64),
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: false,
                     }],
                 });
@@ -1497,6 +1669,9 @@ fn run_lift_sensor_test_group(
                         min: Some((lift_threshold as f64) + 1.0),
                         max: None,
                         value: Some(response.lift_sen as f64),
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: true,
                     }],
                 });
@@ -1517,6 +1692,9 @@ fn run_lift_sensor_test_group(
                 min: Some((lift_threshold as f64) + 1.0),
                 max: None,
                 value: Some(last_lift_sen as f64),
+                display_min: None,
+                display_max: None,
+                display_value: None,
                 passed: false,
             }],
         })
@@ -1671,6 +1849,9 @@ fn run_key_test_group(
                         min: None,
                         max: None,
                         value: None,
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: false,
                     }],
                 });
@@ -1688,6 +1869,9 @@ fn run_key_test_group(
                         min: None,
                         max: None,
                         value: None,
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: false,
                     }],
                 });
@@ -1731,6 +1915,9 @@ fn run_key_test_group(
                         min: None,
                         max: None,
                         value: None,
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: true,
                     }],
                 });
@@ -1756,6 +1943,9 @@ fn run_key_test_group(
                         min: None,
                         max: None,
                         value: None,
+                        display_min: None,
+                        display_max: None,
+                        display_value: None,
                         passed: false,
                     }],
                 });
@@ -1774,11 +1964,11 @@ mod tests {
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
         CommandGroupSpec, EmergencyStopPhase, EmergencyStopTestPayload, KeyStatePayload,
-        ParamId068Check, ParamId068Output, ParamId068Result, ParamId080Result, ParamId096Check,
-        ParamId096Output, ParamId114Result, ParamId120Result, ParamId122Result, ParamId272Result,
-        ParamId470Result, ParamId526Check, ParamId526Output, ParamId588Result, ParamId654Result,
-        ParamId776Result, ParamId794Result, ParamId796Check, ParamId796Output, ParamId796Result,
-        ParamId798Result, TestGroup, WheelMotorCheck, WheelMotorOutput,
+        ParamId068Result, ParamId080Result, ParamId096Check, ParamId096Output, ParamId114Result,
+        ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result, ParamId526Check,
+        ParamId526Output, ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result,
+        ParamId796Check, ParamId796Output, ParamId796Result, ParamId798Result, TestGroup,
+        VersionCheck, WheelMotorCheck, WheelMotorOutput,
     };
     use crate::types::CommandResult;
 
@@ -1939,11 +2129,10 @@ mod tests {
             name: "068 test".to_string(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
-                checks: vec![ParamId068Check {
-                    name: "maj".to_string(),
-                    output: ParamId068Output::MajParSwVer,
-                    min: 5.0,
-                    max: 20.0,
+                checks: vec![VersionCheck {
+                    name: "version".to_string(),
+                    min: "5.0.0".to_string(),
+                    max: "20.0.0".to_string(),
                 }],
             },
         };
@@ -1988,11 +2177,10 @@ mod tests {
             name: "068 test".to_string(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
-                checks: vec![ParamId068Check {
-                    name: "maj".to_string(),
-                    output: ParamId068Output::MajParSwVer,
-                    min: 5.0,
-                    max: 20.0,
+                checks: vec![VersionCheck {
+                    name: "version".to_string(),
+                    min: "5.0.0".to_string(),
+                    max: "20.0.0".to_string(),
                 }],
             },
         };
@@ -2011,6 +2199,56 @@ mod tests {
         assert!(!result.passed);
         assert_eq!(result.checks.len(), 1);
         assert!(!result.checks[0].passed);
+    }
+
+    #[test]
+    fn run_group_param_id068_uses_semantic_version_range_and_display() {
+        let gateway = FakeGateway {
+            result_068: ParamId068Result {
+                dev_gr_no: 0,
+                sub_dev_gr_no: 0,
+                var_no: 0,
+                maj_par_sw_ver: 1,
+                min_par_sw_ver: 2,
+                build_no: 4,
+            },
+            result_470_sequence: vec![30],
+            called_470: Cell::new(0),
+            called_468: Cell::new(false),
+            called_606: Cell::new(false),
+            called_568: Cell::new(false),
+            called_610_modes: RefCell::new(Vec::new()),
+        };
+
+        let group = TestGroup {
+            name: "068 test".to_string(),
+            stage: "unit".to_string(),
+            command: CommandGroupSpec::ParamId068 {
+                checks: vec![VersionCheck {
+                    name: "software_version".to_string(),
+                    min: "1.2.3".to_string(),
+                    max: "1.3.5".to_string(),
+                }],
+            },
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            group,
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.checks[0].display_min.as_deref(), Some("1.2.3"));
+        assert_eq!(result.checks[0].display_max.as_deref(), Some("1.3.5"));
+        assert_eq!(result.checks[0].display_value.as_deref(), Some("1.2.4"));
+        assert_eq!(result.checks[0].value, None);
     }
 
     #[test]

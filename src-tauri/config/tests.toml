@@ -5,20 +5,9 @@ name = "068 主板应用软件"
 command = "param_id068"
 stage = "software"
 [[tests.checks]]
-name = "maj_par_sw_ver"
-output = "maj_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "min_par_sw_ver"
-output = "min_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "build_no"
-output = "build_no"
-min = 0
-max = 999999
+name = "software_version"
+min = "1.2.3"
+max = "9.9.9"
 
 [[tests]]
 name = "080 割草机状态"
@@ -190,60 +179,27 @@ name = "588 应用软件"
 command = "param_id588"
 stage = "software"
 [[tests.checks]]
-name = "maj_par_sw_ver"
-output = "maj_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "min_par_sw_ver"
-output = "min_par_sw_ver"
-min = 5
-max = 255
-[[tests.checks]]
-name = "build_no"
-output = "build_no"
-min = 0
-max = 999999
+name = "software_version"
+min = "1.2.3"
+max = "9.9.9"
 
 [[tests]]
 name = "654 系统软件版本"
 command = "param_id654"
 stage = "software"
 [[tests.checks]]
-name = "maj_par_sw_ver"
-output = "maj_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "min_par_sw_ver"
-output = "min_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "build_no"
-output = "build_no"
-min = 0
-max = 999999
+name = "software_version"
+min = "0.1.4"
+max = "9.9.9"
 
 [[tests]]
 name = "794 HMI板软件版本"
 command = "param_id794"
 stage = "software"
 [[tests.checks]]
-name = "maj_par_sw_ver"
-output = "maj_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "min_par_sw_ver"
-output = "min_par_sw_ver"
-min = 0
-max = 255
-[[tests.checks]]
-name = "build_no"
-output = "build_no"
-min = 0
-max = 999999
+name = "software_version"
+min = "1.2.3"
+max = "9.9.9"
 
 [[tests]]
 name = "796 MQTT在线状态"
