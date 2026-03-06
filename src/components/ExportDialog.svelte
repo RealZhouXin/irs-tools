@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { parseDate, type DateValue } from "@internationalized/date";
   import { loadAvailableExportDates } from "../services/tauri";
   import type { Language, Translation } from "../types";
@@ -6,6 +7,10 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import { Calendar } from "$lib/components/ui/calendar/index.js";
+  import {
+    isInteractiveDialogTarget,
+    isSpaceKey,
+  } from "$lib/dialog-shortcuts";
 
   let {
     open,
@@ -37,6 +42,7 @@
   let startPopoverOpen = $state(false);
   let endPopoverOpen = $state(false);
   let wasOpen = $state(false);
+  let dialogContentRef = $state<HTMLElement | null>(null);
 
   const availableDateSet = $derived(new Set(availableDates));
   const hasAvailableDates = $derived(availableDates.length > 0);
@@ -54,6 +60,7 @@
   $effect(() => {
     if (open && !wasOpen) {
       void loadDates();
+      void tick().then(() => dialogContentRef?.focus());
     }
     if (!open && wasOpen) {
       resetDialogState();
@@ -127,6 +134,17 @@
       localError = message;
     }
   }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (disableConfirm) {
+      return;
+    }
+
+    if (isSpaceKey(event) && !isInteractiveDialogTarget(event.target)) {
+      event.preventDefault();
+      void handleConfirm();
+    }
+  }
 </script>
 
 <Dialog.Root
@@ -135,7 +153,12 @@
     if (!v) onClose();
   }}
 >
-  <Dialog.Content class="sm:max-w-[400px]">
+  <Dialog.Content
+    bind:ref={dialogContentRef}
+    class="sm:max-w-[400px]"
+    tabindex={-1}
+    onkeydown={handleDialogKeydown}
+  >
     <Dialog.Header>
       <Dialog.Title>{text.exportDialogTitle}</Dialog.Title>
     </Dialog.Header>
@@ -145,12 +168,13 @@
         <span class="text-sm font-medium">{text.exportStartDate}</span>
         <Popover.Root bind:open={startPopoverOpen}>
           <Popover.Trigger
+            data-dialog-shortcut-ignore="true"
             disabled={exporting || loadingDates || !hasAvailableDates}
             class="border-input bg-background flex h-9 w-full items-center justify-start rounded-md border px-3 py-1 text-sm shadow-xs disabled:opacity-50"
           >
             {startDate || "—"}
           </Popover.Trigger>
-          <Popover.Content class="w-auto p-0" align="start">
+          <Popover.Content data-dialog-shortcut-ignore="true" class="w-auto p-0" align="start">
             <Calendar
               bind:value={startValue}
               {locale}
@@ -167,12 +191,13 @@
         <span class="text-sm font-medium">{text.exportEndDate}</span>
         <Popover.Root bind:open={endPopoverOpen}>
           <Popover.Trigger
+            data-dialog-shortcut-ignore="true"
             disabled={exporting || loadingDates || !hasAvailableDates}
             class="border-input bg-background flex h-9 w-full items-center justify-start rounded-md border px-3 py-1 text-sm shadow-xs disabled:opacity-50"
           >
             {endDate || "—"}
           </Popover.Trigger>
-          <Popover.Content class="w-auto p-0" align="start">
+          <Popover.Content data-dialog-shortcut-ignore="true" class="w-auto p-0" align="start">
             <Calendar
               bind:value={endValue}
               {locale}
