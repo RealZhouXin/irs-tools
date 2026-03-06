@@ -19,6 +19,10 @@ pub enum AppError {
         context: &'static str,
         source: toml::ser::Error,
     },
+    YamlDe {
+        context: &'static str,
+        source: serde_yaml::Error,
+    },
     Dll {
         context: &'static str,
         source: libloading::Error,
@@ -42,6 +46,10 @@ impl AppError {
         Self::TomlSer { context, source }
     }
 
+    pub fn yaml_de(context: &'static str, source: serde_yaml::Error) -> Self {
+        Self::YamlDe { context, source }
+    }
+
     pub fn dll(context: &'static str, source: libloading::Error) -> Self {
         Self::Dll { context, source }
     }
@@ -54,6 +62,7 @@ impl Display for AppError {
             Self::Io { context, source } => write!(f, "{context}: {source}"),
             Self::TomlDe { context, source } => write!(f, "{context}: {source}"),
             Self::TomlSer { context, source } => write!(f, "{context}: {source}"),
+            Self::YamlDe { context, source } => write!(f, "{context}: {source}"),
             Self::Dll { context, source } => write!(f, "{context}: {source}"),
         }
     }
@@ -65,6 +74,7 @@ impl StdError for AppError {
             Self::Io { source, .. } => Some(source),
             Self::TomlDe { source, .. } => Some(source),
             Self::TomlSer { source, .. } => Some(source),
+            Self::YamlDe { source, .. } => Some(source),
             Self::Dll { source, .. } => Some(source),
             Self::Message(_) => None,
         }

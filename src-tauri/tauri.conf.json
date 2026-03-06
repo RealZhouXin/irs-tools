@@ -30,7 +30,7 @@
     ],
     "resources": [
       "config/threshold.toml",
-      "config/tests.toml",
+      "config/tests.yaml",
       "CommDllv2.dll",
       "libcrypto-3-x64.dll"
     ]

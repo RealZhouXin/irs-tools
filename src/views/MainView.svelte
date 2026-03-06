@@ -146,7 +146,7 @@
       {text.configPrefix}
       <code>AppData\Roaming\com.greenworks.irs-tools\config\threshold.toml</code>
       {text.configMiddle}
-      <code>AppData\Roaming\com.greenworks.irs-tools\config\tests.toml</code>
+      <code>AppData\Roaming\com.greenworks.irs-tools\config\tests.yaml</code>
       {text.configSuffix}
     </p>
   </section>
