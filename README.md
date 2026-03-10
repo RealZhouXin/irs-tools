@@ -34,6 +34,27 @@ bun run tauri dev
 bun run tauri build
 ```
 
+## CI / Release
+
+- 普通提交和 Pull Request 会触发 GitHub Actions 的 Windows CI，执行：
+  - `bun install --frozen-lockfile`
+  - `bun run build`
+  - `cargo test --manifest-path src-tauri/Cargo.toml`
+- 推送 `v*` 格式的 tag 会触发发布工作流，自动构建 Tauri 的 MSI 并上传到 GitHub Releases。
+
+示例：
+
+```bash
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+生成的安装包来自：
+
+```text
+src-tauri/target/release/bundle/msi/*.msi
+```
+
 ## 配置说明
 
 配置文件位于 `src-tauri/config/threshold.json` 与 `src-tauri/config/tests.json`，分别用于设置连接方式/超时与测试项。
