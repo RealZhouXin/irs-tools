@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
+import { check } from "@tauri-apps/plugin-updater";
 import type {
+  AppUpdateInfo,
+  AppUpdateProgress,
   BaseConfig,
   CollisionBarPromptPayload,
   EmergencyStopTestPayload,
@@ -13,6 +16,8 @@ import type {
   TestSummary,
   WheelMotorTestUpdatePayload,
 } from "../types";
+
+let pendingAppUpdate: Awaited<ReturnType<typeof check>> = null;
 
 export const TAURI_EVENTS = {
   testGroupComplete: "test-group-complete",
@@ -197,4 +202,68 @@ export async function loadAppInfo() {
     getTauriVersion(),
   ]);
   return { name, version, tauriVersion };
+}
+
+export async function checkForAppUpdate() {
+  const [update, currentVersion] = await Promise.all([check(), getVersion()]);
+  pendingAppUpdate = update;
+  if (!update) {
+    return null;
+  }
+
+  return {
+    currentVersion,
+    version: update.version,
+    date:
+      typeof update.date === "string"
+        ? update.date
+        : update.date?.toISOString?.() ?? null,
+    body: update.body ?? null,
+  } satisfies AppUpdateInfo;
+}
+
+export async function downloadAndInstallAppUpdate(
+  onProgress?: (progress: AppUpdateProgress) => void,
+) {
+  if (!pendingAppUpdate) {
+    throw new Error("No pending update. Please check for updates first.");
+  }
+
+  let downloaded = 0;
+  let contentLength: number | null = null;
+
+  await pendingAppUpdate.download((event) => {
+    switch (event.event) {
+      case "Started":
+        downloaded = 0;
+        contentLength = event.data.contentLength ?? null;
+        onProgress?.({
+          phase: "downloading",
+          downloaded,
+          contentLength,
+        });
+        break;
+      case "Progress":
+        downloaded += event.data.chunkLength;
+        onProgress?.({
+          phase: "downloading",
+          downloaded,
+          contentLength,
+        });
+        break;
+      case "Finished":
+        onProgress?.({
+          phase: "installing",
+          downloaded,
+          contentLength,
+        });
+        break;
+    }
+  });
+
+  try {
+    await pendingAppUpdate.install();
+  } finally {
+    pendingAppUpdate = null;
+  }
 }

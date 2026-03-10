@@ -40,20 +40,45 @@ bun run tauri build
   - `bun install --frozen-lockfile`
   - `bun run build`
   - `cargo test --manifest-path src-tauri/Cargo.toml`
-- 推送 `v*` 格式的 tag 会触发发布工作流，自动构建 Tauri 的 MSI 并上传到 GitHub Releases。
+- 推送 `v*` 格式的 tag 会触发发布工作流，自动构建 Tauri 的 MSI、更新签名和 `latest.json`，并上传到 GitHub Releases。
+- 发布工作流会校验 Git tag 必须与 `src-tauri/Cargo.toml` 版本一致，例如 `v0.3.2` 对应 `version = "0.3.2"`。
 
 示例：
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.2
+git push origin v0.3.2
 ```
 
-生成的安装包来自：
+GitHub Release 资产包含：
 
 ```text
-src-tauri/target/release/bundle/msi/*.msi
+*.msi
+*.msi.sig
+latest.json
 ```
+
+## 应用内更新
+
+- 设置页提供“检查更新”和“下载并安装”入口。
+- 应用通过 GitHub Releases 的 `latest.json` 检查更新，并下载最新 MSI 安装包。
+- Windows 安装更新时会自动关闭当前应用并启动安装程序。
+- 开发模式下禁用更新检查，仅打包版本可用。
+
+## Updater 密钥
+
+首次启用 updater 前，需要生成一对签名密钥：
+
+```powershell
+bunx tauri signer generate --ci --write-keys $env:USERPROFILE\.tauri\irs-tools-updater.key
+```
+
+- `src-tauri/tauri.conf.json` 中保存的是公钥内容，可以提交到仓库。
+- 私钥必须妥善保管，不能提交到仓库。
+- 本地执行 `bun run tauri build --bundles msi` 前，需要先设置 `TAURI_SIGNING_PRIVATE_KEY` 或 `TAURI_SIGNING_PRIVATE_KEY_PATH`。
+- GitHub Actions 发布时需要配置以下 Secrets：
+  - `TAURI_SIGNING_PRIVATE_KEY`
+  - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（如果私钥设置了密码）
 
 ## 配置说明
 

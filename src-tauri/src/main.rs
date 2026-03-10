@@ -32,6 +32,7 @@ use crate::models::LogLevel;
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             init_logging(app.handle());
             crate::config::init_default_configs(app.handle());

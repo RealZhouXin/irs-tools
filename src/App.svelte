@@ -2,6 +2,9 @@
   import { onMount } from "svelte";
   import { save } from "@tauri-apps/plugin-dialog";
   import type {
+    AppUpdateInfo,
+    AppUpdateProgress,
+    AppUpdateStatus,
     BaseConfig,
     CollisionBarPromptPayload,
     EmergencyStopTestPayload,
@@ -21,10 +24,12 @@
     cancelSensorPromptTest,
     cancelEmergencyStopTest,
     cancelKeyTest,
+    checkForAppUpdate,
     confirmFrontLight,
     confirmRearLight,
     confirmSpeaker,
     confirmWheelMotorLifted,
+    downloadAndInstallAppUpdate,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
@@ -68,6 +73,7 @@
   type LightConfirmTarget = "front" | "rear";
 
   const ALL_STAGES_VALUE = "__all__";
+  const updaterSupported = !import.meta.env.DEV;
 
   // Svelte 5 Runes state management
   let results = $state<TestResult[]>([]);
@@ -88,6 +94,11 @@
   let appVersion = $state<string | null>(null);
   let tauriVersion = $state<string | null>(null);
   let aboutError = $state<string | null>(null);
+  let updateStatus = $state<AppUpdateStatus>("idle");
+  let updateInfo = $state<AppUpdateInfo | null>(null);
+  let updateProgress = $state<AppUpdateProgress | null>(null);
+  let updateErrorMessage = $state<string | null>(null);
+  let showUpdateConfirmDialog = $state(false);
   let availableStages = $state<string[]>([]);
   let selectedStage = $state<string>(ALL_STAGES_VALUE);
   let showLightConfirmDialog = $state(false);
@@ -119,6 +130,17 @@
   // Derived state
   const text = $derived(getTranslation(language));
   const summaryLabel = $derived(text.summary[summaryState]);
+  const updateActionDisabled = $derived(
+    running ||
+      stopping ||
+      retesting !== null ||
+      showLightConfirmDialog ||
+      showKeyTestDialog ||
+      showSpeakerTestDialog ||
+      showCollisionBarDialog ||
+      showWheelMotorDialog ||
+      showEmergencyStopDialog,
+  );
 
   function toggleLanguage() {
     language = language === "zh" ? "en" : "zh";
@@ -365,6 +387,84 @@
     }
   }
 
+  async function handleCheckForUpdate() {
+    if (
+      !updaterSupported ||
+      updateActionDisabled ||
+      updateStatus === "checking" ||
+      updateStatus === "downloading" ||
+      updateStatus === "installing"
+    ) {
+      return;
+    }
+
+    updateStatus = "checking";
+    updateInfo = null;
+    updateProgress = null;
+    updateErrorMessage = null;
+    showUpdateConfirmDialog = false;
+
+    try {
+      const availableUpdate = await checkForAppUpdate();
+      if (availableUpdate) {
+        updateInfo = availableUpdate;
+        updateStatus = "available";
+        return;
+      }
+
+      updateStatus = "up_to_date";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      updateStatus = "error";
+      updateErrorMessage = message;
+    }
+  }
+
+  function handleInstallUpdate() {
+    if (
+      !updaterSupported ||
+      updateActionDisabled ||
+      updateStatus !== "available" ||
+      !updateInfo
+    ) {
+      return;
+    }
+
+    showUpdateConfirmDialog = true;
+  }
+
+  async function handleConfirmInstallUpdate() {
+    showUpdateConfirmDialog = false;
+    if (
+      !updaterSupported ||
+      updateActionDisabled ||
+      updateStatus !== "available"
+    ) {
+      return;
+    }
+
+    updateErrorMessage = null;
+    updateProgress = {
+      phase: "downloading",
+      downloaded: 0,
+      contentLength: null,
+    };
+    updateStatus = "downloading";
+
+    try {
+      await downloadAndInstallAppUpdate((progress) => {
+        updateProgress = progress;
+        updateStatus = progress.phase;
+      });
+      updateStatus = "installing";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      updateStatus = "error";
+      updateErrorMessage = message;
+      updateProgress = null;
+    }
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
@@ -565,6 +665,7 @@
     error = null;
     exportError = null;
     exportSuccess = null;
+    showUpdateConfirmDialog = false;
     results = [];
     showLightConfirmDialog = false;
     lightConfirmTarget = "front";
@@ -801,8 +902,16 @@
         {appName}
         {appVersion}
         {tauriVersion}
+        updateSupported={updaterSupported}
+        {updateStatus}
+        {updateInfo}
+        updateErrorMessage={updateErrorMessage}
+        {updateProgress}
+        {updateActionDisabled}
         onToggleLanguage={toggleLanguage}
         onSave={handleSettingsSave}
+        onCheckUpdate={handleCheckForUpdate}
+        onInstallUpdate={handleInstallUpdate}
       />
     {/if}
   </SidebarUI.Inset>
@@ -878,5 +987,16 @@
     initialEndDate={exportEndDate}
     onClose={() => (showExportDialog = false)}
     onConfirm={handleConfirmExport}
+  />
+
+  <ConfirmDialog
+    open={showUpdateConfirmDialog}
+    title={text.updateConfirmTitle}
+    message={text.updateConfirmMessage}
+    yesLabel={text.confirmYes}
+    noLabel={text.confirmNo}
+    onYes={handleConfirmInstallUpdate}
+    onNo={() => (showUpdateConfirmDialog = false)}
+    onRequestClose={() => (showUpdateConfirmDialog = false)}
   />
 </SidebarUI.Provider>
