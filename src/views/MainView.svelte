@@ -7,12 +7,14 @@
     StatusKey,
     TestResult,
     Translation,
+    Language,
   } from "../types";
 
   const ALL_STAGES_VALUE = "__all__";
 
   let {
     text,
+    language,
     results,
     error,
     running,
@@ -35,6 +37,7 @@
     onToggleLanguage,
   } = $props<{
     text: Translation;
+    language: Language;
     results: TestResult[];
     error: string | null;
     running: boolean;
@@ -133,6 +136,7 @@
   <ResultsTable
     {results}
     {text}
+    {language}
     {error}
     {running}
     {summaryState}

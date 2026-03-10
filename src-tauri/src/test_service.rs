@@ -321,6 +321,7 @@ mod tests {
     fn make_test_result(command: &str, raw_response: &str) -> TestResult {
         TestResult {
             name: "group".to_string(),
+            names: Default::default(),
             stage: "stage".to_string(),
             command: command.to_string(),
             passed: true,

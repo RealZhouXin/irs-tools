@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -44,6 +45,8 @@ impl Default for LogLevel {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TestGroup {
     pub name: String,
+    #[serde(default)]
+    pub names: HashMap<String, String>,
     #[serde(default)]
     pub stage: String,
     #[serde(flatten)]
@@ -517,6 +520,7 @@ pub struct CheckResult {
 #[derive(Debug, Serialize)]
 pub struct TestResult {
     pub name: String,
+    pub names: HashMap<String, String>,
     pub stage: String,
     pub command: String,
     pub passed: bool,

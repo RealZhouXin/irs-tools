@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TestResult, SummaryState, Translation } from "../types";
+  import type { TestResult, SummaryState, Translation, Language } from "../types";
   import * as Card from "$lib/components/ui/card/index.js";
   import * as Table from "$lib/components/ui/table/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -11,10 +11,11 @@
   };
 
   // Svelte 5 Props using $props() rune
-  let { results, text, error, running, summaryState, retesting, onRetest } =
+  let { results, text, language, error, running, summaryState, retesting, onRetest } =
     $props<{
       results: TestResult[];
       text: Translation;
+      language: Language;
       error: string | null;
       running: boolean;
       summaryState: SummaryState;
@@ -65,6 +66,10 @@
       return `${check.display_min} ~ ${check.display_max}`;
     }
     return check.min === null || check.max === null ? "-" : `${check.min} ~ ${check.max}`;
+  }
+
+  function getGroupName(group: TestResult): string {
+    return group.names?.[language] ?? group.name;
   }
 </script>
 
@@ -121,7 +126,7 @@
               <Table.Body>
                 {#each stageGroup.items as group (stageGroup.stage + "-" + group.name)}
                   <Table.Row class="hover:bg-transparent bg-background">
-                    <Table.Cell class="font-medium">{group.name}</Table.Cell>
+                    <Table.Cell class="font-medium">{getGroupName(group)}</Table.Cell>
                     <Table.Cell>
                       <code class="relative rounded bg-muted px-[0.4rem] py-[0.2rem] font-mono text-sm font-semibold">{group.command}</code>
                     </Table.Cell>

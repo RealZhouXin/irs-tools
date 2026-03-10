@@ -368,6 +368,7 @@ where
 
     Ok(TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -400,6 +401,7 @@ where
     let passed = check_results.iter().all(|item| item.passed);
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -456,6 +458,7 @@ fn build_action_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed: true,
@@ -477,6 +480,7 @@ fn build_param_id798_result(group_name: String, stage: String, version: String) 
     let has_version = !version.is_empty();
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId798".to_string(),
         passed: has_version,
@@ -503,6 +507,7 @@ fn build_front_light_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId606".to_string(),
         passed: is_lit,
@@ -533,6 +538,7 @@ fn build_speaker_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId568".to_string(),
         passed: heard_sound,
@@ -595,6 +601,7 @@ fn build_rear_light_result(
 
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId610".to_string(),
         passed,
@@ -617,6 +624,7 @@ fn build_emergency_stop_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId080EmergencyStop".to_string(),
         passed,
@@ -684,6 +692,7 @@ where
 
     Ok(TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -978,8 +987,9 @@ fn run_group_with_emitters_internal(
         name,
         stage,
         command,
+        names,
     } = group;
-    match command {
+    let result = match command {
         CommandGroupSpec::ParamId068 { checks } => {
             let response = gateway.param_id068()?;
             build_version_checked_result(name, stage, "ParamId068".to_string(), &checks, &response)
@@ -1217,7 +1227,8 @@ fn run_group_with_emitters_internal(
         CommandGroupSpec::ParamId776 { timeout_ms } => {
             run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
         }
-    }
+    }?;
+    Ok(TestResult { names, ..result })
 }
 
 fn abs_speed_as_f64(value: i16) -> f64 {
@@ -1232,15 +1243,38 @@ fn collect_wheel_speed_avg(
     let count = usize::from(sample_count.max(1));
     let mut right_sum = 0.0;
     let mut left_sum = 0.0;
+    let mut right_non_zero_count = 0usize;
+    let mut left_non_zero_count = 0usize;
 
     for _ in 0..count {
         thread::sleep(Duration::from_millis(sample_interval_ms));
         let sample = gateway.param_id114()?;
-        right_sum += abs_speed_as_f64(sample.right_whl_motor_sp);
-        left_sum += abs_speed_as_f64(sample.lef_whl_motor_sp);
+        let right_speed = abs_speed_as_f64(sample.right_whl_motor_sp);
+        let left_speed = abs_speed_as_f64(sample.lef_whl_motor_sp);
+
+        if right_speed != 0.0 {
+            right_sum += right_speed;
+            right_non_zero_count += 1;
+        }
+
+        if left_speed != 0.0 {
+            left_sum += left_speed;
+            left_non_zero_count += 1;
+        }
     }
 
-    Ok((right_sum / count as f64, left_sum / count as f64))
+    let right_avg = if right_non_zero_count == 0 {
+        0.0
+    } else {
+        right_sum / right_non_zero_count as f64
+    };
+    let left_avg = if left_non_zero_count == 0 {
+        0.0
+    } else {
+        left_sum / left_non_zero_count as f64
+    };
+
+    Ok((right_avg, left_avg))
 }
 
 fn run_wheel_motor_test_group(
@@ -1298,6 +1332,7 @@ fn run_wheel_motor_test_group(
     if !confirmed {
         return Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "WheelMotorTest".to_string(),
             passed: false,
@@ -1380,6 +1415,7 @@ fn run_wheel_motor_test_group(
 
         Ok(TestResult {
             name: name.clone(),
+            names: Default::default(),
             stage: stage.clone(),
             command: "WheelMotorTest".to_string(),
             passed: check_results.iter().all(|item| item.passed),
@@ -1432,6 +1468,7 @@ fn run_collision_bar_test_group(
     if !initial_ok {
         return Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1484,6 +1521,7 @@ fn run_collision_bar_test_group(
             if is_sensor_prompt_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: false,
@@ -1522,6 +1560,7 @@ fn run_collision_bar_test_group(
             if last.collision_sen > 0 {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: true,
@@ -1557,6 +1596,7 @@ fn run_collision_bar_test_group(
 
         Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1628,6 +1668,7 @@ fn run_lift_sensor_test_group(
             if is_sensor_prompt_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: false,
@@ -1657,6 +1698,7 @@ fn run_lift_sensor_test_group(
             if response.lift_sen > lift_threshold {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: true,
@@ -1680,6 +1722,7 @@ fn run_lift_sensor_test_group(
 
         Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1840,6 +1883,7 @@ fn run_key_test_group(
             if is_key_test_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
@@ -1860,6 +1904,7 @@ fn run_key_test_group(
             if wait_key_test_or_cancel(KEY_TEST_POLL_INTERVAL_MS)? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
@@ -1903,6 +1948,7 @@ fn run_key_test_group(
                 info!("Key test passed: all keys pressed");
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: true,
@@ -1927,6 +1973,7 @@ fn run_key_test_group(
                 warn!("Key test timed out after {}ms", elapsed_ms);
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
@@ -2129,6 +2176,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2177,6 +2225,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2224,6 +2273,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2274,6 +2324,7 @@ mod tests {
 
         let group = TestGroup {
             name: "096 wireless".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId096 {
                 checks: vec![
@@ -2337,6 +2388,7 @@ mod tests {
 
         let group = TestGroup {
             name: "526 app board".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId526 {
                 checks: vec![
@@ -2396,6 +2448,7 @@ mod tests {
 
         let group = TestGroup {
             name: "606 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId606 {
                 front_light_mode: 1,
@@ -2441,6 +2494,7 @@ mod tests {
 
         let group = TestGroup {
             name: "798 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId798,
         };
@@ -2486,6 +2540,7 @@ mod tests {
 
         let group = TestGroup {
             name: "796 mqtt".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId796 {
                 checks: vec![ParamId796Check {
@@ -2538,6 +2593,7 @@ mod tests {
 
         let group = TestGroup {
             name: "606 test fail".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId606 {
                 front_light_mode: 1,
@@ -2583,6 +2639,7 @@ mod tests {
 
         let group = TestGroup {
             name: "610 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId610,
         };
@@ -2625,6 +2682,7 @@ mod tests {
 
         let group = TestGroup {
             name: "610 test fail".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId610,
         };
@@ -2673,6 +2731,7 @@ mod tests {
 
         let group = TestGroup {
             name: "468-470 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::CuttingHeightSetAndVerify {
                 cutting_height_mm: 30,
@@ -2723,6 +2782,7 @@ mod tests {
 
         let group = TestGroup {
             name: "470 retry test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId470 {
                 checks: vec![crate::models::ParamId470Check {
@@ -2856,6 +2916,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -2892,6 +2953,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -2928,6 +2990,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -3062,6 +3125,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 10,
@@ -3101,6 +3165,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift test timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 2,
@@ -3140,6 +3205,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 10,
@@ -3282,6 +3348,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3325,6 +3392,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop starts at 2".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3363,6 +3431,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 2 },
         };
@@ -3394,6 +3463,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3554,6 +3624,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 pass".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
         };
@@ -3596,6 +3667,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 1 },
         };
@@ -3645,6 +3717,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
         };
@@ -3779,6 +3852,7 @@ mod tests {
     fn wheel_group() -> TestGroup {
         TestGroup {
             name: "wheel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::WheelMotorTest {
                 right_motor_speed: 45,
@@ -4030,5 +4104,79 @@ mod tests {
         assert_eq!(result.checks.len(), 2);
         assert!(result.checks[0].passed);
         assert!(result.checks[1].passed);
+    }
+
+    #[test]
+    fn wheel_motor_ignores_zero_samples_when_averaging() {
+        let gateway = FakeWheelMotorGateway {
+            samples: RefCell::new(vec![
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 810,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 820,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 810,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 820,
+                },
+            ]),
+            calls_254: RefCell::new(Vec::new()),
+            calls_256: RefCell::new(Vec::new()),
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            wheel_group(),
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.checks[0].value, Some(815.0));
+        assert_eq!(result.checks[1].value, Some(815.0));
     }
 }
