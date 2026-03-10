@@ -2,7 +2,12 @@
   import AboutCard from "../components/AboutCard.svelte";
   import SettingsForm from "../components/SettingsForm.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
-  import type { Translation } from "../types";
+  import type {
+    AppUpdateInfo,
+    AppUpdateProgress,
+    AppUpdateStatus,
+    Translation,
+  } from "../types";
 
   type SettingsDraft = {
     mode: "network" | "serial";
@@ -23,8 +28,16 @@
     appName,
     appVersion,
     tauriVersion,
+    updateSupported,
+    updateStatus,
+    updateInfo,
+    updateErrorMessage,
+    updateProgress,
+    updateActionDisabled,
     onToggleLanguage,
     onSave,
+    onCheckUpdate,
+    onInstallUpdate,
   } = $props<{
     text: Translation;
     settingsDraft: SettingsDraft | null;
@@ -35,8 +48,16 @@
     appName: string | null;
     appVersion: string | null;
     tauriVersion: string | null;
+    updateSupported: boolean;
+    updateStatus: AppUpdateStatus;
+    updateInfo: AppUpdateInfo | null;
+    updateErrorMessage: string | null;
+    updateProgress: AppUpdateProgress | null;
+    updateActionDisabled: boolean;
     onToggleLanguage: () => void;
     onSave: () => void;
+    onCheckUpdate: () => void;
+    onInstallUpdate: () => void;
   }>();
 </script>
 
@@ -68,5 +89,13 @@
     {appName}
     {appVersion}
     {tauriVersion}
+    {updateSupported}
+    {updateStatus}
+    {updateInfo}
+    {updateErrorMessage}
+    {updateProgress}
+    {updateActionDisabled}
+    {onCheckUpdate}
+    {onInstallUpdate}
   />
 </section>

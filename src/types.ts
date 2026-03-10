@@ -17,3 +17,8 @@ export type {
 } from "./types/test";
 export type { Language, Translation } from "./types/i18n";
 export type { StatusKey, SummaryState } from "./types/status";
+export type {
+  AppUpdateInfo,
+  AppUpdateProgress,
+  AppUpdateStatus,
+} from "./types/update";

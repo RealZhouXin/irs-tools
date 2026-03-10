@@ -51,6 +51,7 @@ Hardware Device
 ### 桌面容器
 
 * Tauri v2
+* Tauri updater plugin（GitHub Releases 静态 `latest.json`）
 
 ### 后端
 
@@ -96,7 +97,9 @@ CSV
 .
 ├─ src/                        # 前端源码
 ├─ src-tauri/                  # Rust + Tauri backend
+├─ .github/workflows/          # CI / Release workflows
 ├─ dist/                       # Vite build output
+├─ src-tauri/capabilities/     # Tauri capability permissions
 ├─ src-tauri/config/
 │  ├─ threshold.toml
 │  └─ tests.yaml
@@ -137,6 +140,7 @@ src/main.ts
 * 全局状态中心
 * 测试流程控制
 * IPC 事件监听
+* 应用更新状态管理
 
 主要事件：
 
@@ -174,6 +178,7 @@ src/services/tauri.ts
 ```text
 invoke
 listen
+plugin-updater
 ```
 
 命令：
@@ -190,6 +195,8 @@ get_test_stages
 export_test_results_csv
 get_available_export_dates
 confirm_wheel_motor_lifted
+checkForAppUpdate
+downloadAndInstallAppUpdate
 ```
 
 Agent 修改前端逻辑时  **必须优先复用此文件** 。
@@ -606,6 +613,12 @@ bun run tauri dev
 bun run tauri build
 ```
 
+生成 updater 签名密钥
+
+```text
+bunx tauri signer generate --ci --write-keys %USERPROFILE%\.tauri\irs-tools-updater.key
+```
+
 ---
 
 # 11 Agent 工作规则
@@ -642,6 +655,8 @@ CommDllv2.dll
 ```text
 src/services/tauri.ts
 ```
+
+包括 updater 检查与安装逻辑。
 
 ---
 
@@ -726,3 +741,15 @@ Agent  **禁止** ：
 * 修改设备 DLL 接口
 * 修改 IPC 事件名
 * 修改数据库 schema（除非 migration 同步）
+
+---
+
+## Agent Notes
+
+Change:
+Added Tauri updater integration backed by GitHub Releases `latest.json`.
+
+Description of architecture change.
+- Frontend updater actions are wrapped in `src/services/tauri.ts`.
+- Tauri capabilities now include `updater:default`.
+- Release workflow now publishes `.msi`, `.msi.sig`, and `latest.json`.
