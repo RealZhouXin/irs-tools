@@ -2176,6 +2176,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2224,6 +2225,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2271,6 +2273,7 @@ mod tests {
 
         let group = TestGroup {
             name: "068 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId068 {
                 checks: vec![VersionCheck {
@@ -2321,6 +2324,7 @@ mod tests {
 
         let group = TestGroup {
             name: "096 wireless".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId096 {
                 checks: vec![
@@ -2384,6 +2388,7 @@ mod tests {
 
         let group = TestGroup {
             name: "526 app board".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId526 {
                 checks: vec![
@@ -2443,6 +2448,7 @@ mod tests {
 
         let group = TestGroup {
             name: "606 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId606 {
                 front_light_mode: 1,
@@ -2488,6 +2494,7 @@ mod tests {
 
         let group = TestGroup {
             name: "798 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId798,
         };
@@ -2533,6 +2540,7 @@ mod tests {
 
         let group = TestGroup {
             name: "796 mqtt".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId796 {
                 checks: vec![ParamId796Check {
@@ -2585,6 +2593,7 @@ mod tests {
 
         let group = TestGroup {
             name: "606 test fail".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId606 {
                 front_light_mode: 1,
@@ -2630,6 +2639,7 @@ mod tests {
 
         let group = TestGroup {
             name: "610 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId610,
         };
@@ -2672,6 +2682,7 @@ mod tests {
 
         let group = TestGroup {
             name: "610 test fail".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId610,
         };
@@ -2720,6 +2731,7 @@ mod tests {
 
         let group = TestGroup {
             name: "468-470 test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::CuttingHeightSetAndVerify {
                 cutting_height_mm: 30,
@@ -2770,6 +2782,7 @@ mod tests {
 
         let group = TestGroup {
             name: "470 retry test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId470 {
                 checks: vec![crate::models::ParamId470Check {
@@ -2903,6 +2916,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -2939,6 +2953,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -2975,6 +2990,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 collision cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118CollisionBar { timeout_ms: 10 },
         };
@@ -3109,6 +3125,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift test".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 10,
@@ -3148,6 +3165,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift test timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 2,
@@ -3187,6 +3205,7 @@ mod tests {
 
         let group = TestGroup {
             name: "118 lift cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId118LiftSensor {
                 timeout_ms: 10,
@@ -3329,6 +3348,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3372,6 +3392,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop starts at 2".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3410,6 +3431,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 2 },
         };
@@ -3441,6 +3463,7 @@ mod tests {
 
         let group = TestGroup {
             name: "080 emergency stop cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId080EmergencyStop { timeout_ms: 10 },
         };
@@ -3601,6 +3624,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 pass".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
         };
@@ -3643,6 +3667,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 timeout".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 1 },
         };
@@ -3692,6 +3717,7 @@ mod tests {
 
         let group = TestGroup {
             name: "776 cancel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::ParamId776 { timeout_ms: 10 },
         };
@@ -3826,6 +3852,7 @@ mod tests {
     fn wheel_group() -> TestGroup {
         TestGroup {
             name: "wheel".to_string(),
+            names: Default::default(),
             stage: "unit".to_string(),
             command: CommandGroupSpec::WheelMotorTest {
                 right_motor_speed: 45,
