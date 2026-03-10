@@ -11,6 +11,7 @@ export type CheckResult = {
 
 export type TestResult = {
   name: string;
+  names?: Record<string, string>;
   stage: string;
   command: string;
   raw_response: string;

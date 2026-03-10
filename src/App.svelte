@@ -768,6 +768,7 @@
     {#if view === "main"}
       <MainView
         {text}
+        {language}
         {results}
         {error}
         {running}

@@ -368,6 +368,7 @@ where
 
     Ok(TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -400,6 +401,7 @@ where
     let passed = check_results.iter().all(|item| item.passed);
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -456,6 +458,7 @@ fn build_action_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed: true,
@@ -477,6 +480,7 @@ fn build_param_id798_result(group_name: String, stage: String, version: String) 
     let has_version = !version.is_empty();
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId798".to_string(),
         passed: has_version,
@@ -503,6 +507,7 @@ fn build_front_light_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId606".to_string(),
         passed: is_lit,
@@ -533,6 +538,7 @@ fn build_speaker_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId568".to_string(),
         passed: heard_sound,
@@ -595,6 +601,7 @@ fn build_rear_light_result(
 
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId610".to_string(),
         passed,
@@ -617,6 +624,7 @@ fn build_emergency_stop_result(
 ) -> TestResult {
     TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command: "ParamId080EmergencyStop".to_string(),
         passed,
@@ -684,6 +692,7 @@ where
 
     Ok(TestResult {
         name: group_name,
+        names: Default::default(),
         stage,
         command,
         passed,
@@ -978,8 +987,9 @@ fn run_group_with_emitters_internal(
         name,
         stage,
         command,
+        names,
     } = group;
-    match command {
+    let result = match command {
         CommandGroupSpec::ParamId068 { checks } => {
             let response = gateway.param_id068()?;
             build_version_checked_result(name, stage, "ParamId068".to_string(), &checks, &response)
@@ -1217,7 +1227,8 @@ fn run_group_with_emitters_internal(
         CommandGroupSpec::ParamId776 { timeout_ms } => {
             run_key_test_group(gateway, name, stage, timeout_ms, on_key_state_update)
         }
-    }
+    }?;
+    Ok(TestResult { names, ..result })
 }
 
 fn abs_speed_as_f64(value: i16) -> f64 {
@@ -1321,6 +1332,7 @@ fn run_wheel_motor_test_group(
     if !confirmed {
         return Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "WheelMotorTest".to_string(),
             passed: false,
@@ -1403,6 +1415,7 @@ fn run_wheel_motor_test_group(
 
         Ok(TestResult {
             name: name.clone(),
+            names: Default::default(),
             stage: stage.clone(),
             command: "WheelMotorTest".to_string(),
             passed: check_results.iter().all(|item| item.passed),
@@ -1455,6 +1468,7 @@ fn run_collision_bar_test_group(
     if !initial_ok {
         return Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1507,6 +1521,7 @@ fn run_collision_bar_test_group(
             if is_sensor_prompt_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: false,
@@ -1545,6 +1560,7 @@ fn run_collision_bar_test_group(
             if last.collision_sen > 0 {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: true,
@@ -1580,6 +1596,7 @@ fn run_collision_bar_test_group(
 
         Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1651,6 +1668,7 @@ fn run_lift_sensor_test_group(
             if is_sensor_prompt_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: false,
@@ -1680,6 +1698,7 @@ fn run_lift_sensor_test_group(
             if response.lift_sen > lift_threshold {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId118".to_string(),
                     passed: true,
@@ -1703,6 +1722,7 @@ fn run_lift_sensor_test_group(
 
         Ok(TestResult {
             name,
+            names: Default::default(),
             stage,
             command: "ParamId118".to_string(),
             passed: false,
@@ -1863,6 +1883,7 @@ fn run_key_test_group(
             if is_key_test_canceled()? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
@@ -1883,6 +1904,7 @@ fn run_key_test_group(
             if wait_key_test_or_cancel(KEY_TEST_POLL_INTERVAL_MS)? {
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
@@ -1926,6 +1948,7 @@ fn run_key_test_group(
                 info!("Key test passed: all keys pressed");
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: true,
@@ -1950,6 +1973,7 @@ fn run_key_test_group(
                 warn!("Key test timed out after {}ms", elapsed_ms);
                 return Ok(TestResult {
                     name,
+                    names: Default::default(),
                     stage,
                     command: "ParamId776".to_string(),
                     passed: false,
