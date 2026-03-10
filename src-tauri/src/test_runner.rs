@@ -1232,15 +1232,38 @@ fn collect_wheel_speed_avg(
     let count = usize::from(sample_count.max(1));
     let mut right_sum = 0.0;
     let mut left_sum = 0.0;
+    let mut right_non_zero_count = 0usize;
+    let mut left_non_zero_count = 0usize;
 
     for _ in 0..count {
         thread::sleep(Duration::from_millis(sample_interval_ms));
         let sample = gateway.param_id114()?;
-        right_sum += abs_speed_as_f64(sample.right_whl_motor_sp);
-        left_sum += abs_speed_as_f64(sample.lef_whl_motor_sp);
+        let right_speed = abs_speed_as_f64(sample.right_whl_motor_sp);
+        let left_speed = abs_speed_as_f64(sample.lef_whl_motor_sp);
+
+        if right_speed != 0.0 {
+            right_sum += right_speed;
+            right_non_zero_count += 1;
+        }
+
+        if left_speed != 0.0 {
+            left_sum += left_speed;
+            left_non_zero_count += 1;
+        }
     }
 
-    Ok((right_sum / count as f64, left_sum / count as f64))
+    let right_avg = if right_non_zero_count == 0 {
+        0.0
+    } else {
+        right_sum / right_non_zero_count as f64
+    };
+    let left_avg = if left_non_zero_count == 0 {
+        0.0
+    } else {
+        left_sum / left_non_zero_count as f64
+    };
+
+    Ok((right_avg, left_avg))
 }
 
 fn run_wheel_motor_test_group(
@@ -4030,5 +4053,79 @@ mod tests {
         assert_eq!(result.checks.len(), 2);
         assert!(result.checks[0].passed);
         assert!(result.checks[1].passed);
+    }
+
+    #[test]
+    fn wheel_motor_ignores_zero_samples_when_averaging() {
+        let gateway = FakeWheelMotorGateway {
+            samples: RefCell::new(vec![
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 810,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 820,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 0,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 810,
+                },
+                ParamId114Result {
+                    right_whl_motor_p: 0,
+                    right_whl_motor_curr: 0,
+                    right_whl_motor_sp: 0,
+                    left_whl_motor_p: 0,
+                    lef_whl_motor_curr: 0,
+                    lef_whl_motor_sp: 820,
+                },
+            ]),
+            calls_254: RefCell::new(Vec::new()),
+            calls_256: RefCell::new(Vec::new()),
+        };
+
+        let result = run_group_with_emitters(
+            &gateway,
+            wheel_group(),
+            &|_| {},
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(true),
+            &|_| Ok(()),
+            &|_| {},
+        )
+        .expect("group should run");
+
+        assert!(result.passed);
+        assert_eq!(result.checks[0].value, Some(815.0));
+        assert_eq!(result.checks[1].value, Some(815.0));
     }
 }
