@@ -213,9 +213,9 @@
 
       <!-- 状态指示面板 (包裹原有的StatusCard使其融入侧边栏风格) -->
       <div class="mt-4 border-t border-zinc-100/80 pt-6">
-        <label
+        <p
           class="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block mb-3"
-          >Status Overview</label
+          >Status Overview</p
         >
         <div
           class="[&>div]:shadow-none [&>div]:border-zinc-200/60 [&>div]:bg-zinc-50/50"
