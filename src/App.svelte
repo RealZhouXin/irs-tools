@@ -7,6 +7,7 @@
     AppUpdateStatus,
     BaseConfig,
     CollisionBarPromptPayload,
+    DeviceSnPayload,
     EmergencyStopTestPayload,
     KeyStatePayload,
     LogLevel,
@@ -43,6 +44,7 @@
     subscribeFrontLightConfirmRequest,
     subscribeEmergencyStopTestUpdate,
     subscribeCollisionBarPromptRequest,
+    subscribeDeviceSnUpdate,
     subscribeRearLightConfirmRequest,
     subscribeSpeakerConfirmRequest,
     subscribeKeyStateUpdate,
@@ -197,6 +199,10 @@
   function extractPcbSerNo(rawResponse: string): string | null {
     const match = rawResponse.match(/(?:^|,\s*)PcbSerNo=(\d+)/);
     return match?.[1] ?? null;
+  }
+
+  function handleDeviceSnUpdate(payload: DeviceSnPayload) {
+    machineSn = String(payload.sn);
   }
 
   function upsertResult(result: TestResult) {
@@ -467,6 +473,7 @@
 
   onMount(() => {
     let unlisten: (() => void) | null = null;
+    let unlistenDeviceSn: (() => void) | null = null;
     let unlistenKeyState: (() => void) | null = null;
     let unlistenEmergencyStopUpdate: (() => void) | null = null;
     let unlistenCollisionBarPrompt: (() => void) | null = null;
@@ -491,6 +498,14 @@
       })
       .catch((err) => {
         console.error(`Failed to listen ${TAURI_EVENTS.testGroupComplete}`, err);
+      });
+
+    subscribeDeviceSnUpdate(handleDeviceSnUpdate)
+      .then((stop) => {
+        unlistenDeviceSn = stop;
+      })
+      .catch((err) => {
+        console.error(`Failed to listen ${TAURI_EVENTS.deviceSnUpdate}`, err);
       });
 
     subscribeKeyStateUpdate((payload) => {
@@ -625,6 +640,9 @@
     return () => {
       if (unlisten) {
         unlisten();
+      }
+      if (unlistenDeviceSn) {
+        unlistenDeviceSn();
       }
       if (unlistenKeyState) {
         unlistenKeyState();

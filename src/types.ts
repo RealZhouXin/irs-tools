@@ -2,6 +2,7 @@ export type { BaseConfig, ConnectionConfig, LogLevel } from "./types/config";
 export type {
   CheckResult,
   CollisionBarPromptPayload,
+  DeviceSnPayload,
   EmergencyStopPhase,
   EmergencyStopTestPayload,
   FrontLightConfirmRequestPayload,

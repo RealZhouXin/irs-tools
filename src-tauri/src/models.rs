@@ -863,6 +863,11 @@ pub struct KeyStatePayload {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct DeviceSnPayload {
+    pub sn: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct FrontLightConfirmRequestPayload {
     pub name: String,
     pub stage: String,

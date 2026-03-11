@@ -7,6 +7,7 @@ import type {
   AppUpdateProgress,
   BaseConfig,
   CollisionBarPromptPayload,
+  DeviceSnPayload,
   EmergencyStopTestPayload,
   FrontLightConfirmRequestPayload,
   KeyStatePayload,
@@ -21,6 +22,7 @@ let pendingAppUpdate: Awaited<ReturnType<typeof check>> = null;
 
 export const TAURI_EVENTS = {
   testGroupComplete: "test-group-complete",
+  deviceSnUpdate: "device-sn-update",
   keyStateUpdate: "key-state-update",
   frontLightConfirmRequest: "front-light-confirm-request",
   rearLightConfirmRequest: "rear-light-confirm-request",
@@ -120,6 +122,15 @@ export async function subscribeKeyStateUpdate(
       handler(event.payload);
     },
   );
+  return stop;
+}
+
+export async function subscribeDeviceSnUpdate(
+  handler: (payload: DeviceSnPayload) => void,
+) {
+  const stop = await listen<DeviceSnPayload>(TAURI_EVENTS.deviceSnUpdate, (event) => {
+    handler(event.payload);
+  });
   return stop;
 }
 

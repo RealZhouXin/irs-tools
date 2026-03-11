@@ -31,6 +31,10 @@ export type KeyStatePayload = {
   confirm_pressed: boolean;
 };
 
+export type DeviceSnPayload = {
+  sn: number;
+};
+
 export type FrontLightConfirmRequestPayload = {
   name: string;
   stage: string;
