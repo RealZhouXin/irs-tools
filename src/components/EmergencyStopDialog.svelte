@@ -27,135 +27,57 @@
 </script>
 
 {#if open}
-  <div class="overlay" role="presentation" onclick={handleOverlayClick}>
-    <div class="dialog" role="dialog" aria-modal="true" aria-label={title} tabindex="-1">
-      <h3 class="dialog-title">{title}</h3>
-      <p class="dialog-instruction">{instruction}</p>
+  <div 
+    class="fixed inset-0 z-50 bg-rose-950/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" 
+    role="presentation" 
+    onclick={handleOverlayClick}
+  >
+    <div 
+      class="w-full max-w-lg bg-white rounded-2xl shadow-[0_20px_50px_rgba(225,29,72,0.2)] border-2 border-rose-200/50 p-8 focus:outline-none animate-in zoom-in-95 duration-200 flex flex-col items-center text-center relative overflow-hidden" 
+      role="dialog" 
+      aria-modal="true" 
+      aria-label={title} 
+      tabindex="-1"
+    >
+      <div class="absolute inset-x-0 top-0 h-1.5 bg-rose-500"></div>
+      
+      <div class="w-20 h-20 mb-6 rounded-full bg-rose-50 flex items-center justify-center border-2 border-rose-100 relative">
+        <div class="absolute inset-0 rounded-full animate-ping bg-rose-400 opacity-20"></div>
+        <svg class="w-10 h-10 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+
+      <h3 class="text-xl font-bold tracking-tight text-zinc-900 mb-2">{title}</h3>
+      <p class="text-[14px] text-zinc-600 font-medium leading-relaxed max-w-sm mb-6">{instruction}</p>
 
       {#if showUnlockKeys}
-        <div class="keys-row" aria-label="unlock keys">
-          <div class="key-item">
-            <div class="key-icon-wrap">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
+        <div class="flex items-center justify-center gap-4 mb-6 bg-zinc-50 py-4 px-6 rounded-xl border border-zinc-100/80 w-full" aria-label="unlock keys">
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center border-2 border-indigo-200 bg-indigo-50 text-indigo-500 shadow-sm">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </div>
-            <span class="key-label">{backLabel}</span>
+            <span class="text-[12px] font-bold text-zinc-500 tracking-wide uppercase">{backLabel}</span>
           </div>
-          <div class="key-plus">+</div>
-          <div class="key-item">
-            <div class="key-icon-wrap">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
+          
+          <div class="text-xl font-bold text-zinc-300">+</div>
+          
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center border-2 border-indigo-200 bg-indigo-50 text-indigo-500 shadow-sm">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
-            <span class="key-label">{confirmLabel}</span>
+            <span class="text-[12px] font-bold text-zinc-500 tracking-wide uppercase">{confirmLabel}</span>
           </div>
         </div>
       {/if}
 
-      <p class="dialog-status">{status}</p>
+      <div class="inline-flex items-center gap-2 text-[13px] font-semibold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-md border border-rose-200/50">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+        </span>
+        {status}
+      </div>
     </div>
   </div>
 {/if}
-
-<style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(15, 23, 42, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-
-  .dialog {
-    width: min(500px, 100%);
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.25);
-  }
-
-  .dialog-title {
-    margin: 0 0 10px;
-    font-size: 18px;
-    font-weight: 600;
-    color: #0f172a;
-  }
-
-  .dialog-instruction {
-    margin: 0 0 16px;
-    color: #334155;
-    font-size: 14px;
-  }
-
-  .keys-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .key-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .key-icon-wrap {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #2563eb;
-    background: #eff6ff;
-    color: #1d4ed8;
-  }
-
-  .key-label {
-    font-size: 13px;
-    color: #1e293b;
-    font-weight: 500;
-  }
-
-  .key-plus {
-    font-size: 24px;
-    color: #334155;
-    font-weight: 700;
-  }
-
-  .dialog-status {
-    margin: 0;
-    color: #64748b;
-    font-size: 12px;
-  }
-</style>

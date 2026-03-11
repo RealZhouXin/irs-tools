@@ -146,6 +146,7 @@ src/main.ts
 
 ```text
 test-group-complete
+device-sn-update
 key-state-update
 front-light-confirm-request
 wheel-motor-test-update
@@ -337,6 +338,8 @@ spawn_blocking
 ```text
 读取配置
 创建设备连接
+连接成功后读取SN（ParamId526）
+推送SN到前端（device-sn-update）
 进入测试模式
 遍历测试组
 保存结果
@@ -631,6 +634,7 @@ AI agents  **必须遵守以下规则** 。
 
 ```text
 test-group-complete
+device-sn-update
 key-state-update
 front-light-confirm-request
 wheel-motor-test-update
@@ -753,3 +757,17 @@ Description of architecture change.
 - Frontend updater actions are wrapped in `src/services/tauri.ts`.
 - Tauri capabilities now include `updater:default`.
 - Release workflow now publishes `.msi`, `.msi.sig`, and `latest.json`.
+
+Change:
+Read mower SN with `ParamId526` immediately after each successful device connection.
+
+Description of architecture change.
+- `test_service.rs` now triggers `ParamId526` right after gateway creation, before the normal test loop.
+- The fetched `PcbSerNo` is reused as the session SN for database persistence, even when the selected stages do not include the explicit `526` test group.
+
+Change:
+Push connected mower SN to the frontend immediately after it is read.
+
+Description of architecture change.
+- Backend emits `device-sn-update` once `ParamId526` returns after connect.
+- Frontend subscribes through `src/services/tauri.ts` and updates the main view `machineSn` state without waiting for a `ParamId526` test result row.

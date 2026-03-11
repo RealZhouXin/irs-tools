@@ -64,106 +64,58 @@
 </script>
 
 {#if open}
-  <div class="overlay" role="presentation" onclick={handleOverlayClick}>
+  <!-- overlay -->
+  <div 
+    class="fixed inset-0 z-50 bg-zinc-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" 
+    role="presentation" 
+    onclick={handleOverlayClick}
+  >
+    <!-- dialog -->
     <div
       bind:this={dialogElement}
-      class="dialog"
+      class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-zinc-200/60 p-6 focus:outline-none animate-in zoom-in-95 duration-200"
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      tabindex={-1}
+      tabindex="-1"
       onkeydown={handleDialogKeydown}
     >
-      <h3>{title}</h3>
-      <p>{message}</p>
+      <div class="flex flex-col items-center text-center gap-1 mb-6">
+        <h3 class="text-lg font-semibold tracking-tight text-zinc-900">{title}</h3>
+        <p class="text-[14px] text-zinc-500 leading-relaxed font-medium mt-1">{message}</p>
+      </div>
+
       {#if showLightAnimation && lightColor}
-        <div class="light-preview">
-          <div class="light-orb" data-color={lightColor} aria-hidden="true"></div>
+        <div class="flex justify-center mb-8">
+          <div class="relative w-20 h-20 rounded-full flex items-center justify-center bg-zinc-50 border border-zinc-100 shadow-inner">
+            <div class={
+              "absolute w-12 h-12 rounded-full animate-pulse blur-sm opacity-50 " + 
+              (lightColor === 'green' ? 'bg-emerald-500' : lightColor === 'red' ? 'bg-rose-500' : 'bg-blue-500')
+            }></div>
+            <div class={
+              "relative w-8 h-8 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.2)] " + 
+              (lightColor === 'green' ? 'bg-emerald-500' : lightColor === 'red' ? 'bg-rose-500' : 'bg-blue-500')
+            }></div>
+          </div>
         </div>
       {/if}
-      <div class="actions">
-        <Button variant="secondary" onclick={onNo}>{noLabel}</Button>
-        <Button variant="default" onclick={onYes}>{yesLabel}</Button>
+
+      <div class="flex items-center gap-3 w-full mt-4">
+        <Button 
+          variant="outline" 
+          class="flex-1 h-11 rounded-xl text-[14px] font-semibold text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 transition-colors" 
+          onclick={onNo}
+        >
+          {noLabel}
+        </Button>
+        <Button 
+          variant="default" 
+          class="flex-1 h-11 rounded-xl text-[14px] font-semibold bg-zinc-900 hover:bg-zinc-800 text-white shadow-md transition-all active:scale-[0.98]" 
+          onclick={onYes}
+        >
+          {yesLabel}
+        </Button>
       </div>
     </div>
   </div>
 {/if}
-
-<style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(15, 23, 42, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-
-  .dialog {
-    width: min(420px, 100%);
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-  }
-
-  .dialog h3 {
-    margin: 0 0 10px;
-    font-size: 18px;
-    color: #0f172a;
-  }
-
-  .dialog p {
-    margin: 0 0 16px;
-    color: #334155;
-    font-size: 14px;
-  }
-
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-
-  .light-preview {
-    display: flex;
-    justify-content: center;
-    margin: 0 0 16px;
-  }
-
-  .light-orb {
-    width: 84px;
-    height: 84px;
-    border-radius: 999px;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  .light-orb[data-color="red"] {
-    background: radial-gradient(circle at 35% 35%, #fecaca 0%, #dc2626 60%, #7f1d1d 100%);
-    box-shadow: 0 0 22px #ef4444, 0 0 42px rgba(239, 68, 68, 0.55);
-  }
-
-  .light-orb[data-color="green"] {
-    background: radial-gradient(circle at 35% 35%, #bbf7d0 0%, #16a34a 60%, #14532d 100%);
-    box-shadow: 0 0 22px #22c55e, 0 0 42px rgba(34, 197, 94, 0.55);
-  }
-
-  .light-orb[data-color="blue"] {
-    background: radial-gradient(circle at 35% 35%, #bfdbfe 0%, #2563eb 60%, #1e3a8a 100%);
-    box-shadow: 0 0 22px #3b82f6, 0 0 42px rgba(59, 130, 246, 0.55);
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      transform: scale(0.96);
-      filter: brightness(0.9);
-    }
-    50% {
-      transform: scale(1.06);
-      filter: brightness(1.1);
-    }
-  }
-</style>
