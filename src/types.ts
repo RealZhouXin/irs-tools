@@ -1,4 +1,10 @@
-export type { BaseConfig, ConnectionConfig, LogLevel } from "./types/config";
+export type {
+  ApplyTestsConfigUpdateResult,
+  BaseConfig,
+  ConnectionConfig,
+  LogLevel,
+  TestsConfigUpdateStatus,
+} from "./types/config";
 export type {
   CheckResult,
   CollisionBarPromptPayload,

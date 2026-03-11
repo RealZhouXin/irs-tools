@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import type {
+  ApplyTestsConfigUpdateResult,
   AppUpdateInfo,
   AppUpdateProgress,
   BaseConfig,
@@ -15,6 +16,7 @@ import type {
   SpeakerConfirmRequestPayload,
   TestResult,
   TestSummary,
+  TestsConfigUpdateStatus,
   WheelMotorTestUpdatePayload,
 } from "../types";
 
@@ -46,6 +48,18 @@ export function saveBaseConfig(config: BaseConfig) {
 
 export function loadTestStages() {
   return invoke<string[]>("get_test_stages");
+}
+
+export function loadTestsConfigUpdateStatus() {
+  return invoke<TestsConfigUpdateStatus>("get_tests_config_update_status");
+}
+
+export function applyTestsConfigUpdate() {
+  return invoke<ApplyTestsConfigUpdateResult>("apply_tests_config_update");
+}
+
+export function ignoreTestsConfigUpdate() {
+  return invoke<TestsConfigUpdateStatus>("ignore_tests_config_update");
 }
 
 export function startTest(stages: string[]) {

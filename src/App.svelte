@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { save } from "@tauri-apps/plugin-dialog";
   import type {
+    ApplyTestsConfigUpdateResult,
     AppUpdateInfo,
     AppUpdateProgress,
     AppUpdateStatus,
@@ -17,11 +18,13 @@
     StatusKey,
     SummaryState,
     TestResult,
+    TestsConfigUpdateStatus,
     WheelMotorTestPhase,
     WheelMotorTestUpdatePayload,
   } from "./types";
   import { getTranslation } from "./i18n/locales";
   import {
+    applyTestsConfigUpdate,
     cancelSensorPromptTest,
     cancelEmergencyStopTest,
     cancelKeyTest,
@@ -31,10 +34,12 @@
     confirmSpeaker,
     confirmWheelMotorLifted,
     downloadAndInstallAppUpdate,
+    ignoreTestsConfigUpdate,
     TAURI_EVENTS,
     loadAppInfo,
     loadBaseConfig,
     loadTestStages,
+    loadTestsConfigUpdateStatus,
     exportTestResultsCsv,
     retestGroup,
     saveBaseConfig,
@@ -92,6 +97,12 @@
   let settingsSaving = $state(false);
   let settingsSaved = $state(false);
   let settingsError = $state<string | null>(null);
+  let testsConfigStatus = $state<TestsConfigUpdateStatus | null>(null);
+  let testsConfigStatusError = $state<string | null>(null);
+  let testsConfigActionMessage = $state<string | null>(null);
+  let testsConfigActionError = $state<string | null>(null);
+  let testsConfigApplying = $state(false);
+  let testsConfigIgnoring = $state(false);
   let appName = $state<string | null>(null);
   let appVersion = $state<string | null>(null);
   let tauriVersion = $state<string | null>(null);
@@ -132,7 +143,7 @@
   // Derived state
   const text = $derived(getTranslation(language));
   const summaryLabel = $derived(text.summary[summaryState]);
-  const updateActionDisabled = $derived(
+  const settingsActionDisabled = $derived(
     running ||
       stopping ||
       retesting !== null ||
@@ -396,7 +407,7 @@
   async function handleCheckForUpdate() {
     if (
       !updaterSupported ||
-      updateActionDisabled ||
+      settingsActionDisabled ||
       updateStatus === "checking" ||
       updateStatus === "downloading" ||
       updateStatus === "installing"
@@ -429,7 +440,7 @@
   function handleInstallUpdate() {
     if (
       !updaterSupported ||
-      updateActionDisabled ||
+      settingsActionDisabled ||
       updateStatus !== "available" ||
       !updateInfo
     ) {
@@ -443,7 +454,7 @@
     showUpdateConfirmDialog = false;
     if (
       !updaterSupported ||
-      updateActionDisabled ||
+      settingsActionDisabled ||
       updateStatus !== "available"
     ) {
       return;
@@ -471,6 +482,77 @@
     }
   }
 
+  async function refreshAvailableStages() {
+    try {
+      const stages = await loadTestStages();
+      availableStages = stages;
+      if (
+        selectedStage !== ALL_STAGES_VALUE &&
+        !stages.includes(selectedStage)
+      ) {
+        selectedStage = ALL_STAGES_VALUE;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      error = message;
+      console.error("Failed to load test stages", err);
+    }
+  }
+
+  async function refreshTestsConfigStatus() {
+    try {
+      testsConfigStatus = await loadTestsConfigUpdateStatus();
+      testsConfigStatusError = null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      testsConfigStatusError = message;
+      console.error("Failed to load tests config update status", err);
+    }
+  }
+
+  async function handleApplyTestsConfigUpdate() {
+    if (testsConfigApplying || settingsActionDisabled) {
+      return;
+    }
+
+    testsConfigApplying = true;
+    testsConfigActionMessage = null;
+    testsConfigActionError = null;
+
+    try {
+      const result: ApplyTestsConfigUpdateResult = await applyTestsConfigUpdate();
+      testsConfigStatus = result.status;
+      testsConfigActionMessage = `${text.testsConfigApplySuccess}: ${result.backupPath}`;
+      await refreshAvailableStages();
+      error = null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      testsConfigActionError = message;
+    } finally {
+      testsConfigApplying = false;
+    }
+  }
+
+  async function handleIgnoreTestsConfigUpdate() {
+    if (testsConfigIgnoring || settingsActionDisabled) {
+      return;
+    }
+
+    testsConfigIgnoring = true;
+    testsConfigActionMessage = null;
+    testsConfigActionError = null;
+
+    try {
+      testsConfigStatus = await ignoreTestsConfigUpdate();
+      testsConfigActionMessage = text.testsConfigIgnoreSuccess;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      testsConfigActionError = message;
+    } finally {
+      testsConfigIgnoring = false;
+    }
+  }
+
   onMount(() => {
     let unlisten: (() => void) | null = null;
     let unlistenDeviceSn: (() => void) | null = null;
@@ -491,6 +573,10 @@
       .catch((err) => {
         console.error("Failed to load config", err);
       });
+
+    refreshTestsConfigStatus().catch((err) => {
+      console.error("Failed to refresh tests config status", err);
+    });
 
     subscribeTestGroupComplete(handleIncomingResult)
       .then((stop) => {
@@ -623,19 +709,9 @@
         aboutError = message;
       });
 
-    loadTestStages()
-      .then((stages) => {
-        availableStages = stages;
-        if (
-          selectedStage !== ALL_STAGES_VALUE &&
-          !stages.includes(selectedStage)
-        ) {
-          selectedStage = ALL_STAGES_VALUE;
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load test stages", err);
-      });
+    refreshAvailableStages().catch((err) => {
+      console.error("Failed to refresh test stages", err);
+    });
 
     return () => {
       if (unlisten) {
@@ -916,6 +992,13 @@
         {settingsSaving}
         {settingsSaved}
         {settingsError}
+        {testsConfigStatus}
+        {testsConfigStatusError}
+        {testsConfigActionMessage}
+        {testsConfigActionError}
+        {testsConfigApplying}
+        {testsConfigIgnoring}
+        testsConfigActionDisabled={settingsActionDisabled}
         {aboutError}
         {appName}
         {appVersion}
@@ -925,9 +1008,11 @@
         {updateInfo}
         updateErrorMessage={updateErrorMessage}
         {updateProgress}
-        {updateActionDisabled}
+        updateActionDisabled={settingsActionDisabled}
         onToggleLanguage={toggleLanguage}
         onSave={handleSettingsSave}
+        onApplyTestsConfigUpdate={handleApplyTestsConfigUpdate}
+        onIgnoreTestsConfigUpdate={handleIgnoreTestsConfigUpdate}
         onCheckUpdate={handleCheckForUpdate}
         onInstallUpdate={handleInstallUpdate}
       />

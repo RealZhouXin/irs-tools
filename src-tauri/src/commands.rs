@@ -1,8 +1,15 @@
 use tauri::Manager;
 use tracing::error;
 
-use crate::config::{read_base_config, read_test_stages, write_base_config};
-use crate::models::{BaseConfig, TestResult, TestSummary};
+use crate::config::{
+    apply_tests_config_update as apply_tests_config_update_impl,
+    ignore_tests_config_update as ignore_tests_config_update_impl, read_base_config,
+    read_test_stages, read_tests_config_update_status as read_tests_config_update_status_impl,
+    write_base_config,
+};
+use crate::models::{
+    ApplyTestsConfigUpdateResult, BaseConfig, TestResult, TestSummary, TestsConfigUpdateStatus,
+};
 use crate::test_runner::{
     submit_emergency_stop_cancel, submit_front_light_confirmation, submit_key_test_cancel,
     submit_rear_light_confirmation, submit_sensor_prompt_cancel, submit_speaker_confirmation,
@@ -65,6 +72,25 @@ pub fn save_base_config(app: tauri::AppHandle, config: BaseConfig) -> CommandRes
 #[tauri::command]
 pub fn get_test_stages(app: tauri::AppHandle) -> CommandResult<Vec<String>> {
     read_test_stages(&app)
+}
+
+#[tauri::command]
+pub fn get_tests_config_update_status(
+    app: tauri::AppHandle,
+) -> CommandResult<TestsConfigUpdateStatus> {
+    read_tests_config_update_status_impl(&app)
+}
+
+#[tauri::command]
+pub fn apply_tests_config_update(
+    app: tauri::AppHandle,
+) -> CommandResult<ApplyTestsConfigUpdateResult> {
+    apply_tests_config_update_impl(&app)
+}
+
+#[tauri::command]
+pub fn ignore_tests_config_update(app: tauri::AppHandle) -> CommandResult<TestsConfigUpdateStatus> {
+    ignore_tests_config_update_impl(&app)
 }
 
 #[tauri::command]
