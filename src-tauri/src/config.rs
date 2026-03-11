@@ -154,6 +154,7 @@ fn reconcile_tests_config_with_content(
     ensure_parent_dir(&paths.state_path)?;
 
     let default_hash = hash_bytes(default_content.as_bytes());
+    let had_state_file = paths.state_path.exists();
     let mut state = read_tests_config_state(&paths.state_path);
 
     if !paths.active_path.exists() {
@@ -170,6 +171,15 @@ fn reconcile_tests_config_with_content(
     let active_hash = hash_bytes(active_content.as_bytes());
 
     if active_hash == default_hash {
+        remove_file_if_exists(&paths.pending_path)?;
+        update_last_applied_default(&mut state, &default_hash, app_version);
+        clear_pending_default(&mut state);
+        write_tests_config_state(&paths.state_path, &state)?;
+        return Ok(build_tests_config_update_status(paths, false, &state));
+    }
+
+    if !had_state_file {
+        write_text_file(&paths.active_path, default_content)?;
         remove_file_if_exists(&paths.pending_path)?;
         update_last_applied_default(&mut state, &default_hash, app_version);
         clear_pending_default(&mut state);
@@ -577,7 +587,7 @@ mod tests {
     }
 
     #[test]
-    fn existing_install_without_state_is_treated_as_local_config() {
+    fn existing_install_without_state_is_overwritten_by_new_default() {
         let paths = temp_paths();
         let v1 = sample_tests_config("v1");
         let v2 = sample_tests_config("v2");
@@ -585,10 +595,10 @@ mod tests {
         write_text_file(&paths.active_path, &v1).unwrap();
         let status = reconcile_tests_config_with_content(&paths, &v2, "0.5.1").unwrap();
 
-        assert!(status.new_default_available);
-        assert!(status.local_is_modified);
-        assert_eq!(fs::read_to_string(&paths.active_path).unwrap(), v1);
-        assert_eq!(fs::read_to_string(&paths.pending_path).unwrap(), v2);
+        assert!(!status.new_default_available);
+        assert!(!status.local_is_modified);
+        assert_eq!(fs::read_to_string(&paths.active_path).unwrap(), v2);
+        assert!(!paths.pending_path.exists());
 
         fs::remove_dir_all(paths.active_path.parent().unwrap().parent().unwrap()).unwrap();
     }

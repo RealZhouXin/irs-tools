@@ -5,10 +5,10 @@ use tracing::info;
 
 use crate::comm_dll::{CommDll, CommSession};
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
-    ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
-    ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
-    ParamId794Result, ParamId796Result, ParamId798Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId114Result,
+    ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
+    ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result,
+    ParamId796Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -32,9 +32,6 @@ pub trait DeviceGateway {
     }
     fn param_id256(&self, _left_motor_speed: i16) -> CommandResult<()> {
         Err(AppError::msg("DeviceGateway 未实现 ParamId256"))
-    }
-    fn param_id108(&self) -> CommandResult<ParamId108Result> {
-        Err(AppError::msg("DeviceGateway 未实现 ParamId108"))
     }
     fn param_id114(&self) -> CommandResult<ParamId114Result> {
         Err(AppError::msg("DeviceGateway 未实现 ParamId114"))
@@ -141,10 +138,6 @@ impl DeviceGateway for DllDeviceGateway {
 
     fn param_id256(&self, left_motor_speed: i16) -> CommandResult<()> {
         self.session.param_id256(left_motor_speed)
-    }
-
-    fn param_id108(&self) -> CommandResult<ParamId108Result> {
-        self.session.param_id108()
     }
 
     fn param_id114(&self) -> CommandResult<ParamId114Result> {

@@ -5,10 +5,10 @@ use libloading::Library;
 use tracing::{error, info};
 
 use crate::models::{
-    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
-    ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
-    ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
-    ParamId794Result, ParamId796Result, ParamId798Result,
+    ConnectionConfig, ParamId068Result, ParamId080Result, ParamId096Result, ParamId114Result,
+    ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
+    ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result,
+    ParamId796Result, ParamId798Result,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -115,8 +115,6 @@ type ParamId468Fn = unsafe extern "system" fn(*mut u8, u8);
 type ParamId606Fn = unsafe extern "system" fn(*mut u8, u8, u8);
 type ParamId254Fn = unsafe extern "system" fn(*mut u8, i16);
 type ParamId256Fn = unsafe extern "system" fn(*mut u8, i16);
-type ParamId108Fn =
-    unsafe extern "system" fn(*mut u8, *mut u16, *mut i16, *mut i16, *mut i16, *mut u16);
 type ParamId114Fn =
     unsafe extern "system" fn(*mut u8, *mut i8, *mut i16, *mut i16, *mut i8, *mut i16, *mut i16);
 type ParamId568Fn = unsafe extern "system" fn(*mut u8, u8);
@@ -149,7 +147,6 @@ pub struct CommDll {
     param_id606: ParamId606Fn,
     param_id254: ParamId254Fn,
     param_id256: ParamId256Fn,
-    param_id108: ParamId108Fn,
     param_id114: ParamId114Fn,
     param_id568: ParamId568Fn,
     param_id610: ParamId610Fn,
@@ -449,44 +446,6 @@ impl CommSession {
         }
 
         Ok(())
-    }
-
-    pub fn param_id108(&self) -> CommandResult<ParamId108Result> {
-        info!("Running ParamId108");
-        let mut return_code: u8 = 9;
-        let mut batt_vol_mw: u16 = 0;
-        let mut batt_curr: i16 = 0;
-        let mut batt_en_lvl: i16 = 0;
-        let mut batt_temp: i16 = 0;
-        let mut main_voltage: u16 = 0;
-
-        unsafe {
-            (self.dll.param_id108)(
-                &mut return_code,
-                &mut batt_vol_mw,
-                &mut batt_curr,
-                &mut batt_en_lvl,
-                &mut batt_temp,
-                &mut main_voltage,
-            );
-        }
-
-        if return_code != 0 {
-            error!("ParamId108 failed with code {}", return_code);
-            return Err(AppError::msg(format!(
-                "ParamId108 执行失败: {} (ReturnCode={})",
-                return_code_message(return_code),
-                return_code
-            )));
-        }
-
-        Ok(ParamId108Result {
-            batt_vol_mw,
-            batt_curr,
-            batt_en_lvl,
-            batt_temp,
-            main_voltage,
-        })
     }
 
     pub fn param_id114(&self) -> CommandResult<ParamId114Result> {
@@ -1142,10 +1101,6 @@ impl CommDll {
                 &lib,
                 &[b"ParamId256\0", b"ParamId256@8\0", b"_ParamId256@8\0"],
             )?;
-            let param_id108 = load_symbol::<ParamId108Fn>(
-                &lib,
-                &[b"ParamId108\0", b"ParamId108@24\0", b"_ParamId108@24\0"],
-            )?;
             let param_id114 = load_symbol::<ParamId114Fn>(
                 &lib,
                 &[b"ParamId114\0", b"ParamId114@28\0", b"_ParamId114@28\0"],
@@ -1237,7 +1192,6 @@ impl CommDll {
                 param_id606,
                 param_id254,
                 param_id256,
-                param_id108,
                 param_id114,
                 param_id568,
                 param_id610,
