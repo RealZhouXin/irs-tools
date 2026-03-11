@@ -2,7 +2,6 @@ stages:
   - info
   - software
   - status
-  - battery
   - sensor
   - cutting_height
   - actuator
