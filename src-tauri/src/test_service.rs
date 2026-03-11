@@ -358,10 +358,10 @@ mod tests {
     use super::{extract_session_sn, read_connected_session_sn};
     use crate::device_gateway::DeviceGateway;
     use crate::models::{
-        CheckResult, ParamId068Result, ParamId080Result, ParamId096Result, ParamId108Result,
-        ParamId114Result, ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result,
-        ParamId470Result, ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result,
-        ParamId794Result, ParamId796Result, ParamId798Result, TestResult,
+        CheckResult, ParamId068Result, ParamId080Result, ParamId096Result, ParamId114Result,
+        ParamId118Result, ParamId120Result, ParamId122Result, ParamId272Result, ParamId470Result,
+        ParamId526Result, ParamId588Result, ParamId654Result, ParamId776Result, ParamId794Result,
+        ParamId796Result, ParamId798Result, TestResult,
     };
     use crate::types::{AppError, CommandResult};
 
@@ -447,10 +447,6 @@ mod tests {
         }
 
         fn param_id256(&self, _left_motor_speed: i16) -> CommandResult<()> {
-            unreachable!()
-        }
-
-        fn param_id108(&self) -> CommandResult<ParamId108Result> {
             unreachable!()
         }
 

@@ -826,15 +826,6 @@ pub struct ParamId470Result {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct ParamId108Result {
-    pub batt_vol_mw: u16,
-    pub batt_curr: i16,
-    pub batt_en_lvl: i16,
-    pub batt_temp: i16,
-    pub main_voltage: u16,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct ParamId114Result {
     pub right_whl_motor_p: i8,
     pub right_whl_motor_curr: i16,
@@ -1143,16 +1134,6 @@ impl fmt::Display for ParamId122Result {
 impl fmt::Display for ParamId470Result {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CuttingHeightMm={}", self.cutting_height_mm)
-    }
-}
-
-impl fmt::Display for ParamId108Result {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "BattVolMW={}, BattCurr={}, BattEnLvl={}, BattTemp={}, MainVoltage={}",
-            self.batt_vol_mw, self.batt_curr, self.batt_en_lvl, self.batt_temp, self.main_voltage
-        )
     }
 }
 

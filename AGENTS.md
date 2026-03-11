@@ -577,6 +577,7 @@ AppData\Roaming\com.greenworks.irs-tools\config\tests.yaml.new
 * `tests.yaml` 视为用户可编辑的活动配置。
 * 包内 `src-tauri/config/tests.yaml` 仅作为默认配置来源。
 * 若本地 `tests.yaml` 仍等于上次应用的默认版本，升级后自动切换到新默认。
+* 若检测到历史安装且缺少 `tests.state.json`，升级后按旧默认配置处理，自动覆盖到新默认并补写状态文件。
 * 若本地 `tests.yaml` 已被修改，升级后保留当前文件，并把新默认写入 `tests.yaml.new` 供设置页提示与手动应用。
 
 ---
@@ -799,5 +800,6 @@ Added managed upgrade flow for user-editable `tests.yaml`.
 Description of architecture change.
 - Backend now tracks `tests.yaml` lifecycle with `tests.state.json`.
 - Unmodified local `tests.yaml` files are auto-updated to the new packaged default during startup.
+- Legacy installs without `tests.state.json` are treated as old-default installs and auto-migrated to the packaged default.
 - Locally edited `tests.yaml` files are preserved and new defaults are staged to `tests.yaml.new`.
 - Settings page exposes read-only status plus actions to ignore the reminder or back up and apply the new default.
