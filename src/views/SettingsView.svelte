@@ -1,8 +1,10 @@
 <script lang="ts">
   import AboutCard from "../components/AboutCard.svelte";
   import SettingsForm from "../components/SettingsForm.svelte";
+  import TestsConfigUpdateCard from "../components/TestsConfigUpdateCard.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import type {
+    TestsConfigUpdateStatus,
     AppUpdateInfo,
     AppUpdateProgress,
     AppUpdateStatus,
@@ -24,6 +26,13 @@
     settingsSaving,
     settingsSaved,
     settingsError,
+    testsConfigStatus,
+    testsConfigStatusError,
+    testsConfigActionMessage,
+    testsConfigActionError,
+    testsConfigApplying,
+    testsConfigIgnoring,
+    testsConfigActionDisabled,
     aboutError,
     appName,
     appVersion,
@@ -36,6 +45,8 @@
     updateActionDisabled,
     onToggleLanguage,
     onSave,
+    onApplyTestsConfigUpdate,
+    onIgnoreTestsConfigUpdate,
     onCheckUpdate,
     onInstallUpdate,
   } = $props<{
@@ -44,6 +55,13 @@
     settingsSaving: boolean;
     settingsSaved: boolean;
     settingsError: string | null;
+    testsConfigStatus: TestsConfigUpdateStatus | null;
+    testsConfigStatusError: string | null;
+    testsConfigActionMessage: string | null;
+    testsConfigActionError: string | null;
+    testsConfigApplying: boolean;
+    testsConfigIgnoring: boolean;
+    testsConfigActionDisabled: boolean;
     aboutError: string | null;
     appName: string | null;
     appVersion: string | null;
@@ -56,6 +74,8 @@
     updateActionDisabled: boolean;
     onToggleLanguage: () => void;
     onSave: () => void;
+    onApplyTestsConfigUpdate: () => void;
+    onIgnoreTestsConfigUpdate: () => void;
     onCheckUpdate: () => void;
     onInstallUpdate: () => void;
   }>();
@@ -117,8 +137,29 @@
         />
       </section>
 
-      <!-- 关于与更新板块区 -->
       <section class="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+        <div class="flex flex-col gap-1 border-b border-zinc-200/60 pb-3">
+          <h2 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
+            <svg class="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"></path></svg>
+            {text.testsConfigTitle}
+          </h2>
+        </div>
+        <TestsConfigUpdateCard
+          {text}
+          status={testsConfigStatus}
+          statusError={testsConfigStatusError}
+          actionMessage={testsConfigActionMessage}
+          actionError={testsConfigActionError}
+          applying={testsConfigApplying}
+          ignoring={testsConfigIgnoring}
+          actionDisabled={testsConfigActionDisabled}
+          onApply={onApplyTestsConfigUpdate}
+          onIgnore={onIgnoreTestsConfigUpdate}
+        />
+      </section>
+
+      <!-- 关于与更新板块区 -->
+      <section class="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div class="flex flex-col gap-1 border-b border-zinc-200/60 pb-3">
           <h2 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
             <svg class="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

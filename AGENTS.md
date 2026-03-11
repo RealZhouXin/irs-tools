@@ -193,6 +193,9 @@ confirm_wheel_motor_lifted
 get_base_config
 save_base_config
 get_test_stages
+get_tests_config_update_status
+applyTestsConfigUpdate
+ignoreTestsConfigUpdate
 export_test_results_csv
 get_available_export_dates
 confirm_wheel_motor_lifted
@@ -307,6 +310,9 @@ show_main_window
 get_base_config
 save_base_config
 get_test_stages
+get_tests_config_update_status
+apply_tests_config_update
+ignore_tests_config_update
 export_test_results_csv
 get_available_export_dates
 ```
@@ -558,6 +564,21 @@ threshold
 rules
 ```
 
+运行时相关文件：
+
+```text
+AppData\Roaming\com.greenworks.irs-tools\config\tests.yaml
+AppData\Roaming\com.greenworks.irs-tools\config\tests.state.json
+AppData\Roaming\com.greenworks.irs-tools\config\tests.yaml.new
+```
+
+升级规则：
+
+* `tests.yaml` 视为用户可编辑的活动配置。
+* 包内 `src-tauri/config/tests.yaml` 仅作为默认配置来源。
+* 若本地 `tests.yaml` 仍等于上次应用的默认版本，升级后自动切换到新默认。
+* 若本地 `tests.yaml` 已被修改，升级后保留当前文件，并把新默认写入 `tests.yaml.new` 供设置页提示与手动应用。
+
 ---
 
 # 9 关键调用链
@@ -771,3 +792,12 @@ Push connected mower SN to the frontend immediately after it is read.
 Description of architecture change.
 - Backend emits `device-sn-update` once `ParamId526` returns after connect.
 - Frontend subscribes through `src/services/tauri.ts` and updates the main view `machineSn` state without waiting for a `ParamId526` test result row.
+
+Change:
+Added managed upgrade flow for user-editable `tests.yaml`.
+
+Description of architecture change.
+- Backend now tracks `tests.yaml` lifecycle with `tests.state.json`.
+- Unmodified local `tests.yaml` files are auto-updated to the new packaged default during startup.
+- Locally edited `tests.yaml` files are preserved and new defaults are staged to `tests.yaml.new`.
+- Settings page exposes read-only status plus actions to ignore the reminder or back up and apply the new default.

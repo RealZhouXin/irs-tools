@@ -26,6 +26,24 @@ pub struct BaseConfig {
     pub log_level: LogLevel,
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TestsConfigUpdateStatus {
+    pub active_path: String,
+    pub new_default_available: bool,
+    pub local_is_modified: bool,
+    pub pending_default_path: Option<String>,
+    pub pending_default_version: Option<String>,
+    pub ignored_pending_default: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyTestsConfigUpdateResult {
+    pub backup_path: String,
+    pub status: TestsConfigUpdateStatus,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {

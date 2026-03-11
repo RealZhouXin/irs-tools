@@ -16,3 +16,17 @@ export type BaseConfig = {
   read_timeout_ms: number;
   log_level: LogLevel;
 };
+
+export type TestsConfigUpdateStatus = {
+  activePath: string;
+  newDefaultAvailable: boolean;
+  localIsModified: boolean;
+  pendingDefaultPath: string | null;
+  pendingDefaultVersion: string | null;
+  ignoredPendingDefault: boolean;
+};
+
+export type ApplyTestsConfigUpdateResult = {
+  backupPath: string;
+  status: TestsConfigUpdateStatus;
+};
