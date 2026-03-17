@@ -11,6 +11,7 @@ use tracing::{info, warn};
 
 use crate::models::{
     ApplyTestsConfigUpdateResult, BaseConfig, TestConfig, TestGroup, TestsConfigUpdateStatus,
+    DEFAULT_THEME_COLOR,
 };
 use crate::types::{AppError, CommandResult};
 
@@ -77,7 +78,9 @@ pub fn read_base_config(app: &tauri::AppHandle) -> CommandResult<BaseConfig> {
     info!("Using config at {}", base_path.display());
     let base_data =
         fs::read_to_string(&base_path).map_err(|err| AppError::io("无法读取配置文件", err))?;
-    toml::from_str(&base_data).map_err(|err| AppError::toml_de("配置文件解析失败", err))
+    let config: BaseConfig =
+        toml::from_str(&base_data).map_err(|err| AppError::toml_de("配置文件解析失败", err))?;
+    Ok(normalize_base_config(config))
 }
 
 pub fn read_test_stages(app: &tauri::AppHandle) -> CommandResult<Vec<String>> {
@@ -126,12 +129,30 @@ pub fn ignore_tests_config_update(
 
 pub fn write_base_config(app: &tauri::AppHandle, config: &BaseConfig) -> CommandResult<()> {
     let path = resolve_writable_config_path(app, BASE_CONFIG_RELATIVE_PATH, "配置文件")?;
-    let data = toml::to_string_pretty(config)
+    let normalized = normalize_base_config(config.clone());
+    let data = toml::to_string_pretty(&normalized)
         .map_err(|err| AppError::toml_ser("配置文件序列化失败", err))?;
     ensure_parent_dir(&path)?;
     fs::write(&path, data).map_err(|err| AppError::io("无法写入配置文件", err))?;
     info!("Saved config at {}", path.display());
     Ok(())
+}
+
+fn normalize_base_config(mut config: BaseConfig) -> BaseConfig {
+    config.theme_color = normalize_theme_color(&config.theme_color);
+    config
+}
+
+fn normalize_theme_color(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.len() == 7
+        && trimmed.starts_with('#')
+        && trimmed.as_bytes()[1..].iter().all(|byte| byte.is_ascii_hexdigit())
+    {
+        trimmed.to_ascii_lowercase()
+    } else {
+        DEFAULT_THEME_COLOR.to_string()
+    }
 }
 
 fn reconcile_tests_config(app: &tauri::AppHandle) -> CommandResult<TestsConfigUpdateStatus> {

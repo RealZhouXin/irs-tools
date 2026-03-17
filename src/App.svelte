@@ -67,6 +67,7 @@
   import WheelMotorTestDialog from "./components/WheelMotorTestDialog.svelte";
   import MainView from "./views/MainView.svelte";
   import SettingsView from "./views/SettingsView.svelte";
+  import { applyThemeColor } from "$lib/theme";
 
   type SettingsDraft = {
     mode: "network" | "serial";
@@ -75,6 +76,7 @@
     port_number: number;
     read_timeout_ms: number;
     log_level: LogLevel;
+    theme_color: string;
   };
 
   type LightConfirmTarget = "front" | "rear";
@@ -160,6 +162,7 @@
   }
 
   function applyConfigToDraft(config: BaseConfig) {
+    const themeColor = applyThemeColor(config.theme_color);
     if (config.connection.mode === "network") {
       settingsDraft = {
         mode: "network",
@@ -168,6 +171,7 @@
         port_number: 1,
         read_timeout_ms: config.read_timeout_ms,
         log_level: config.log_level ?? "info",
+        theme_color: themeColor,
       };
     } else {
       settingsDraft = {
@@ -177,6 +181,7 @@
         port_number: config.connection.port_number,
         read_timeout_ms: config.read_timeout_ms,
         log_level: config.log_level ?? "info",
+        theme_color: themeColor,
       };
     }
   }
@@ -910,6 +915,7 @@
             },
             read_timeout_ms: settingsDraft.read_timeout_ms,
             log_level: settingsDraft.log_level,
+            theme_color: settingsDraft.theme_color,
           }
         : {
             connection: {
@@ -918,29 +924,12 @@
             },
             read_timeout_ms: settingsDraft.read_timeout_ms,
             log_level: settingsDraft.log_level,
+            theme_color: settingsDraft.theme_color,
           };
 
     try {
       const saved = await saveBaseConfig(config);
-      if (saved.connection.mode === "network") {
-        settingsDraft = {
-          mode: "network",
-          ip_address: saved.connection.ip_address,
-          port: saved.connection.port,
-          port_number: settingsDraft.port_number,
-          read_timeout_ms: saved.read_timeout_ms,
-          log_level: saved.log_level,
-        };
-      } else {
-        settingsDraft = {
-          mode: "serial",
-          ip_address: settingsDraft.ip_address,
-          port: settingsDraft.port,
-          port_number: saved.connection.port_number,
-          read_timeout_ms: saved.read_timeout_ms,
-          log_level: saved.log_level,
-        };
-      }
+      applyConfigToDraft(saved);
       settingsSaved = true;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

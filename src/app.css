@@ -2,66 +2,104 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+    /* Remap existing zinc/slate utilities to the runtime brand palette. */
+    --color-zinc-50: var(--brand-50);
+    --color-zinc-100: var(--brand-100);
+    --color-zinc-200: var(--brand-200);
+    --color-zinc-300: var(--brand-300);
+    --color-zinc-400: var(--brand-400);
+    --color-zinc-500: var(--brand-500);
+    --color-zinc-600: var(--brand-600);
+    --color-zinc-700: var(--brand-700);
+    --color-zinc-800: var(--brand-800);
+    --color-zinc-900: var(--brand-900);
+    --color-zinc-950: var(--brand-950);
+    --color-slate-50: var(--color-zinc-50);
+    --color-slate-100: var(--color-zinc-100);
+    --color-slate-200: var(--color-zinc-200);
+    --color-slate-300: var(--color-zinc-300);
+    --color-slate-400: var(--color-zinc-400);
+    --color-slate-500: var(--color-zinc-500);
+    --color-slate-600: var(--color-zinc-600);
+    --color-slate-700: var(--color-zinc-700);
+    --color-slate-800: var(--color-zinc-800);
+    --color-slate-900: var(--color-zinc-900);
+    --color-slate-950: var(--color-zinc-950);
+}
+
 :root {
     --radius: 0.5rem;
+    --brand-base: #52525b;
+    --brand-50: color-mix(in oklab, white 95%, var(--brand-base));
+    --brand-100: color-mix(in oklab, white 90%, var(--brand-base));
+    --brand-200: color-mix(in oklab, white 82%, var(--brand-base));
+    --brand-300: color-mix(in oklab, white 70%, var(--brand-base));
+    --brand-400: color-mix(in oklab, white 55%, var(--brand-base));
+    --brand-500: color-mix(in oklab, white 35%, var(--brand-base));
+    --brand-600: var(--brand-base);
+    --brand-700: color-mix(in oklab, black 14%, var(--brand-base));
+    --brand-800: color-mix(in oklab, black 28%, var(--brand-base));
+    --brand-900: color-mix(in oklab, black 44%, var(--brand-base));
+    --brand-950: color-mix(in oklab, black 62%, var(--brand-base));
     
-    /* 现代化克制灰度 (Zinc 风格) - 浅色模式 */
-    --background: oklch(0.985 0 0); /* zinc-50 */
-    --foreground: oklch(0.145 0 0); /* zinc-950 */
-    --card: oklch(1 0 0); /* white */
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0); /* zinc-900 */
-    --primary-foreground: oklch(0.985 0 0); /* zinc-50 */
-    --secondary: oklch(0.97 0 0); /* zinc-100 */
-    --secondary-foreground: oklch(0.205 0 0); /* zinc-900 */
-    --muted: oklch(0.97 0 0); /* zinc-100 */
-    --muted-foreground: oklch(0.556 0 0); /* zinc-500 */
-    --accent: oklch(0.97 0 0); /* zinc-100 */
-    --accent-foreground: oklch(0.145 0 0); /* zinc-950 */
+    /* Runtime brand theme - light mode */
+    --background: color-mix(in oklab, white 97%, var(--brand-base));
+    --foreground: var(--brand-950);
+    --card: #ffffff;
+    --card-foreground: var(--brand-950);
+    --popover: #ffffff;
+    --popover-foreground: var(--brand-950);
+    --primary: var(--brand-700);
+    --primary-foreground: #ffffff;
+    --secondary: color-mix(in oklab, white 91%, var(--brand-base));
+    --secondary-foreground: var(--brand-900);
+    --muted: color-mix(in oklab, white 92%, var(--brand-base));
+    --muted-foreground: color-mix(in oklab, black 34%, var(--brand-base));
+    --accent: var(--brand-100);
+    --accent-foreground: var(--brand-900);
     --destructive: oklch(0.577 0.245 27.325); /* 柔和红 */
-    --border: oklch(0.92 0 0); /* zinc-200 */
-    --input: oklch(0.92 0 0); /* zinc-200 */
-    --ring: oklch(0.705 0 0); /* zinc-400 for glowing focus */
-    --sidebar-background: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.145 0 0);
-    --sidebar-border: oklch(0.92 0 0);
-    --sidebar-ring: oklch(0.705 0 0);
+    --border: color-mix(in oklab, white 78%, var(--brand-base));
+    --input: color-mix(in oklab, white 78%, var(--brand-base));
+    --ring: var(--brand-400);
+    --sidebar-background: color-mix(in oklab, white 97%, var(--brand-base));
+    --sidebar-foreground: var(--brand-950);
+    --sidebar-primary: var(--brand-700);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: var(--brand-100);
+    --sidebar-accent-foreground: var(--brand-900);
+    --sidebar-border: color-mix(in oklab, white 78%, var(--brand-base));
+    --sidebar-ring: var(--brand-400);
 }
 
 .dark {
-    /* 现代化克制灰度 (Zinc 风格) - 深色模式 */
-    --background: oklch(0.145 0 0); /* zinc-950 */
-    --foreground: oklch(0.985 0 0); /* zinc-50 */
-    --card: oklch(0.145 0 0); /* zinc-950/900 */
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0); /* zinc-50 */
-    --primary-foreground: oklch(0.205 0 0); /* zinc-900 */
-    --secondary: oklch(0.205 0 0); /* zinc-800 */
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.205 0 0);
-    --muted-foreground: oklch(0.705 0 0); /* zinc-400 */
-    --accent: oklch(0.205 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /* Runtime brand theme - dark mode */
+    --background: color-mix(in oklab, black 78%, var(--brand-base));
+    --foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --card: color-mix(in oklab, black 70%, var(--brand-base));
+    --card-foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --popover: color-mix(in oklab, black 70%, var(--brand-base));
+    --popover-foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --primary: color-mix(in oklab, white 96%, var(--brand-base));
+    --primary-foreground: var(--brand-900);
+    --secondary: color-mix(in oklab, black 48%, var(--brand-base));
+    --secondary-foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --muted: color-mix(in oklab, black 52%, var(--brand-base));
+    --muted-foreground: var(--brand-200);
+    --accent: color-mix(in oklab, black 38%, var(--brand-base));
+    --accent-foreground: color-mix(in oklab, white 96%, var(--brand-base));
     --destructive: oklch(0.6 0.18 20);
-    --border: oklch(0.26 0 0); /* zinc-800 */
-    --input: oklch(0.26 0 0);
-    --ring: oklch(0.44 0 0); /* zinc-600 */
-    --sidebar-background: oklch(0.145 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.205 0 0);
-    --sidebar-accent: oklch(0.205 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.26 0 0);
-    --sidebar-ring: oklch(0.44 0 0);
+    --border: color-mix(in oklab, black 40%, var(--brand-base));
+    --input: color-mix(in oklab, black 40%, var(--brand-base));
+    --ring: var(--brand-300);
+    --sidebar-background: color-mix(in oklab, black 78%, var(--brand-base));
+    --sidebar-foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --sidebar-primary: color-mix(in oklab, white 96%, var(--brand-base));
+    --sidebar-primary-foreground: var(--brand-900);
+    --sidebar-accent: color-mix(in oklab, black 48%, var(--brand-base));
+    --sidebar-accent-foreground: color-mix(in oklab, white 96%, var(--brand-base));
+    --sidebar-border: color-mix(in oklab, black 40%, var(--brand-base));
+    --sidebar-ring: var(--brand-300);
 }
 
 @theme inline {

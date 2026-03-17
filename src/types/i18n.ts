@@ -76,6 +76,9 @@ export type Translation = {
   fieldSerialPort: string;
   fieldTimeout: string;
   fieldLogLevel: string;
+  fieldThemeColor: string;
+  fieldThemeColorHint: string;
+  themeColorReset: string;
   logLevelError: string;
   logLevelWarn: string;
   logLevelInfo: string;
