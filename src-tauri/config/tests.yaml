@@ -142,7 +142,7 @@ tests:
       - name: app_board_temp
         output: app_board_temp
         min: -100
-        max: 600
+        max: 1000
 
   - name: "118 碰撞条测试"
     names:

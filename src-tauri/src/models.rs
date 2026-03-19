@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
+pub const DEFAULT_THEME_COLOR: &str = "#52525b";
+
+fn default_theme_color() -> String {
+    DEFAULT_THEME_COLOR.to_string()
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TestConfig {
     pub connection: ConnectionConfig,
@@ -24,6 +30,8 @@ pub struct BaseConfig {
     pub read_timeout_ms: u32,
     #[serde(default)]
     pub log_level: LogLevel,
+    #[serde(default = "default_theme_color")]
+    pub theme_color: String,
 }
 
 #[derive(Debug, Serialize, Clone)]

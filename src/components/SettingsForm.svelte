@@ -4,6 +4,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import { DEFAULT_THEME_COLOR } from "$lib/theme";
 
   type SettingsDraft = {
     mode: "network" | "serial";
@@ -12,6 +13,7 @@
     port_number: number;
     read_timeout_ms: number;
     log_level: "error" | "warn" | "info" | "debug" | "trace";
+    theme_color: string;
   };
 
   let {
@@ -158,6 +160,57 @@
                 <Select.Item value="trace" label={text.logLevelTrace} />
               </Select.Content>
             </Select.Root>
+          </div>
+        </div>
+
+        <div class="space-y-3 pt-2">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div class="space-y-1">
+              <Label for="field-theme-color" class="text-zinc-700">{text.fieldThemeColor}</Label>
+              <p class="text-[13px] leading-relaxed text-zinc-500">{text.fieldThemeColorHint}</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              class="h-8 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+              onclick={() => {
+                if (settingsDraft) settingsDraft.theme_color = DEFAULT_THEME_COLOR;
+              }}
+            >
+              {text.themeColorReset}
+            </Button>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label
+              for="field-theme-color"
+              class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3 py-2 shadow-sm transition-colors hover:bg-white sm:max-w-[220px]"
+            >
+              <input
+                id="field-theme-color"
+                type="color"
+                class="h-10 w-14 cursor-pointer rounded-lg border border-zinc-200 bg-white p-1"
+                value={settingsDraft.theme_color}
+                oninput={(event) => {
+                  if (settingsDraft) settingsDraft.theme_color = event.currentTarget.value;
+                }}
+              />
+              <div class="flex flex-col">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">HEX</span>
+                <code class="font-mono text-sm font-medium text-zinc-700">{settingsDraft.theme_color}</code>
+              </div>
+            </label>
+
+            <div class="flex flex-1 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+              <div
+                class="h-10 w-10 rounded-lg border border-zinc-200 shadow-inner"
+                style={`background: ${settingsDraft.theme_color}`}
+              ></div>
+              <div class="flex min-w-0 flex-col">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{text.fieldThemeColor}</span>
+                <span class="truncate text-sm text-zinc-600">{text.fieldThemeColorHint}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

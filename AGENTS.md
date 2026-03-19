@@ -548,6 +548,7 @@ src-tauri/config/
 serial/network
 timeout
 log level
+theme color
 ```
 
 ---
@@ -803,3 +804,11 @@ Description of architecture change.
 - Legacy installs without `tests.state.json` are treated as old-default installs and auto-migrated to the packaged default.
 - Locally edited `tests.yaml` files are preserved and new defaults are staged to `tests.yaml.new`.
 - Settings page exposes read-only status plus actions to ignore the reminder or back up and apply the new default.
+
+Change:
+Added persisted user-selectable theme color in base config.
+
+Description of architecture change.
+- `threshold.toml` now includes `theme_color`, stored alongside connection mode, timeout, and log level.
+- Frontend settings save/load continues to flow through `get_base_config` and `save_base_config`.
+- Global theme tokens in `src/app.css` now derive the full runtime palette from a single `--brand-base` color, so both shadcn semantic tokens and existing `zinc-*` utility usage stay in sync.

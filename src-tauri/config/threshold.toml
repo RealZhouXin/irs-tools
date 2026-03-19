@@ -1,5 +1,6 @@
 read_timeout_ms = 1000
 log_level = "info"
+theme_color = "#52525b"
 
 [connection]
 mode = "network"

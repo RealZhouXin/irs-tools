@@ -15,6 +15,7 @@ export type BaseConfig = {
   connection: ConnectionConfig;
   read_timeout_ms: number;
   log_level: LogLevel;
+  theme_color: string;
 };
 
 export type TestsConfigUpdateStatus = {
